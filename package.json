@@ -12,7 +12,7 @@
 		"test": "pnpm -r --sequential test",
 		"lint:publish": "pnpm -r exec publint --strict",
 		"size": "node scripts/size.mjs",
-		"check": "pnpm typecheck && pnpm build && pnpm test && pnpm lint:publish && pnpm size",
+		"check": "pnpm build && pnpm typecheck && pnpm test && pnpm lint:publish && pnpm size",
 		"changeset": "changeset",
 		"version": "changeset version && pnpm install --lockfile-only",
 		"release": "pnpm publish -r --no-git-checks --access public"

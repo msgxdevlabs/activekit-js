@@ -39,15 +39,16 @@ jobs:
       # something new.
       - run: pnpm install --frozen-lockfile
 
-      # typecheck → build → test → publint → size, in that order. Tests run
-      # against dist/, so the build has to come first.
+      # build → typecheck → test → publint → size, in that order, and the
+      # order is load-bearing. The bindings import `@activekit/js` through its
+      # exports map, which points at dist/index.d.ts — so on a fresh checkout
+      # nothing downstream of it can typecheck until it has been built. Tests
+      # run against dist/ for the same reason.
       - name: Check
         run: pnpm check
 
-      # publint verifies the published shape (exports map, types resolution,
-      # file inclusion). It catches the class of bug that only appears after
-      # someone has already run `npm i` — and npm versions are immutable, so
-      # there is no fixing it afterwards.
+      # Runs even on failure: knowing what a red build would have released is
+      # exactly when it is most useful.
       - name: Summarize what would be released
         if: always()
         run: pnpm changeset status --verbose >> "$GITHUB_STEP_SUMMARY" || true

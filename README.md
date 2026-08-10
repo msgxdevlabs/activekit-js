@@ -127,11 +127,13 @@ why it is gated like a production deploy.
 
 ```bash
 pnpm install
-pnpm check      # typecheck → build → test → publint → size budgets
+pnpm check      # build → typecheck → test → publint → size budgets
 ```
 
-`pnpm check` is what CI runs. Everything in it fails the build, including the
-size budgets:
+`pnpm check` is what CI runs, and the order matters: the bindings resolve
+`@activekit/js` through its exports map to `dist/index.d.ts`, so nothing
+downstream of it typechecks until it has been built. Everything in it fails the
+build, including the size budgets:
 
 | Bundle | Budget (brotli) |
 | --- | --- |
