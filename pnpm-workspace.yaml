@@ -1,0 +1,14 @@
+packages:
+  - "packages/*"
+
+# Nothing younger than three days enters a build. This is the cheap 90% of
+# "a registry we control" — it defends against the compromised-release window
+# that every recent npm worm relied on, without operating a mirror.
+# Raising it is safe; lowering it needs a reason in the PR description.
+minimumReleaseAge: 4320
+
+# Only these packages may run install scripts. pnpm 11 refuses the rest.
+allowBuilds:
+  esbuild: true
+  rolldown: true
+  unrs-resolver: true

@@ -1,0 +1,58 @@
+{
+	"name": "activekit",
+	"version": "0.0.0",
+	"description": "Server SDK for ActiveKit — record events, read grants, mint subject tokens, verify webhooks. Runs on Node, Workers, Bun and Deno.",
+	"license": "MIT",
+	"homepage": "https://activekit.app",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/msgxdevlabs/activekit-js.git",
+		"directory": "packages/server"
+	},
+	"bugs": "https://github.com/msgxdevlabs/activekit-js/issues",
+	"keywords": [
+		"activekit",
+		"streaks",
+		"referral",
+		"rewards",
+		"campaigns",
+		"sdk"
+	],
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		".": {
+			"import": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			},
+			"require": {
+				"types": "./dist/index.d.cts",
+				"default": "./dist/index.cjs"
+			}
+		},
+		"./package.json": "./package.json"
+	},
+	"types": "./dist/index.d.ts",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"files": [
+		"dist"
+	],
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"scripts": {
+		"build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsdown",
+		"typecheck": "tsc --noEmit",
+		"test": "node --test \"test/**/*.test.mjs\""
+	},
+	"devDependencies": {
+		"tsdown": "0.22.14",
+		"typescript": "5.9.3"
+	},
+	"engines": {
+		"node": ">=20"
+	}
+}

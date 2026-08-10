@@ -1,0 +1,25 @@
+{
+	"name": "activekit-js",
+	"private": true,
+	"license": "MIT",
+	"packageManager": "pnpm@11.21.0",
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"build": "pnpm -r --sequential build",
+		"typecheck": "pnpm -r --sequential typecheck",
+		"test": "pnpm -r --sequential test",
+		"lint:publish": "pnpm -r exec publint --strict",
+		"size": "node scripts/size.mjs",
+		"check": "pnpm typecheck && pnpm build && pnpm test && pnpm lint:publish && pnpm size",
+		"changeset": "changeset",
+		"version": "changeset version && pnpm install --lockfile-only",
+		"release": "pnpm publish -r --no-git-checks --access public"
+	},
+	"devDependencies": {
+		"@changesets/cli": "2.31.1",
+		"publint": "0.3.23",
+		"typescript": "5.9.3"
+	}
+}

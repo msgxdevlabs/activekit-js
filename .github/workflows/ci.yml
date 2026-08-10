@@ -1,0 +1,78 @@
+name: CI
+
+# Every PR and every push to main. Releases nothing — publishing is manual and
+# lives in release.yml, the same shape as the product repo's production deploy.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Typecheck, build, test, size
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # changeset status compares against the base branch, so a shallow
+          # clone has nothing to compare with.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # --frozen-lockfile is the point of committing one: an install that
+      # silently resolves something new is an install that can publish
+      # something new.
+      - run: pnpm install --frozen-lockfile
+
+      # typecheck → build → test → publint → size, in that order. Tests run
+      # against dist/, so the build has to come first.
+      - name: Check
+        run: pnpm check
+
+      # publint verifies the published shape (exports map, types resolution,
+      # file inclusion). It catches the class of bug that only appears after
+      # someone has already run `npm i` — and npm versions are immutable, so
+      # there is no fixing it afterwards.
+      - name: Summarize what would be released
+        if: always()
+        run: pnpm changeset status --verbose >> "$GITHUB_STEP_SUMMARY" || true
+
+  changeset:
+    name: Changeset present
+    # A PR that changes a package without a changeset ships as whatever the
+    # last bump happened to be. Add an empty one (`pnpm changeset --empty`) for
+    # changes that genuinely release nothing — docs, CI, tests.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Require a changeset
+        run: pnpm changeset status --since=origin/${{ github.base_ref }}

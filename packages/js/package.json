@@ -1,0 +1,61 @@
+{
+	"name": "@activekit/js",
+	"version": "0.0.0",
+	"description": "Browser client and embeddable widget for ActiveKit. Vanilla TypeScript, zero dependencies.",
+	"license": "MIT",
+	"homepage": "https://activekit.app",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/msgxdevlabs/activekit-js.git",
+		"directory": "packages/js"
+	},
+	"bugs": "https://github.com/msgxdevlabs/activekit-js/issues",
+	"keywords": [
+		"activekit",
+		"streaks",
+		"referral",
+		"rewards",
+		"widget",
+		"embed"
+	],
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./package.json": "./package.json",
+		"./global": {
+			"default": "./dist/activekit.global.iife.js"
+		}
+	},
+	"types": "./dist/index.d.ts",
+	"module": "./dist/index.js",
+	"unpkg": "./dist/activekit.global.iife.js",
+	"files": [
+		"dist"
+	],
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"activekit": {
+		"sizeLimit": {
+			"dist/index.js": "8 kB",
+			"dist/activekit.global.iife.js": "8 kB"
+		}
+	},
+	"scripts": {
+		"build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsdown",
+		"typecheck": "tsc --noEmit",
+		"test": "node --test \"test/**/*.test.mjs\""
+	},
+	"devDependencies": {
+		"tsdown": "0.22.14",
+		"typescript": "5.9.3"
+	},
+	"engines": {
+		"node": ">=20"
+	}
+}

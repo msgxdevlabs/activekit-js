@@ -1,0 +1,148 @@
+name: Release
+
+# Manual only, from main, with a typed confirmation — the same gate the product
+# repo puts in front of a production deploy, for the same reason: this pushes
+# code to other people's machines and npm versions are immutable. There is no
+# rollback, only a new version.
+#
+# Why not the usual Changesets "Version Packages" PR bot: opening a PR from
+# Actions needs the org-wide "Allow GitHub Actions to create and approve pull
+# requests" policy, which is deliberately off here because it also lets Actions
+# approve PRs. So the version commit is pushed straight to main by this
+# workflow, and the human gate is the dispatch rather than a PR merge.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type RELEASE to publish to npm'
+        required: true
+        type: string
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check confirmation and ref
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$CONFIRM" != "RELEASE" ]; then
+            echo "::error::Confirmation must be exactly RELEASE (got: '$CONFIRM')."
+            exit 1
+          fi
+          if [ "$REF" != "refs/heads/main" ]; then
+            echo "::error::Releases run from main only (got: $REF)."
+            exit 1
+          fi
+
+  release:
+    name: Version and publish
+    needs: guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Named so the npm trusted-publisher config can pin to it. It holds no
+    # secrets — that is the entire point. If this environment ever grows one,
+    # something has gone backwards.
+    environment: npm
+
+    permissions:
+      # Pushes the version commit and the tags back to main.
+      contents: write
+      # Mints the short-lived OIDC token npm exchanges for a publish
+      # credential. Without it, publishing fails with a 404 that reads like a
+      # missing package rather than missing auth.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      # Everything CI runs, again. CI ran on the merge commit; this runs on
+      # whatever main is right now, which is not necessarily the same tree.
+      - name: Check
+        run: pnpm check
+
+      - name: Fail if there is nothing to release
+        run: |
+          if [ -z "$(ls -A .changeset/*.md 2>/dev/null | grep -v README)" ]; then
+            echo "::error::No changesets. Nothing to release."
+            exit 1
+          fi
+
+      - name: Configure git identity
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      # Consumes the changesets: bumps versions, rewrites changelogs, updates
+      # the lockfile.
+      # Uses the built-in changelog generator, not @changesets/changelog-github:
+      # that one resolves PR numbers through the API, which puts a network call
+      # and a credential in the middle of a release for prettier links. The
+      # changeset descriptions are the changelog.
+      - name: Version
+        run: pnpm run version
+
+      - name: Commit version bump
+        run: |
+          git add -A
+          git commit -m 'Version packages [skip ci]'
+
+      # OIDC. No NODE_AUTH_TOKEN, no .npmrc credential, nothing to rotate or
+      # leak — npm verifies the token came from this repo, this workflow and
+      # this environment, then issues a credential good for this publish alone.
+      # Provenance attestations are generated automatically.
+      #
+      # `pnpm publish`, not `npm publish`: the bindings depend on @activekit/js
+      # via `workspace:^`, and only pnpm rewrites that into a real version range
+      # as it packs. npm would publish the protocol string verbatim and every
+      # install of @activekit/react would fail.
+      - name: Publish to npm
+        run: pnpm run release
+
+      - name: Tag and push
+        run: |
+          pnpm exec changeset tag
+          git push origin HEAD:main
+          git push origin --tags
+
+      - name: Create GitHub releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # One release per tag created above, body taken from the changelog
+          # entry Changesets just wrote.
+          for tag in $(git tag --points-at HEAD); do
+            gh release create "$tag" --title "$tag" --generate-notes || \
+              echo "::warning::Release for $tag already exists"
+          done
+
+      - name: Summary
+        run: |
+          {
+            echo '### Published'
+            echo
+            git tag --points-at HEAD | sed 's/^/- /'
+          } >> "$GITHUB_STEP_SUMMARY"

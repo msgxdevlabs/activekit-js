@@ -1,0 +1,63 @@
+{
+	"name": "@activekit/react",
+	"version": "0.0.0",
+	"description": "React bindings for ActiveKit — provider, hooks and the embeddable progress widget.",
+	"license": "MIT",
+	"homepage": "https://activekit.app",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/msgxdevlabs/activekit-js.git",
+		"directory": "packages/react"
+	},
+	"bugs": "https://github.com/msgxdevlabs/activekit-js/issues",
+	"keywords": [
+		"activekit",
+		"react",
+		"streaks",
+		"referral",
+		"rewards",
+		"widget"
+	],
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"types": "./dist/index.d.ts",
+	"module": "./dist/index.js",
+	"files": [
+		"dist"
+	],
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"activekit": {
+		"sizeLimit": {
+			"dist/index.js": "4 kB"
+		}
+	},
+	"scripts": {
+		"build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsdown",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@activekit/js": "workspace:^"
+	},
+	"peerDependencies": {
+		"react": "^18.0.0 || ^19.0.0"
+	},
+	"devDependencies": {
+		"@types/react": "19.2.7",
+		"react": "19.2.8",
+		"tsdown": "0.22.14",
+		"typescript": "5.9.3"
+	},
+	"engines": {
+		"node": ">=20"
+	}
+}
