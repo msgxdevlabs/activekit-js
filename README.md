@@ -11,7 +11,7 @@ widget, and one thin binding per framework.
 | Package | Install | What it is |
 | --- | --- | --- |
 | [`activekit`](packages/server) | `pnpm add activekit` | Server SDK. Record events, read grants, mint subject tokens, verify webhooks. |
-| [`@activekit/js`](packages/js) | `pnpm add @activekit/js` | Browser client and widget. Zero dependencies. |
+| [`@activekit/js`](packages/js) | `pnpm add @activekit/js` | Browser client and widget. Read-only, zero dependencies. |
 | [`@activekit/react`](packages/react) | `pnpm add @activekit/react` | Provider, hooks, widget component. |
 | [`@activekit/svelte`](packages/svelte) | `pnpm add @activekit/svelte` | Component, action, progress store. Svelte 5. |
 | [`@activekit/elements`](packages/elements) | `pnpm add @activekit/elements` | `<activekit-widget>`. Angular, Astro, Rails, Laravel, HTMX, plain HTML. |
@@ -41,6 +41,23 @@ framework a day's work rather than a quarter's.
 `activekit` (the server SDK) shares nothing with them by design. It runs where
 an API key is safe; the others run where it isn't.
 
+### The client packages cannot write
+
+`@activekit/js` and its bindings read a subject's own progress and grants. They
+have no `track`, no `claim`, and no code path that issues anything but a `GET`.
+
+That is a security boundary, not an unfinished feature. Anything the browser can
+write, the browser's owner can forge — a subject who can record their own events
+can mint streak days and referrals at whatever rate their console allows, and
+server-side re-derivation does not help when the *event* is the lie. For a
+product whose job is recording what people earned, that is the integrity of the
+ledger.
+
+So events are recorded by the organization's server, holding an API key, through
+`activekit`. The browser only ever asks what already happened. `pnpm check`
+enforces it: the suite walks the client's prototype chain for write-shaped
+methods and asserts every request it makes is a `GET` with no body.
+
 ## Quick start
 
 Mint a subject token on your server. Never put an API key in a browser — it
@@ -69,7 +86,7 @@ const client = createClient({ token });
 export function Rewards() {
   return (
     <ActiveKitProvider client={client}>
-      <ActiveKitWidget programKey="daily-login" onGrant={() => refetchCredits()} />
+      <ActiveKitWidget programKey="daily-login" />
     </ActiveKitProvider>
   );
 }
@@ -187,5 +204,7 @@ Bug reports and PRs welcome. Two things to know before opening one:
   don't deploy and can't force-refresh. A rename is a major, always.
 - **Logic goes in `@activekit/js`.** A fix that lands in a binding is a fix that
   the other four bindings still need.
+- **No client package may write.** A PR adding a non-`GET` request to any
+  browser package will fail CI, and should — see above.
 
 MIT © MSGX Dev Labs

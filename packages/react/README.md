@@ -3,6 +3,11 @@
 React bindings for [ActiveKit](https://activekit.app) — provider, hooks, and
 the embeddable progress widget. React 18 and 19.
 
+**Read-only.** These components read a subject's own campaign progress and
+grants. Recording events and issuing grants happen on your server with the
+[`activekit`](https://www.npmjs.com/package/activekit) package — anything the
+browser can write, the browser's owner can forge.
+
 ```bash
 pnpm add @activekit/react
 ```
@@ -23,14 +28,16 @@ const client = createClient({ token });
 export function Rewards() {
   return (
     <ActiveKitProvider client={client}>
-      <ActiveKitWidget programKey="daily-login" onGrant={() => refetchCredits()} />
+      <ActiveKitWidget programKey="daily-login" />
     </ActiveKitProvider>
   );
 }
 ```
 
-`onGrant` may be an inline arrow — the widget reads it through a ref, so a new
-function identity does not tear it down and remount it.
+There is no `onGrant` prop, because nothing here issues a grant. When
+`progress.eligible` is true, render your own button and post to your own
+backend — that route calls the server SDK, which is the only thing that can
+write.
 
 ### Hooks
 

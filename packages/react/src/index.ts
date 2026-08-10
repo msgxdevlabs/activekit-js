@@ -109,21 +109,18 @@ export interface ActiveKitWidgetProps extends MountOptions {
  * it — the widget lives in a shadow root, so React never sees or reconciles
  * its internals. That is the point: one implementation of the UI, rendered
  * identically under every framework.
+ *
+ * Read-only, like everything else in this package. There is no `onGrant`,
+ * because nothing here can issue a grant — render your own button and post to
+ * your own backend.
  */
 export function ActiveKitWidget({
 	className,
 	programKey,
 	theme,
-	onGrant,
 }: ActiveKitWidgetProps): ReactElement {
 	const client = useActiveKit();
 	const hostRef = useRef<HTMLDivElement>(null);
-
-	// The latest onGrant, without making it a mount dependency — a caller
-	// passing an inline arrow would otherwise tear down and remount the widget
-	// on every single render.
-	const onGrantRef = useRef(onGrant);
-	onGrantRef.current = onGrant;
 
 	useEffect(() => {
 		const host = hostRef.current;
@@ -132,7 +129,6 @@ export function ActiveKitWidget({
 		const handle = mountWidget(host, client, {
 			...(programKey ? { programKey } : {}),
 			...(theme ? { theme } : {}),
-			onGrant: () => onGrantRef.current?.(),
 		});
 
 		return () => handle.destroy();

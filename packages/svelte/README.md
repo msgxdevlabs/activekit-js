@@ -3,6 +3,11 @@
 Svelte 5 bindings for [ActiveKit](https://activekit.app) — widget component,
 action, and progress store.
 
+**Read-only.** These read a subject's own campaign progress and grants.
+Recording events and issuing grants happen on your server with the
+[`activekit`](https://www.npmjs.com/package/activekit) package — anything the
+browser can write, the browser's owner can forge.
+
 ```bash
 pnpm add @activekit/svelte
 ```
@@ -21,7 +26,7 @@ Svelte 5 only. Svelte 4 users can use
   const client = createClient({ token });
 </script>
 
-<ActiveKitWidget {client} programKey="daily-login" onGrant={refetchCredits} />
+<ActiveKitWidget {client} programKey="daily-login" />
 ```
 
 ## Action

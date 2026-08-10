@@ -1,9 +1,12 @@
 /**
- * Wire types for the ActiveKit public API (`/v1`).
+ * Wire types for the read-only surface of the ActiveKit public API (`/v1`).
  *
  * These mirror the API's OpenAPI contract, not its database. Anything that is
  * not in the contract does not belong here — the SDK is downstream of the
  * published API, never of the product's internals.
+ *
+ * There are no request types in this file, because the browser never sends a
+ * body. See the note on read-only in `client.ts`.
  */
 
 /** A campaign an organization is running: streak, daily login, referral. */
@@ -21,8 +24,15 @@ export interface ProgramProgress {
 	/** Server-computed. Never derived in the browser — the client cannot be trusted to count. */
 	current: number;
 	target: number;
-	/** Whether the server would honour a claim right now. Advisory: it is re-derived on claim. */
-	claimable: boolean;
+	/**
+	 * Whether the server currently considers this subject eligible.
+	 *
+	 * For display only. Nothing in this SDK can act on it: issuing a grant is a
+	 * write, and writes happen on the organization's server through the
+	 * `activekit` package. Render a button if you like — it posts to *your*
+	 * backend, not to ours.
+	 */
+	eligible: boolean;
 	completedAt: string | null;
 }
 
@@ -46,21 +56,6 @@ export interface Grant {
 	createdAt: string;
 }
 
-export interface TrackResult {
-	/** Server-assigned event id. Use it when correlating with your own logs. */
-	eventId: string;
-	/** Programs whose progress moved because of this event. */
-	advanced: string[];
-}
-
-export interface ClaimResult {
-	/** The server's verdict. A rejected claim is a normal outcome, not an error. */
-	granted: boolean;
-	grant: Grant | null;
-	/** Machine-readable reason when `granted` is false, e.g. `not_eligible`, `budget_exhausted`. */
-	reason: string | null;
-}
-
 export interface SubjectSnapshot {
 	subjectId: string;
 	programs: ProgramProgress[];
@@ -68,12 +63,8 @@ export interface SubjectSnapshot {
 
 /** Events the client emits. Subscribe with `client.on(...)`. */
 export interface ActiveKitEvents {
-	/** A grant was issued to this subject. */
-	grant: Grant;
-	/** Progress changed for one or more programs. */
+	/** A fresh snapshot arrived. Fires on every successful `progress()`. */
 	progress: SubjectSnapshot;
-	/** Any error the client swallowed rather than throwing, e.g. a failed background refresh. */
-	error: ActiveKitError;
 }
 
 /**

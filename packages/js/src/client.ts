@@ -1,11 +1,5 @@
 import { ActiveKitError } from "./types.js";
-import type {
-	ActiveKitEvents,
-	ClaimResult,
-	Grant,
-	SubjectSnapshot,
-	TrackResult,
-} from "./types.js";
+import type { ActiveKitEvents, Grant, SubjectSnapshot } from "./types.js";
 
 const DEFAULT_API_URL = "https://api.activekit.app/v1";
 
@@ -50,6 +44,26 @@ const backoff = (attempt: number, retryAfter: string | null): number => {
 	return Math.min(2 ** attempt * 250, 8_000) * (0.5 + Math.random() / 2);
 };
 
+/**
+ * Read-only client for the browser.
+ *
+ * **This SDK cannot write.** It reads a subject's own campaign progress and
+ * grants, and that is the entire surface. There is no `track`, no `claim`, and
+ * no code path that issues anything but a GET — `#get` below is the only
+ * transport, and its method is a literal.
+ *
+ * That is a deliberate boundary, not an unfinished feature. Anything the
+ * browser can POST, the browser's owner can forge: a subject who can record
+ * their own events can mint streak days and referrals at whatever rate their
+ * console allows, and server-side re-derivation does not help when the *event*
+ * is the thing being faked. So events are recorded by the organization's
+ * server, with an API key, through the `activekit` package. The browser only
+ * ever asks what already happened.
+ *
+ * A pleasant consequence: every request here is idempotent, so a retry can
+ * never double-count anything. That is why there is no idempotency-key
+ * machinery in this package — it has nothing to protect.
+ */
 export class ActiveKitClient {
 	readonly #apiUrl: string;
 	readonly #fetch: FetchLike;
@@ -101,50 +115,16 @@ export class ActiveKitClient {
 		}
 	}
 
-	/**
-	 * Record something the subject did.
-	 *
-	 * Pass an `idempotencyKey` for anything a retry could double-count. The
-	 * server deduplicates on it, which is the only thing standing between a
-	 * flaky connection and a subject earning the same streak day twice.
-	 */
-	async track(
-		name: string,
-		properties: Record<string, unknown> = {},
-		options: { idempotencyKey?: string } = {},
-	): Promise<TrackResult> {
-		return this.#request<TrackResult>("POST", "/events", {
-			body: { name, properties },
-			...(options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}),
-		});
-	}
-
-	/**
-	 * Ask the server to issue a grant.
-	 *
-	 * The request is *intent*, never fact: the server re-derives eligibility and
-	 * ignores anything the client claims about its own progress. A `granted:
-	 * false` result is a normal outcome with a `reason`, not a thrown error.
-	 */
-	async claim(programKey: string, options: { idempotencyKey?: string } = {}): Promise<ClaimResult> {
-		const result = await this.#request<ClaimResult>("POST", "/claims", {
-			body: { programKey },
-			...(options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}),
-		});
-		if (result.granted && result.grant) this.#emit("grant", result.grant);
-		return result;
-	}
-
 	/** Current progress across every program the subject is enrolled in. */
 	async progress(): Promise<SubjectSnapshot> {
-		const snapshot = await this.#request<SubjectSnapshot>("GET", "/me/progress");
+		const snapshot = await this.#get<SubjectSnapshot>("/me/progress");
 		this.#emit("progress", snapshot);
 		return snapshot;
 	}
 
 	/** Everything this subject has earned, newest first. */
 	async grants(): Promise<Grant[]> {
-		const { data } = await this.#request<{ data: Grant[] }>("GET", "/me/grants");
+		const { data } = await this.#get<{ data: Grant[] }>("/me/grants");
 		return data;
 	}
 
@@ -154,24 +134,19 @@ export class ActiveKitClient {
 		this.#handlers.clear();
 	}
 
-	async #request<T>(
-		method: string,
-		path: string,
-		options: { body?: unknown; idempotencyKey?: string } = {},
-	): Promise<T> {
+	/**
+	 * The only transport in this package. `GET` is a literal on purpose: there
+	 * is no parameter a caller or a future edit can set to make this write.
+	 */
+	async #get<T>(path: string): Promise<T> {
 		if (this.#destroyed) throw new TypeError("ActiveKit: client has been destroyed.");
 
-		const headers: Record<string, string> = {
-			authorization: `Bearer ${this.#token}`,
-			accept: "application/json",
-		};
-		if (options.body !== undefined) headers["content-type"] = "application/json";
-		if (options.idempotencyKey) headers["idempotency-key"] = options.idempotencyKey;
-
 		const init: RequestInit = {
-			method,
-			headers,
-			...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
+			method: "GET",
+			headers: {
+				authorization: `Bearer ${this.#token}`,
+				accept: "application/json",
+			},
 		};
 
 		let lastError: ActiveKitError | undefined;
@@ -180,7 +155,7 @@ export class ActiveKitClient {
 			let response: Response;
 			try {
 				response = await this.#fetch(`${this.#apiUrl}${path}`, init);
-			} catch (cause) {
+			} catch {
 				// Network failure: no status, no request id, and indistinguishable
 				// from an offline tab. Retry, then surface it.
 				lastError = new ActiveKitError(`ActiveKit: request to ${path} failed`, {

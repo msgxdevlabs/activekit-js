@@ -1,6 +1,8 @@
 /**
  * Custom elements.
  *
+ * Read-only, like every ActiveKit client package.
+ *
  * The highest-leverage package in the repo: one implementation that works in
  * Angular, Astro, Rails and Laravel views, HTMX, Alpine, plain HTML — and in
  * whatever framework arrives next. Writing a hand binding per framework is
@@ -65,11 +67,6 @@ export class ActiveKitWidgetElement extends HTMLElement {
 		this.#handle = mountWidget(this, this.#client, {
 			...(programKey ? { programKey } : {}),
 			...(theme ? { theme } : {}),
-			// Host pages listen with addEventListener, the platform's own idiom —
-			// no framework, no callback prop, no library to import.
-			onGrant: () => {
-				this.dispatchEvent(new CustomEvent("activekit:grant", { bubbles: true, composed: true }));
-			},
 		});
 	}
 

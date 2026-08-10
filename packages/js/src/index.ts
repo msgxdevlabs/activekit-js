@@ -7,10 +7,8 @@ export type { MountOptions, WidgetHandle } from "./widget.js";
 export { ActiveKitError } from "./types.js";
 export type {
 	ActiveKitEvents,
-	ClaimResult,
 	Grant,
 	Program,
 	ProgramProgress,
 	SubjectSnapshot,
-	TrackResult,
 } from "./types.js";

@@ -22,74 +22,119 @@ const stubFetch = (responses) => {
 	return { fetch, calls };
 };
 
+const SNAPSHOT = {
+	subjectId: "sub_1",
+	programs: [
+		{
+			program: { id: "prg_1", key: "daily-login", name: "Daily login", status: "active" },
+			current: 3,
+			target: 7,
+			eligible: false,
+			completedAt: null,
+		},
+	],
+};
+
 test("refuses to construct without a token", () => {
 	assert.throws(() => createClient({ token: "" }), /token. is required/);
 });
 
 test("sends the subject JWT and parses the response", async () => {
-	const { fetch, calls } = stubFetch([{ body: { eventId: "evt_1", advanced: ["daily-login"] } }]);
+	const { fetch, calls } = stubFetch([{ body: SNAPSHOT }]);
 	const client = createClient({ token: "jwt_abc", fetch, apiUrl: "https://api.test/v1" });
 
-	const result = await client.track("session_start", { plan: "free" });
+	const snapshot = await client.progress();
 
-	assert.deepEqual(result, { eventId: "evt_1", advanced: ["daily-login"] });
+	assert.equal(snapshot.subjectId, "sub_1");
+	assert.equal(snapshot.programs[0].current, 3);
 	assert.equal(calls.length, 1);
-	assert.equal(calls[0].url, "https://api.test/v1/events");
+	assert.equal(calls[0].url, "https://api.test/v1/me/progress");
 	assert.equal(calls[0].init.headers.authorization, "Bearer jwt_abc");
-	assert.deepEqual(JSON.parse(calls[0].init.body), {
-		name: "session_start",
-		properties: { plan: "free" },
-	});
 });
 
-test("forwards the idempotency key so a retry cannot double-count", async () => {
-	const { fetch, calls } = stubFetch([{ body: { eventId: "evt_2", advanced: [] } }]);
+test("reads grants", async () => {
+	const grant = { id: "grn_1", programId: "prg_1", subjectId: "sub_1", status: "recorded" };
+	const { fetch, calls } = stubFetch([{ body: { data: [grant] } }]);
+	const client = createClient({ token: "jwt", fetch, apiUrl: "https://api.test/v1" });
+
+	const grants = await client.grants();
+
+	assert.deepEqual(grants, [grant]);
+	assert.equal(calls[0].url, "https://api.test/v1/me/grants");
+});
+
+// ---------------------------------------------------------------------------
+// The read-only boundary. These are the tests that matter most in this file:
+// anything the browser can write, the browser's owner can forge, so the
+// absence of a write path is a security property and not a stylistic one.
+// ---------------------------------------------------------------------------
+
+test("exposes no method that could write", () => {
+	const client = createClient({ token: "jwt", fetch: async () => new Response("{}") });
+
+	// Walk the prototype chain so inherited methods count too.
+	const surface = new Set();
+	for (let o = client; o && o !== Object.prototype; o = Object.getPrototypeOf(o)) {
+		for (const key of Object.getOwnPropertyNames(o)) surface.add(key);
+	}
+
+	for (const forbidden of ["track", "claim", "record", "post", "create", "update", "delete"]) {
+		assert.ok(
+			!surface.has(forbidden),
+			`\`${forbidden}\` is on the browser client. Writes belong in the \`activekit\` server SDK — ` +
+				`a subject who can record their own events can mint streaks and referrals at will.`,
+		);
+	}
+});
+
+test("every request is a GET, with no body", async () => {
+	const { fetch, calls } = stubFetch([{ body: SNAPSHOT }, { body: { data: [] } }]);
 	const client = createClient({ token: "jwt", fetch });
 
-	await client.track("streak_day", {}, { idempotencyKey: "2026-08-10:subject_1" });
+	// Drive the entire public read surface.
+	await client.progress();
+	await client.grants();
 
-	assert.equal(calls[0].init.headers["idempotency-key"], "2026-08-10:subject_1");
+	assert.ok(calls.length > 0, "no requests captured — this test would pass vacuously");
+	for (const { url, init } of calls) {
+		assert.equal(init.method, "GET", `${url} was not a GET`);
+		assert.equal(init.body, undefined, `${url} carried a body`);
+		assert.ok(!("content-type" in init.headers), `${url} declared a content type`);
+	}
 });
 
-test("omits the idempotency header when none was given", async () => {
-	const { fetch, calls } = stubFetch([{ body: { eventId: "evt_3", advanced: [] } }]);
-	const client = createClient({ token: "jwt", fetch });
-
-	await client.track("streak_day");
-
-	assert.ok(!("idempotency-key" in calls[0].init.headers));
-});
-
-test("retries a 503 and succeeds", async () => {
+test("retries are safe because every request is idempotent", async () => {
 	const { fetch, calls } = stubFetch([
 		{ status: 503, body: { code: "unavailable", message: "try later" } },
-		{ body: { eventId: "evt_4", advanced: [] } },
+		{ body: SNAPSHOT },
 	]);
 	const client = createClient({ token: "jwt", fetch });
 
-	const result = await client.track("session_start");
+	const snapshot = await client.progress();
 
-	assert.equal(result.eventId, "evt_4");
+	assert.equal(snapshot.subjectId, "sub_1");
 	assert.equal(calls.length, 2);
+	// Nothing was mutated on the first attempt, so the retry cannot double-count.
+	assert.ok(calls.every((c) => c.init.method === "GET"));
 });
 
 test("does not retry a 400 — a bad request stays bad", async () => {
 	const { fetch, calls } = stubFetch([
 		{
 			status: 400,
-			body: { code: "invalid_event", message: "unknown event name" },
+			body: { code: "invalid_program", message: "unknown program key" },
 			headers: { "content-type": "application/json", "x-request-id": "req_9" },
 		},
 	]);
 	const client = createClient({ token: "jwt", fetch });
 
-	const error = await client.track("nope").catch((e) => e);
+	const error = await client.progress().catch((e) => e);
 
 	assert.ok(error instanceof ActiveKitError);
 	assert.equal(error.status, 400);
-	assert.equal(error.code, "invalid_event");
+	assert.equal(error.code, "invalid_program");
 	assert.equal(error.requestId, "req_9");
-	assert.match(error.message, /unknown event name/);
+	assert.match(error.message, /unknown program key/);
 	assert.equal(calls.length, 1);
 });
 
@@ -119,51 +164,33 @@ test("survives a non-JSON error body from something in front of the API", async 
 	assert.equal(error.status, 403);
 });
 
-test("a rejected claim is a result, not an exception", async () => {
-	const { fetch } = stubFetch([
-		{ body: { granted: false, grant: null, reason: "budget_exhausted" } },
-	]);
-	const client = createClient({ token: "jwt", fetch });
-
-	const result = await client.claim("referral");
-
-	assert.equal(result.granted, false);
-	assert.equal(result.reason, "budget_exhausted");
-});
-
-test("emits `grant` when the server issues one, and unsubscribes cleanly", async () => {
-	const grant = { id: "grn_1", programId: "prg_1", subjectId: "sub_1", status: "recorded" };
-	const { fetch } = stubFetch([
-		{ body: { granted: true, grant, reason: null } },
-		{ body: { granted: true, grant, reason: null } },
-	]);
+test("emits `progress` on every snapshot, and unsubscribes cleanly", async () => {
+	const { fetch } = stubFetch([{ body: SNAPSHOT }, { body: SNAPSHOT }]);
 	const client = createClient({ token: "jwt", fetch });
 
 	const seen = [];
-	const off = client.on("grant", (g) => seen.push(g.id));
+	const off = client.on("progress", (s) => seen.push(s.subjectId));
 
-	await client.claim("daily-login");
+	await client.progress();
 	off();
-	await client.claim("daily-login");
+	await client.progress();
 
-	assert.deepEqual(seen, ["grn_1"]);
+	assert.deepEqual(seen, ["sub_1"]);
 });
 
 test("one throwing subscriber does not stop the others", async () => {
-	const { fetch } = stubFetch([
-		{ body: { granted: true, grant: { id: "grn_2" }, reason: null } },
-	]);
+	const { fetch } = stubFetch([{ body: SNAPSHOT }]);
 	const client = createClient({ token: "jwt", fetch });
 
 	const seen = [];
-	client.on("grant", () => {
+	client.on("progress", () => {
 		throw new Error("subscriber blew up");
 	});
-	client.on("grant", (g) => seen.push(g.id));
+	client.on("progress", (s) => seen.push(s.subjectId));
 
-	await client.claim("daily-login");
+	await client.progress();
 
-	assert.deepEqual(seen, ["grn_2"]);
+	assert.deepEqual(seen, ["sub_1"]);
 });
 
 test("a destroyed client refuses further requests", async () => {
@@ -176,15 +203,12 @@ test("a destroyed client refuses further requests", async () => {
 });
 
 test("setToken swaps the credential without rebuilding the client", async () => {
-	const { fetch, calls } = stubFetch([
-		{ body: { eventId: "e", advanced: [] } },
-		{ body: { eventId: "e", advanced: [] } },
-	]);
+	const { fetch, calls } = stubFetch([{ body: SNAPSHOT }, { body: SNAPSHOT }]);
 	const client = createClient({ token: "old", fetch });
 
-	await client.track("a");
+	await client.progress();
 	client.setToken("new");
-	await client.track("b");
+	await client.progress();
 
 	assert.equal(calls[0].init.headers.authorization, "Bearer old");
 	assert.equal(calls[1].init.headers.authorization, "Bearer new");

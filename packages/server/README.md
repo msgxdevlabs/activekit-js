@@ -6,6 +6,11 @@ mint subject tokens, verify webhooks.
 `fetch`-based and dependency-free, so one build runs on Node 20+, Cloudflare
 Workers, Bun and Deno. Nothing here imports a Node builtin.
 
+**This is the only ActiveKit package that can write.** The browser packages are
+read-only by design: anything the browser can write, the browser's owner can
+forge. Events reach ActiveKit from your backend, holding an API key, or they do
+not reach it at all.
+
 ```bash
 pnpm add activekit
 ```

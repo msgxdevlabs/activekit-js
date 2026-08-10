@@ -6,8 +6,6 @@ export interface MountOptions {
 	programKey?: string;
 	/** `auto` follows the host page's `prefers-color-scheme`. */
 	theme?: "light" | "dark" | "auto";
-	/** Called after a successful claim, for the host page to react (toast, refetch, confetti). */
-	onGrant?: () => void;
 }
 
 export interface WidgetHandle {
@@ -34,10 +32,9 @@ const STYLES = `
 .ak-meta { font-size: 12px; color: var(--ak-muted); margin: 0; }
 .ak-track { height: 6px; border-radius: 999px; background: var(--ak-track); overflow: hidden; }
 .ak-fill { height: 100%; background: var(--ak-fill); transition: width .3s ease; }
-.ak-btn { font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
-      border: 0; border-radius: 8px; padding: 8px 12px; background: var(--ak-fill);
-      color: var(--ak-bg); }
-.ak-btn[disabled] { opacity: .5; cursor: default; }
+.ak-pill { justify-self: start; font-size: 11px; font-weight: 600; letter-spacing: .02em;
+      border: 1px solid var(--ak-fill); border-radius: 999px; padding: 3px 8px; }
+.ak-pill[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) { .ak-fill { transition: none; } }
 `;
 
@@ -57,6 +54,12 @@ const el = <K extends keyof HTMLElementTagNameMap>(
 
 /**
  * Render the progress widget into `target`.
+ *
+ * Read-only, like the client behind it. The widget reports what the server
+ * says and offers no control that writes — when a subject becomes eligible it
+ * says so and stops there, because issuing the grant is the organization's
+ * server's job. If you want a claim button, render your own and point it at
+ * your own backend.
  *
  * Synchronous by design: it paints a loading state immediately and fills in
  * when the network answers, so the host page never has to await a layout.
@@ -84,26 +87,23 @@ export function mountWidget(
 	const meta = el("p", "ak-meta", "");
 	const track = el("div", "ak-track");
 	const fill = el("div", "ak-fill");
-	const button = el("button", "ak-btn", "Claim");
-	button.type = "button";
-	button.hidden = true;
+	const pill = el("span", "ak-pill", "Reward ready");
+	pill.hidden = true;
 
 	fill.style.width = "0%";
 	track.append(fill);
-	root.append(name, track, meta, button);
+	root.append(name, track, meta, pill);
 	shadow.append(style, root);
 	target.append(host);
 
 	let destroyed = false;
-	let current: ProgramProgress | undefined;
 
 	const paint = (progress: ProgramProgress | undefined): void => {
-		current = progress;
 		if (!progress) {
 			name.textContent = "No active program";
 			meta.textContent = "";
 			fill.style.width = "0%";
-			button.hidden = true;
+			pill.hidden = true;
 			return;
 		}
 		const pct = progress.target > 0 ? Math.min(progress.current / progress.target, 1) * 100 : 0;
@@ -115,8 +115,8 @@ export function mountWidget(
 		track.setAttribute("aria-valuemin", "0");
 		track.setAttribute("aria-valuemax", String(progress.target));
 		track.setAttribute("aria-label", progress.program.name);
-		button.hidden = !progress.claimable;
-		button.disabled = false;
+		// A statement of fact, not a control. Nothing here can act on it.
+		pill.hidden = !progress.eligible;
 	};
 
 	const refresh = async (): Promise<void> => {
@@ -131,29 +131,14 @@ export function mountWidget(
 		} catch {
 			if (destroyed) return;
 			// A widget that renders an error stack on a customer's landing page is
-			// worse than one that renders nothing. The `error` event carries the
-			// detail for anyone listening.
+			// worse than one that renders nothing. Callers who need the detail can
+			// call `client.progress()` themselves and catch it.
 			name.textContent = "Unavailable";
 			meta.textContent = "";
-			button.hidden = true;
+			pill.hidden = true;
 		}
 	};
 
-	const onClick = async (): Promise<void> => {
-		if (!current) return;
-		button.disabled = true;
-		try {
-			const result = await client.claim(current.program.key);
-			if (destroyed) return;
-			if (result.granted) options.onGrant?.();
-			await refresh();
-		} catch {
-			if (!destroyed) button.disabled = false;
-		}
-	};
-
-	const clickListener = (): void => void onClick();
-	button.addEventListener("click", clickListener);
 	void refresh();
 
 	return {
@@ -161,7 +146,6 @@ export function mountWidget(
 		destroy(): void {
 			if (destroyed) return;
 			destroyed = true;
-			button.removeEventListener("click", clickListener);
 			host.remove();
 		},
 	};

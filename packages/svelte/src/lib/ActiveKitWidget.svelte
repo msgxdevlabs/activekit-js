@@ -6,6 +6,9 @@
 	 * everything inside — the widget lives in a shadow root, so Svelte never
 	 * reconciles its internals. One implementation of the UI, identical under
 	 * every framework.
+	 *
+	 * Read-only. There is no `onGrant` because nothing here can issue a grant:
+	 * that is a write, and writes happen on your server.
 	 */
 	import { mountWidget } from "@activekit/js";
 	import type { ActiveKitClient, MountOptions } from "@activekit/js";
@@ -16,7 +19,7 @@
 		class?: string;
 	}
 
-	let { client, programKey, theme, onGrant, class: className = "" }: Props = $props();
+	let { client, programKey, theme, class: className = "" }: Props = $props();
 
 	let host = $state<HTMLDivElement | undefined>();
 
@@ -26,7 +29,6 @@
 		const handle = mountWidget(host, client, {
 			...(programKey ? { programKey } : {}),
 			...(theme ? { theme } : {}),
-			...(onGrant ? { onGrant } : {}),
 		});
 
 		return () => handle.destroy();

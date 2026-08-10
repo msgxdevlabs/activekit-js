@@ -4,6 +4,11 @@
 Astro, Vue, Rails, Laravel, HTMX, Alpine, plain HTML — and whatever framework
 arrives next.
 
+**Read-only.** The element reads a subject's own campaign progress. Recording
+events and issuing grants happen on your server with the
+[`activekit`](https://www.npmjs.com/package/activekit) package — anything the
+browser can write, the browser's owner can forge.
+
 ```bash
 pnpm add @activekit/elements
 ```
@@ -45,15 +50,20 @@ All four are live: change one and the widget rebuilds.
 Rendering the element before your auth resolves is expected — it waits quietly
 for `token` rather than warning.
 
-## Events
+## Reacting to eligibility
+
+The element emits no events, because nothing in it acts. To drive your own UI
+off a subject's state, read it directly and render whatever you like:
 
 ```js
-document.querySelector("activekit-widget")
-  .addEventListener("activekit:grant", () => refetchCredits());
+import { createClient } from "@activekit/js";
+
+const { programs } = await createClient({ token }).progress();
+if (programs.some((p) => p.eligible)) showYourOwnClaimButton();
 ```
 
-The event bubbles and crosses the shadow boundary, so you can listen on any
-ancestor. No callback props, no framework, nothing to import.
+That button posts to your backend, which calls the server SDK. It is the only
+path that can write.
 
 ## Angular
 
