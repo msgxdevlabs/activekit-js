@@ -3,18 +3,23 @@
 Every npm package ActiveKit publishes. Server SDK, browser client, embeddable
 widget, and one thin binding per framework.
 
-> **Status: `0.0.x`, pre-release.** The package shapes, build pipeline and
-> release path are real and tested. The API they call — `api.activekit.app/v1` —
-> is not live yet, so nothing here talks to a running server. Treat the wire
-> types as a contract under construction.
+> **Status: pre-release.** Published on npm under the
+> [`@activekit` scope](https://www.npmjs.com/org/activekit) — see each package's
+> page for its current version. The API they call, `api.activekit.app/v1`, is not
+> live yet, so nothing here talks to a running server. Treat the wire types as a
+> contract under construction.
 
-| Package | Install | What it is |
-| --- | --- | --- |
-| [`activekit`](packages/server) | `pnpm add activekit` | Server SDK. Record events, read grants, mint subject tokens, verify webhooks. |
-| [`@activekit/js`](packages/js) | `pnpm add @activekit/js` | Browser client and widget. Read-only, zero dependencies. |
-| [`@activekit/react`](packages/react) | `pnpm add @activekit/react` | Provider, hooks, widget component. |
-| [`@activekit/svelte`](packages/svelte) | `pnpm add @activekit/svelte` | Component, action, progress store. Svelte 5. |
-| [`@activekit/elements`](packages/elements) | `pnpm add @activekit/elements` | `<activekit-widget>`. Angular, Astro, Rails, Laravel, HTMX, plain HTML. |
+| Package | Install | Source | What it is |
+| --- | --- | --- | --- |
+| [`activekit`](https://www.npmjs.com/package/activekit) | `pnpm add activekit` | [`packages/server`](packages/server) | Server SDK. Record events, read grants, mint subject tokens, verify webhooks. |
+| [`@activekit/js`](https://www.npmjs.com/package/@activekit/js) | `pnpm add @activekit/js` | [`packages/js`](packages/js) | Browser client and widget. Read-only, zero dependencies. |
+| [`@activekit/react`](https://www.npmjs.com/package/@activekit/react) | `pnpm add @activekit/react` | [`packages/react`](packages/react) | Provider, hooks, widget component. |
+| [`@activekit/svelte`](https://www.npmjs.com/package/@activekit/svelte) | `pnpm add @activekit/svelte` | [`packages/svelte`](packages/svelte) | Component, action, progress store. Svelte 5. |
+| [`@activekit/elements`](https://www.npmjs.com/package/@activekit/elements) | `pnpm add @activekit/elements` | [`packages/elements`](packages/elements) | `<activekit-widget>`. Angular, Astro, Rails, Laravel, HTMX, plain HTML. |
+
+Every published tarball carries a
+[provenance attestation](https://docs.npmjs.com/generating-provenance-statements),
+linking it to the commit and workflow that built it.
 
 Everything is public and MIT. Architecture and registry decisions live in
 [`activekit-io/docs/packaging.md`](https://github.com/msgxdevlabs/activekit-io/blob/develop/docs/packaging.md).
@@ -123,10 +128,13 @@ export function Rewards() {
 <details>
 <summary><b>A script tag, no build step</b></summary>
 
+> Not live yet. `cdn.activekit.app` is the planned host for the `<script>` build;
+> until it exists, use `@activekit/js` through a bundler.
+
 ```html
 <div id="activekit"></div>
 <script
-  src="https://cdn.activekit.app/v1.0.0/activekit.js"
+  src="https://cdn.activekit.app/v<version>/activekit.js"
   integrity="sha384-…"
   crossorigin="anonymous"
   data-token="SUBJECT_JWT"
@@ -135,9 +143,9 @@ export function Rewards() {
 ></script>
 ```
 
-Pin the version and the hash. The floating `/v1/` path exists, and updating it
-pushes code to every customer's page without them deploying — which is exactly
-why it is gated like a production deploy.
+Pin the exact version and its hash. A floating `/v1/` path is also planned, and
+updating it pushes code to every customer's page without them deploying — which
+is exactly why it will be gated like a production deploy.
 </details>
 
 ## Develop

@@ -108,12 +108,13 @@ above.
 
 ## Script tag
 
-For pages with no build step:
+For pages with no build step. **Not live yet** — `cdn.activekit.app` is the
+planned host for this build; until it exists, install through a bundler.
 
 ```html
 <div id="activekit"></div>
 <script
-  src="https://cdn.activekit.app/v1.0.0/activekit.js"
+  src="https://cdn.activekit.app/v<version>/activekit.js"
   integrity="sha384-…"
   crossorigin="anonymous"
   data-token="SUBJECT_JWT"
@@ -122,8 +123,8 @@ For pages with no build step:
 ></script>
 ```
 
-Pin the exact version and its hash. A floating `/v1/` path exists for teams who
-want automatic updates; understand that it lets us change code on your page
+Pin the exact version and its hash. A floating `/v1/` path is planned for teams
+who want automatic updates; understand that it lets us change code on your page
 without you deploying.
 
 ## Support
