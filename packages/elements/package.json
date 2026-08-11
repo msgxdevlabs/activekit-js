@@ -1,6 +1,6 @@
 {
 	"name": "@activekit/elements",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "ActiveKit as custom elements — works in Angular, Astro, Rails, Laravel, HTMX and plain HTML.",
 	"license": "MIT",
 	"homepage": "https://activekit.app",
