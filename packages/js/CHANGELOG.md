@@ -1,5 +1,13 @@
 # @activekit/js
 
+## 0.1.1
+
+### Patch Changes
+
+- 55b1cc9: README: mark the script-tag section as not yet live, and stop naming a CDN
+  version that does not exist. `cdn.activekit.app` is planned, not running, and
+  the example previously implied a `v1.0.0` build was available to fetch.
+
 ## 0.1.0
 
 ### Minor Changes
