@@ -14,8 +14,14 @@ widget, and one thin binding per framework.
 | [`activekit`](https://www.npmjs.com/package/activekit) | `pnpm add activekit` | [`packages/server`](packages/server) | Server SDK. Record events, read grants, mint subject tokens, verify webhooks. |
 | [`@activekit/js`](https://www.npmjs.com/package/@activekit/js) | `pnpm add @activekit/js` | [`packages/js`](packages/js) | Browser client and widget. Read-only, zero dependencies. |
 | [`@activekit/react`](https://www.npmjs.com/package/@activekit/react) | `pnpm add @activekit/react` | [`packages/react`](packages/react) | Provider, hooks, widget component. |
+| [`@activekit/vue`](https://www.npmjs.com/package/@activekit/vue) | `pnpm add @activekit/vue` | [`packages/vue`](packages/vue) | Plugin, composables, widget component. Vue 3. |
 | [`@activekit/svelte`](https://www.npmjs.com/package/@activekit/svelte) | `pnpm add @activekit/svelte` | [`packages/svelte`](packages/svelte) | Component, action, progress store. Svelte 5. |
 | [`@activekit/elements`](https://www.npmjs.com/package/@activekit/elements) | `pnpm add @activekit/elements` | [`packages/elements`](packages/elements) | `<activekit-widget>`. Angular, Astro, Rails, Laravel, HTMX, plain HTML. |
+
+There is no `@activekit/bun`, and no need for one: the server SDK runs
+unchanged on Node, Cloudflare Workers, Bun and Deno — `bun add activekit` is
+the whole setup. Runtimes are not frameworks; only things that own the DOM get
+a binding.
 
 Every published tarball carries a
 [provenance attestation](https://docs.npmjs.com/generating-provenance-statements),
@@ -32,15 +38,15 @@ One client, many wrappers.
              ┌──────────────────┐
              │  @activekit/js   │  transport · retry · auth · widget DOM
              └────────┬─────────┘
-        ┌─────────────┼─────────────┐
-        ▼             ▼             ▼
-   @activekit/   @activekit/   @activekit/
-     react         svelte        elements
+       ┌───────────┬──┴────────┬───────────┐
+       ▼           ▼           ▼           ▼
+  @activekit/ @activekit/ @activekit/ @activekit/
+    react        vue       svelte     elements
 ```
 
 The bindings hold no logic. Every one is lifecycle glue: mount the widget on
 attach, tear it down on detach, and get out of the way. If a bug is fixable in
-a binding, it was in the wrong place — that rule is what keeps adding the fifth
+a binding, it was in the wrong place — that rule is what keeps adding the next
 framework a day's work rather than a quarter's.
 
 `activekit` (the server SDK) shares nothing with them by design. It runs where
@@ -95,6 +101,29 @@ export function Rewards() {
     </ActiveKitProvider>
   );
 }
+```
+</details>
+
+<details>
+<summary><b>Vue</b></summary>
+
+```ts
+// main.ts
+import { createClient } from "@activekit/js";
+import { createActiveKit } from "@activekit/vue";
+
+const client = createClient({ token });
+createApp(App).use(createActiveKit(client)).mount("#app");
+```
+
+```vue
+<script setup lang="ts">
+import { ActiveKitWidget } from "@activekit/vue";
+</script>
+
+<template>
+  <ActiveKitWidget program-key="daily-login" />
+</template>
 ```
 </details>
 
@@ -165,6 +194,7 @@ build, including the size budgets:
 | `@activekit/js` | 8 kB |
 | `@activekit/js` CDN build | 8 kB |
 | `@activekit/react` | 4 kB |
+| `@activekit/vue` | 4 kB |
 | `@activekit/elements` | 3 kB |
 
 The embed lands on customers' pages and competes with their LCP, so a size
@@ -204,6 +234,15 @@ this repo is public: npm never generates them from a private one.
 If `npm token list` on the ActiveKit account is ever non-empty, something has
 regressed.
 
+### Adding a new package
+
+A new package cannot ride the workflow until it exists on npm and has a
+trusted publisher, so its first version is a one-time human step: publish
+`0.0.0` locally, attach the trusted publisher with the `npm trust` CLI —
+never the npmjs.com form — and `npm logout`. Exact commands, the trusted
+publisher's field values, and the reasons are in
+[`docs/packaging.md`](docs/packaging.md).
+
 ## Contributing
 
 Bug reports and PRs welcome. Two things to know before opening one:
@@ -211,7 +250,7 @@ Bug reports and PRs welcome. Two things to know before opening one:
 - **The embed's public API is append-only within a major.** It runs on pages we
   don't deploy and can't force-refresh. A rename is a major, always.
 - **Logic goes in `@activekit/js`.** A fix that lands in a binding is a fix that
-  the other four bindings still need.
+  every other binding still needs.
 - **No client package may write.** A PR adding a non-`GET` request to any
   browser package will fail CI, and should — see above.
 
