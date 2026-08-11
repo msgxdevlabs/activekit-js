@@ -119,6 +119,23 @@ jobs:
       # via `workspace:^`, and only pnpm rewrites that into a real version range
       # as it packs. npm would publish the protocol string verbatim and every
       # install of @activekit/react would fail.
+      #
+      # ADDING A NEW PACKAGE? Publish a 0.0.0 placeholder by hand and configure
+      # its trusted publisher BEFORE the first release that includes it. npm
+      # cannot hold a trusted-publisher config for a package that does not
+      # exist, so the OIDC exchange 404s, pnpm silently falls back to
+      # unauthenticated, and the PUT 404s as well:
+      #
+      #   [WARN] Skipped OIDC: ERR_PNPM_AUTH_TOKEN_EXCHANGE … (status code 404)
+      #   [E404] 404 Not Found - PUT https://registry.npmjs.org/@activekit%2fjs
+      #
+      # That message names neither OIDC nor the missing package, so it reads
+      # like a broken registry. It is not. This cost two failed releases the
+      # first time.
+      #
+      # Not atomic, either: packages publish one at a time, so a failure partway
+      # leaves earlier ones published and no tags written. Recovery is
+      # forward-only — fix and re-run; published versions are skipped.
       - name: Publish to npm
         run: pnpm run release
 
