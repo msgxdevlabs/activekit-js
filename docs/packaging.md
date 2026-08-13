@@ -5,6 +5,55 @@ and the one-time bootstrap every new package needs before the pipeline can
 touch it. The architectural half — why the packages are shaped this way — lives
 in the [README](../README.md).
 
+## Quickstart: shipping a new package
+
+The whole path, exactly as exercised for `@activekit/vue`. Copy-paste from
+here; the sections below carry the reasons.
+
+**1. Develop it, in a PR.** The package enters the repo at version `0.0.0`,
+with a `minor` changeset for its real first version, a brotli budget under
+`activekit.sizeLimit` in its `package.json`, and `pnpm check` green. Merge
+when CI passes.
+
+**2. Bootstrap it — once, on your machine.** npm cannot hold a
+trusted-publisher configuration for a package that does not exist yet, so the
+first publish is by hand:
+
+```bash
+git checkout main && git pull
+pnpm install && pnpm check
+npm login                       # the ActiveKit account
+pnpm --filter <name> publish --access public --no-git-checks
+
+# Trusted publisher: the CLI, never the npmjs.com form — see below.
+npx npm@latest trust github <name> \
+  --repository msgxdevlabs/activekit-js \
+  --file release.yml \
+  --environment npm \
+  --allow-publish --yes
+
+npx npm@latest trust list <name>   # must print the GitHub config back
+npm logout                         # restores the zero-token invariant
+```
+
+**3. Release, in the GitHub UI.** **Actions** tab → **Release** in the left
+sidebar → **Run workflow** dropdown on the right → branch `main` → type
+`RELEASE` into the confirmation box → green **Run workflow** button. The run
+takes about two minutes. Only packages with changesets publish, and versions
+already on the registry are skipped, so the rest of the repo ships nothing.
+
+**4. Validate.**
+
+```bash
+npm view <name> version dist-tags.latest   # the changeset's version, latest moved
+npm view <name> dependencies               # workspace:^ rewritten to real ranges
+```
+
+The npmjs.com package page shows the provenance badge, and the repo has a new
+`<name>@<version>` tag with a matching GitHub release. The `0.0.0` bootstrap
+version stays visible in the version list — the one version without
+provenance, and that is fine: its job was existence, not authenticity.
+
 ## What exists on npm
 
 - The [`activekit` org](https://www.npmjs.com/org/activekit) owns the
@@ -52,30 +101,13 @@ every new package is published by a human. Once, locally, never from CI.
 
 The package lands in the repo at version `0.0.0` — the placeholder version
 whose only job is to make the package exist — with a changeset for its real
-first version. After that PR merges into `main`:
+first version. The commands live in the quickstart above; run them after the
+PR merges and before the release that should carry the package.
 
-```bash
-# 1. Publish 0.0.0 to make the package exist. From a clean checkout of main:
-pnpm install && pnpm check
-npm login                       # the ActiveKit account
-pnpm --filter <name> publish --access public --no-git-checks
-
-# 2. Attach the trusted publisher. The CLI, not the website — see below.
-npx npm@latest trust github <name> \
-  --repository msgxdevlabs/activekit-js \
-  --file release.yml \
-  --environment npm \
-  --allow-publish --yes
-
-# 3. Prove it stuck, then restore the no-tokens invariant.
-npx npm@latest trust list <name>
-npm logout
-```
-
-Then run a normal release. The changeset bumps the package off `0.0.0` and the
-workflow publishes it via OIDC with provenance — which the hand-published
-bootstrap version never has, and that is fine: its job was existence, not
-authenticity.
+Skipping the bootstrap does not fail loudly. The release's OIDC exchange
+404s, pnpm falls back to an unauthenticated publish, and the resulting error
+blames the registry rather than the missing configuration — the first release
+lost two runs to exactly that. See troubleshooting below.
 
 ### The CLI, not the web form
 
