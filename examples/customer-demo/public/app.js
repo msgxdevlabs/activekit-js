@@ -35,12 +35,24 @@ rotateBefore(expiresAt);
 
 // ⭐ 4. Mount the floating launcher. Compact panel highlights one program;
 //    the maximize button opens the full stats dashboard.
+//
+//    `colors` re-brands the widget: Acme's indigo for the bubble and fills,
+//    per-theme variants, and a white progress ring — the ring sits on the
+//    (now indigo) bubble, where the default green would fail contrast.
+const ACME_COLORS = {
+	brand: "#5b5bd6",
+	ring: "#ffffff",
+	dark: { brand: "#7b7bec" },
+};
 const theme = () => document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-let launcher = mountLauncher(client, {
-	programKey: "daily-practice",
-	title: "Your rewards",
-	theme: theme(),
-});
+const mountAcmeLauncher = (mode) =>
+	mountLauncher(client, {
+		programKey: "daily-practice",
+		title: "Your rewards",
+		theme: mode,
+		colors: ACME_COLORS,
+	});
+let launcher = mountAcmeLauncher(theme());
 
 // --- demo scaffolding from here down ---------------------------------------
 
@@ -102,9 +114,5 @@ document.getElementById("theme-toggle").addEventListener("click", () => {
 	document.documentElement.dataset.theme = next;
 	document.getElementById("theme-toggle").textContent = next === "dark" ? "☀️" : "🌙";
 	launcher.destroy();
-	launcher = mountLauncher(client, {
-		programKey: "daily-practice",
-		title: "Your rewards",
-		theme: next,
-	});
+	launcher = mountAcmeLauncher(next);
 });

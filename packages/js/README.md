@@ -1,7 +1,7 @@
 # @activekit/js
 
 Browser client and embeddable widget for [ActiveKit](https://activekit.app).
-Vanilla TypeScript, zero dependencies, ~5 kB brotli.
+Vanilla TypeScript, zero dependencies, ~6 kB brotli.
 
 **Read-only.** This package retrieves a subject's own campaign progress and
 grants. It cannot record events, issue grants, or change anything — see
@@ -139,6 +139,30 @@ One habit worth knowing: the launcher repaints on every successful
 `client.progress()`, whoever triggered it. After your backend records an
 event, a single `client.progress()` call brings the launcher up to date.
 
+### Brand colors
+
+Both `mountWidget` and `mountLauncher` take a `colors` option. The shadow
+root seals the embed off from your CSS on purpose, so theming crosses the
+boundary as an option, not a stylesheet:
+
+```ts
+mountLauncher(client, {
+  colors: {
+    brand: "#5b5bd6",          // bubble + progress fills
+    accent: "#b45309",         // "Reward ready" pill, fulfilled chips
+    ring: "#ffffff",           // ring + dot, drawn on the (brand-colored) bubble
+    dark: { brand: "#7b7bec" } // per-theme refinements, merged over the base
+  },
+});
+```
+
+`background`, `foreground`, `muted` and `track` are also accepted. `accent`
+seeds `ring` unless you set `ring` yourself — they sit on opposite grounds
+(panel vs. bubble), and one color rarely passes contrast on both. Which is
+the caveat: the built-in palette is WCAG-tuned, and overriding moves that
+responsibility to you. Hex pairs that measurably fail AA log a console
+warning; invalid values are ignored, loudly.
+
 ## Script tag
 
 For pages with no build step. **Not live yet** — `cdn.activekit.app` is the
@@ -162,7 +186,8 @@ without you deploying.
 
 Add `data-mode="launcher"` to self-mount the floating launcher instead of the
 inline widget — no container element needed. `data-position` and `data-title`
-pass through.
+pass through, and `data-brand-color` / `data-accent-color` cover the script
+tag's share of the `colors` option.
 
 ## Support
 

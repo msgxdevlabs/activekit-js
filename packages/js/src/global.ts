@@ -37,6 +37,13 @@ if (token) {
 	const programKey = script?.dataset["program"];
 	const theme = script?.dataset["theme"] as "light" | "dark" | "auto" | undefined;
 
+	// `data-brand-color` / `data-accent-color` cover the script tag's needs;
+	// the full per-theme `colors` shape is for callers with code.
+	const brand = script?.dataset["brandColor"];
+	const accent = script?.dataset["accentColor"];
+	const colors =
+		brand || accent ? { ...(brand ? { brand } : {}), ...(accent ? { accent } : {}) } : undefined;
+
 	if (script?.dataset["mode"] === "launcher") {
 		const position = script.dataset["position"] as "bottom-right" | "bottom-left" | undefined;
 		const title = script.dataset["title"];
@@ -46,6 +53,7 @@ if (token) {
 			...(theme ? { theme } : {}),
 			...(position ? { position } : {}),
 			...(title ? { title } : {}),
+			...(colors ? { colors } : {}),
 		});
 	} else {
 		const selector = script?.dataset["target"] ?? "#activekit";
@@ -59,6 +67,7 @@ if (token) {
 			mountWidget(target, createClient({ token, ...(apiUrl ? { apiUrl } : {}) }), {
 				...(programKey ? { programKey } : {}),
 				...(theme ? { theme } : {}),
+				...(colors ? { colors } : {}),
 			});
 		}
 	}

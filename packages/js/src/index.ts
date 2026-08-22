@@ -7,6 +7,8 @@ export type { MountOptions, WidgetHandle } from "./widget.js";
 export { mountLauncher } from "./launcher.js";
 export type { LauncherOptions, LauncherHandle } from "./launcher.js";
 
+export type { WidgetColors, WidgetColorTokens } from "./colors.js";
+
 export { ActiveKitError } from "./types.js";
 export type {
 	ActiveKitEvents,

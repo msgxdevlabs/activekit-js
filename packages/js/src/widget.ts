@@ -1,4 +1,6 @@
 import { el } from "./dom.js";
+import { applyColors } from "./colors.js";
+import type { WidgetColors } from "./colors.js";
 import type { ActiveKitClient } from "./client.js";
 import type { ProgramProgress } from "./types.js";
 
@@ -7,6 +9,12 @@ export interface MountOptions {
 	programKey?: string;
 	/** `auto` follows the host page's `prefers-color-scheme`. */
 	theme?: "light" | "dark" | "auto";
+	/**
+	 * Brand color overrides — same shape and same contrast caveat as the
+	 * launcher's. The inline widget uses `brand`, `background`, `foreground`,
+	 * `muted` and `track`; `accent` and `ring` only paint launcher surfaces.
+	 */
+	colors?: WidgetColors;
 }
 
 export interface WidgetHandle {
@@ -63,12 +71,14 @@ export function mountWidget(
 	style.textContent = STYLES;
 
 	const root = el("div", "ak");
-	root.dataset["theme"] =
+	const theme =
 		options.theme === "auto" || options.theme === undefined
 			? matchMedia("(prefers-color-scheme: dark)").matches
 				? "dark"
 				: "light"
 			: options.theme;
+	root.dataset["theme"] = theme;
+	applyColors(root, options.colors, theme);
 
 	const name = el("p", "ak-name", "Loading…");
 	const meta = el("p", "ak-meta", "");

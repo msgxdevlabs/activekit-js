@@ -1,4 +1,6 @@
 import { el, svg } from "./dom.js";
+import { applyColors } from "./colors.js";
+import type { WidgetColors } from "./colors.js";
 import type { ActiveKitClient } from "./client.js";
 import type { Grant, ProgramProgress, SubjectSnapshot } from "./types.js";
 
@@ -13,6 +15,13 @@ export interface LauncherOptions {
 	title?: string;
 	/** Mount with the compact panel already open. Default `false`. */
 	defaultOpen?: boolean;
+	/**
+	 * Brand color overrides. Base values apply in both themes; `light`/`dark`
+	 * sub-objects refine per theme — one brand color rarely survives both
+	 * grounds. The built-ins are WCAG-tuned; overriding moves that
+	 * responsibility to you (hex pairs that measurably fail log a warning).
+	 */
+	colors?: WidgetColors;
 	/**
 	 * Stacking order for the floating UI. Default `2147482000` — high enough to
 	 * clear most host chrome, low enough that a host that must sit above us can.
@@ -347,12 +356,14 @@ export function mountLauncher(
 	// --- theme -------------------------------------------------------------
 	const scheme = matchMedia("(prefers-color-scheme: dark)");
 	const applyTheme = (): void => {
-		root.dataset["theme"] =
+		const theme =
 			options.theme === "light" || options.theme === "dark"
 				? options.theme
 				: scheme.matches
 					? "dark"
 					: "light";
+		root.dataset["theme"] = theme;
+		applyColors(root, options.colors, theme);
 	};
 	applyTheme();
 	const followsScheme = options.theme === undefined || options.theme === "auto";
