@@ -115,7 +115,7 @@ export class ActiveKitClient {
 		}
 	}
 
-	/** Current progress across every program the subject is enrolled in. */
+	/** Current progress across every campaign the subject is enrolled in. */
 	async progress(): Promise<SubjectSnapshot> {
 		const snapshot = await this.#get<SubjectSnapshot>("/me/progress");
 		this.#emit("progress", snapshot);

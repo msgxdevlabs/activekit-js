@@ -10,7 +10,7 @@
  *     integrity="sha384-…"
  *     crossorigin="anonymous"
  *     data-token="SUBJECT_JWT"
- *     data-program="daily-login"
+ *     data-campaign="daily-login"
  *     data-target="#activekit"
  *     defer
  *   ></script>
@@ -34,7 +34,7 @@ const token = script?.dataset["token"];
 
 if (token) {
 	const apiUrl = script?.dataset["apiUrl"];
-	const programKey = script?.dataset["program"];
+	const campaignKey = script?.dataset["campaign"];
 	const theme = script?.dataset["theme"] as "light" | "dark" | "auto" | undefined;
 
 	// `data-brand-color` / `data-accent-color` cover the script tag's needs;
@@ -49,7 +49,7 @@ if (token) {
 		const title = script.dataset["title"];
 
 		mountLauncher(createClient({ token, ...(apiUrl ? { apiUrl } : {}) }), {
-			...(programKey ? { programKey } : {}),
+			...(campaignKey ? { campaignKey } : {}),
 			...(theme ? { theme } : {}),
 			...(position ? { position } : {}),
 			...(title ? { title } : {}),
@@ -65,7 +65,7 @@ if (token) {
 			console.error(`[ActiveKit] No element matches "${selector}" — widget not mounted.`);
 		} else {
 			mountWidget(target, createClient({ token, ...(apiUrl ? { apiUrl } : {}) }), {
-				...(programKey ? { programKey } : {}),
+				...(campaignKey ? { campaignKey } : {}),
 				...(theme ? { theme } : {}),
 				...(colors ? { colors } : {}),
 			});

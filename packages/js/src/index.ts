@@ -12,8 +12,9 @@ export type { WidgetColors, WidgetColorTokens } from "./colors.js";
 export { ActiveKitError } from "./types.js";
 export type {
 	ActiveKitEvents,
+	Campaign,
+	CampaignProgress,
 	Grant,
-	Program,
-	ProgramProgress,
+	Reward,
 	SubjectSnapshot,
 } from "./types.js";

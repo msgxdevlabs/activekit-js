@@ -37,8 +37,8 @@ import { createClient } from "@activekit/js";
 
 const client = createClient({ token });
 
-// Progress across every program the subject is enrolled in.
-const { programs } = await client.progress();
+// Progress across every campaign the subject is enrolled in.
+const { campaigns } = await client.progress();
 
 // Everything they have earned, newest first.
 const grants = await client.grants();
@@ -78,7 +78,7 @@ So the split is:
 | **Reading** progress and grants | browser, this package | subject token, scoped to one subject |
 | **Recording** events, issuing grants | your server, [`activekit`](https://www.npmjs.com/package/activekit) | API key, never leaves your backend |
 
-`ProgramProgress.eligible` tells you the server would honour a grant right now.
+`CampaignProgress.eligible` tells you the server would honour a grant right now.
 Render a button on it if you like — but that button posts to *your* backend,
 which calls the server SDK. Nothing in this package can complete that action,
 and the test suite asserts as much: it walks the client's prototype chain for
@@ -90,7 +90,7 @@ write-shaped methods and asserts every captured request is a `GET` with no body.
 import { createClient, mountWidget } from "@activekit/js";
 
 const handle = mountWidget(document.querySelector("#rewards")!, client, {
-  programKey: "daily-login",
+  campaignKey: "daily-login",
   theme: "auto",
 });
 
@@ -110,13 +110,13 @@ above.
 
 The widget's floating sibling: a bubble docked in a corner of the page that
 opens into a compact progress panel, and maximizes into a dashboard of the
-subject's stats — every program's progress and their full reward history.
+subject's stats — every campaign's progress and their full reward history.
 
 ```ts
 import { createClient, mountLauncher } from "@activekit/js";
 
 const launcher = mountLauncher(client, {
-  programKey: "daily-login",  // highlighted by the bubble's ring and the compact panel
+  campaignKey: "daily-login",  // highlighted by the bubble's ring and the compact panel
   position: "bottom-right",   // or "bottom-left"
   title: "Your rewards",
   theme: "auto",
@@ -131,7 +131,7 @@ launcher.destroy();
 
 It appends itself to `document.body`; there is no target element because your
 layout gives up nothing for it. The bubble wears a progress ring for the
-highlighted program and a dot when a reward is ready. Same shadow root, same
+highlighted campaign and a dot when a reward is ready. Same shadow root, same
 read-only surface as the widget — the dashboard shows grants, it cannot claim
 them.
 
@@ -175,7 +175,7 @@ planned host for this build; until it exists, install through a bundler.
   integrity="sha384-…"
   crossorigin="anonymous"
   data-token="SUBJECT_JWT"
-  data-program="daily-login"
+  data-campaign="daily-login"
   defer
 ></script>
 ```

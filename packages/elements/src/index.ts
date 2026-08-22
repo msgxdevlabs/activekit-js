@@ -10,12 +10,12 @@
  * behaviour.
  *
  *   <script type="module" src="…/@activekit/elements"></script>
- *   <activekit-widget token="SUBJECT_JWT" program="daily-login"></activekit-widget>
+ *   <activekit-widget token="SUBJECT_JWT" campaign="daily-login"></activekit-widget>
  */
 import { createClient, mountWidget } from "@activekit/js";
 import type { ActiveKitClient, WidgetHandle } from "@activekit/js";
 
-const OBSERVED = ["token", "program", "theme", "api-url"] as const;
+const OBSERVED = ["token", "campaign", "theme", "api-url"] as const;
 
 export class ActiveKitWidgetElement extends HTMLElement {
 	static readonly observedAttributes = OBSERVED;
@@ -60,12 +60,12 @@ export class ActiveKitWidgetElement extends HTMLElement {
 		}
 
 		const apiUrl = this.getAttribute("api-url");
-		const programKey = this.getAttribute("program");
+		const campaignKey = this.getAttribute("campaign");
 		const theme = this.getAttribute("theme") as "light" | "dark" | "auto" | null;
 
 		this.#client = createClient({ token, ...(apiUrl ? { apiUrl } : {}) });
 		this.#handle = mountWidget(this, this.#client, {
-			...(programKey ? { programKey } : {}),
+			...(campaignKey ? { campaignKey } : {}),
 			...(theme ? { theme } : {}),
 		});
 	}

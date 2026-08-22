@@ -97,7 +97,7 @@ const client = createClient({ token });
 export function Rewards() {
   return (
     <ActiveKitProvider client={client}>
-      <ActiveKitWidget programKey="daily-login" />
+      <ActiveKitWidget campaignKey="daily-login" />
     </ActiveKitProvider>
   );
 }
@@ -122,7 +122,7 @@ import { ActiveKitWidget } from "@activekit/vue";
 </script>
 
 <template>
-  <ActiveKitWidget program-key="daily-login" />
+  <ActiveKitWidget campaign-key="daily-login" />
 </template>
 ```
 </details>
@@ -138,7 +138,7 @@ import { ActiveKitWidget } from "@activekit/vue";
   const client = createClient({ token });
 </script>
 
-<ActiveKitWidget {client} programKey="daily-login" />
+<ActiveKitWidget {client} campaignKey="daily-login" />
 ```
 </details>
 
@@ -150,7 +150,7 @@ import { ActiveKitWidget } from "@activekit/vue";
   import "@activekit/elements/auto";
 </script>
 
-<activekit-widget token="SUBJECT_JWT" program="daily-login"></activekit-widget>
+<activekit-widget token="SUBJECT_JWT" campaign="daily-login"></activekit-widget>
 ```
 </details>
 
@@ -167,7 +167,7 @@ import { ActiveKitWidget } from "@activekit/vue";
   integrity="sha384-…"
   crossorigin="anonymous"
   data-token="SUBJECT_JWT"
-  data-program="daily-login"
+  data-campaign="daily-login"
   defer
 ></script>
 ```

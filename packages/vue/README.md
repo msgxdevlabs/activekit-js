@@ -38,7 +38,7 @@ import { ActiveKitWidget } from "@activekit/vue";
 </script>
 
 <template>
-  <ActiveKitWidget program-key="daily-login" />
+  <ActiveKitWidget campaign-key="daily-login" />
 </template>
 ```
 
@@ -65,7 +65,7 @@ const client = useActiveKit();
   <Skeleton v-if="loading" />
   <Retry v-else-if="error" @click="refresh" />
   <ul v-else>
-    <li v-for="p in data?.programs" :key="p.program.id">{{ p.current }}/{{ p.target }}</li>
+    <li v-for="p in data?.campaigns" :key="p.campaign.id">{{ p.current }}/{{ p.target }}</li>
   </ul>
 </template>
 ```

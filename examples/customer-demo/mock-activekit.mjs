@@ -3,7 +3,7 @@
 // against unmodified:
 //
 //   POST /v1/subjects/tokens   (API key)       mint a subject token
-//   POST /v1/events            (API key)       record an event, advance programs
+//   POST /v1/events            (API key)       record an event, advance campaigns
 //   GET  /v1/me/progress       (subject token) the subject's snapshot
 //   GET  /v1/me/grants         (subject token) what the subject earned
 //
@@ -15,51 +15,62 @@ import { randomUUID } from "node:crypto";
 export const API_KEY = "ak_demo_not_a_real_key";
 
 /**
- * The programs "Acme Learn" is running. In production these are configured in
+ * The campaigns "Acme Learn" is running. In production these are configured in
  * the ActiveKit dashboard; the `event` field is the criteria: which recorded
- * event name advances the program by one.
+ * event name advances the campaign by one.
  */
-const PROGRAMS = [
+const CAMPAIGNS = [
 	{
-		id: "prg_streak",
+		id: "cmp_streak",
 		key: "daily-practice",
-		name: "Daily Practice Streak",
+		name: "Daily practice streak",
 		status: "active",
 		target: 7,
 		event: "practice.checkin",
 		reward: { kind: "points", amount: 500, unit: "points", label: "500 bonus points" },
 	},
 	{
-		id: "prg_lessons",
+		id: "cmp_lessons",
 		key: "lesson-marathon",
-		name: "Lesson Marathon",
+		name: "Lesson marathon",
 		status: "active",
 		target: 10,
 		event: "lesson.completed",
 		reward: { kind: "badge", amount: 1, unit: "badge", label: "Marathon badge" },
 	},
 	{
-		id: "prg_referral",
+		id: "cmp_referral",
 		key: "refer-a-friend",
-		name: "Refer a Friend",
+		name: "Refer a friend",
 		status: "active",
 		target: 3,
 		event: "referral.converted",
 		reward: { kind: "credit", amount: 15, unit: "USD", label: "$15 account credit" },
 	},
+	{
+		// An ended campaign, so the widget's non-active states get exercised: a
+		// status chip in the campaign list and a completion in the stats.
+		id: "cmp_onboarding",
+		key: "onboarding-week",
+		name: "Onboarding week",
+		status: "ended",
+		target: 5,
+		event: "onboarding.step",
+		reward: { kind: "points", amount: 100, unit: "points", label: "Welcome gift, 100 points" },
+	},
 ];
 
-/** subjectId → { progress: Map<programId, {current, completedAt}>, grants: [] } */
+/** subjectId → { progress: Map<campaignId, {current, completedAt}>, grants: [] } */
 const subjects = new Map();
 /**
  * idempotency-key → the full original response. Proper Idempotency-Key
  * semantics replay the first response, not just suppress the side effect — a
- * retried record() that did advance a program must still be told it advanced.
+ * retried record() that did advance a campaign must still be told it advanced.
  */
 const seenEvents = new Map();
 
 const freshSubject = () => ({
-	progress: new Map(PROGRAMS.map((p) => [p.id, { current: 0, completedAt: null }])),
+	progress: new Map(CAMPAIGNS.map((p) => [p.id, { current: 0, completedAt: null }])),
 	grants: [],
 });
 
@@ -69,16 +80,19 @@ const freshSubject = () => ({
  */
 export const seed = (subjectId) => {
 	const state = freshSubject();
-	state.progress.get("prg_streak").current = 4;
-	state.progress.get("prg_lessons").current = 6;
-	state.progress.get("prg_referral").current = 1;
+	state.progress.get("cmp_streak").current = 4;
+	state.progress.get("cmp_lessons").current = 6;
+	state.progress.get("cmp_referral").current = 1;
+	const onboarding = state.progress.get("cmp_onboarding");
+	onboarding.current = 5;
+	onboarding.completedAt = new Date(Date.now() - 9 * 24 * 3600 * 1000).toISOString();
 	state.grants.push({
-		id: `grn_${randomUUID().slice(0, 8)}`,
-		programId: "prg_streak",
+		id: `grant_${randomUUID().slice(0, 8)}`,
+		campaignId: "cmp_onboarding",
 		subjectId,
-		reward: { kind: "points", amount: 100, unit: "points", label: "Welcome gift — 100 points" },
+		reward: { kind: "points", amount: 100, unit: "points", label: "Welcome gift, 100 points" },
 		status: "fulfilled",
-		createdAt: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
+		createdAt: onboarding.completedAt,
 	});
 	subjects.set(subjectId, state);
 };
@@ -136,18 +150,21 @@ const snapshotOf = (subjectId) => {
 	const state = subjectState(subjectId);
 	return {
 		subjectId,
-		programs: PROGRAMS.map((program) => {
-			const { current, completedAt } = state.progress.get(program.id);
+		campaigns: CAMPAIGNS.map((campaign) => {
+			const { current, completedAt } = state.progress.get(campaign.id);
 			return {
-				program: { id: program.id, key: program.key, name: program.name, status: program.status },
+				campaign: { id: campaign.id, key: campaign.key, name: campaign.name, status: campaign.status },
 				current,
-				target: program.target,
+				target: campaign.target,
 				// Deliberately stays true after the grant is recorded, so the demo's
 				// "Reward ready" pill and bubble dot are actually visible — this mock
 				// auto-issues at the instant of eligibility, which a real deployment
 				// may not. The live API's exact semantics are still under construction.
-				eligible: current >= program.target,
+				eligible: campaign.status === "active" && current >= campaign.target,
 				completedAt,
+				// The live preview of what completing this campaign earns. A copy,
+				// because the SDK treats it as display data, never as the grant.
+				reward: { ...campaign.reward },
 			};
 		}),
 	};
@@ -161,20 +178,20 @@ const recordEvent = (body, idempotencyKey) => {
 
 	const state = subjectState(body.subjectId);
 	const advanced = [];
-	for (const program of PROGRAMS) {
-		if (program.status !== "active" || program.event !== body.name) continue;
-		const progress = state.progress.get(program.id);
-		if (progress.completedAt) continue; // completed programs stay completed
+	for (const campaign of CAMPAIGNS) {
+		if (campaign.status !== "active" || campaign.event !== body.name) continue;
+		const progress = state.progress.get(campaign.id);
+		if (progress.completedAt) continue; // completed campaigns stay completed
 		progress.current += 1;
-		advanced.push(program.key);
-		if (progress.current >= program.target) {
+		advanced.push(campaign.key);
+		if (progress.current >= campaign.target) {
 			progress.completedAt = new Date().toISOString();
 			state.grants.unshift({
-				id: `grn_${randomUUID().slice(0, 8)}`,
-				programId: program.id,
+				id: `grant_${randomUUID().slice(0, 8)}`,
+				campaignId: campaign.id,
 				subjectId: body.subjectId,
 				// Frozen copy of the reward at issuance, per the contract.
-				reward: { ...program.reward },
+				reward: { ...campaign.reward },
 				status: "recorded",
 				createdAt: new Date().toISOString(),
 			});

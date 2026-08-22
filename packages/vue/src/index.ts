@@ -27,7 +27,7 @@ import type {
 	ActiveKitClient,
 	Grant,
 	MountOptions,
-	ProgramProgress,
+	CampaignProgress,
 	SubjectSnapshot,
 	WidgetHandle,
 } from "@activekit/js";
@@ -135,8 +135,8 @@ export function useProgress(): UseProgressResult {
 export const ActiveKitWidget = defineComponent({
 	name: "ActiveKitWidget",
 	props: {
-		/** Which program to render. Omit to render the first active one. */
-		programKey: { type: String, required: false, default: undefined },
+		/** Which campaign to render. Omit to render the first active one. */
+		campaignKey: { type: String, required: false, default: undefined },
 		/** `auto` follows the host page's `prefers-color-scheme`. */
 		theme: {
 			type: String as PropType<"light" | "dark" | "auto">,
@@ -154,7 +154,7 @@ export const ActiveKitWidget = defineComponent({
 			handle = null;
 			if (!host.value) return;
 			handle = mountWidget(host.value, client, {
-				...(props.programKey ? { programKey: props.programKey } : {}),
+				...(props.campaignKey ? { campaignKey: props.campaignKey } : {}),
 				...(props.theme ? { theme: props.theme } : {}),
 			});
 		};
@@ -164,7 +164,7 @@ export const ActiveKitWidget = defineComponent({
 		// ref going null → element is itself the trigger. Rebuilding on any
 		// change is cheap and correct for every parameter; diffing the params
 		// would be the optimisation that introduces the bug.
-		watch([host, () => props.programKey, () => props.theme], remount, {
+		watch([host, () => props.campaignKey, () => props.theme], remount, {
 			flush: "post",
 		});
 
@@ -177,4 +177,4 @@ export const ActiveKitWidget = defineComponent({
 	},
 });
 
-export type { ActiveKitClient, Grant, MountOptions, ProgramProgress, SubjectSnapshot };
+export type { ActiveKitClient, Grant, MountOptions, CampaignProgress, SubjectSnapshot };

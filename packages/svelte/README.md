@@ -26,7 +26,7 @@ Svelte 5 only. Svelte 4 users can use
   const client = createClient({ token });
 </script>
 
-<ActiveKitWidget {client} programKey="daily-login" />
+<ActiveKitWidget {client} campaignKey="daily-login" />
 ```
 
 ## Action
@@ -38,7 +38,7 @@ For when the surrounding markup is yours and only the widget is ours:
   import { activekit } from "@activekit/svelte";
 </script>
 
-<div use:activekit={{ client, programKey: "daily-login" }}></div>
+<div use:activekit={{ client, campaignKey: "daily-login" }}></div>
 ```
 
 ## Store
@@ -57,7 +57,7 @@ For driving your own markup instead of the packaged widget:
 {:else if $progress.error}
   <button onclick={() => progress.refresh()}>Retry</button>
 {:else}
-  {#each $progress.data?.programs ?? [] as p (p.program.id)}
+  {#each $progress.data?.campaigns ?? [] as p (p.campaign.id)}
     <li>{p.current} / {p.target}</li>
   {/each}
 {/if}

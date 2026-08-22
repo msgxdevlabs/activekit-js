@@ -2,11 +2,11 @@ import { el, svg } from "./dom.js";
 import { applyColors } from "./colors.js";
 import type { WidgetColors } from "./colors.js";
 import type { ActiveKitClient } from "./client.js";
-import type { Grant, ProgramProgress, SubjectSnapshot } from "./types.js";
+import type { Grant, CampaignProgress, SubjectSnapshot } from "./types.js";
 
 export interface LauncherOptions {
-	/** Which program the bubble ring and compact panel highlight. Omit for the first active one. */
-	programKey?: string;
+	/** Which campaign the bubble ring and compact panel highlight. Omit for the first active one. */
+	campaignKey?: string;
 	/** `auto` follows the host page's `prefers-color-scheme`, and keeps following it. */
 	theme?: "light" | "dark" | "auto";
 	/** Which corner to dock in. Default `bottom-right`. */
@@ -34,7 +34,7 @@ export interface LauncherHandle {
 	open(): void;
 	/** Collapse everything back to the bubble. */
 	close(): void;
-	/** Show the maximized dashboard (stats, all programs, reward history). */
+	/** Show the maximized dashboard (stats, all campaigns, reward history). */
 	expand(): void;
 	/** Shrink the dashboard back to the compact panel. */
 	collapse(): void;
@@ -183,12 +183,12 @@ const makeBar = (): Bar => {
 	return { track, fill };
 };
 
-const pctOf = (progress: ProgramProgress): number =>
+const pctOf = (progress: CampaignProgress): number =>
 	progress.target > 0 ? Math.min(progress.current / progress.target, 1) * 100 : 0;
 
 const BAR_ARIA = ["role", "aria-valuenow", "aria-valuemin", "aria-valuemax", "aria-label"] as const;
 
-const setBar = (bar: Bar, progress: ProgramProgress): void => {
+const setBar = (bar: Bar, progress: CampaignProgress): void => {
 	bar.fill.style.width = `${pctOf(progress)}%`;
 	bar.track.setAttribute("role", "progressbar");
 	// Clamped like the visual fill: the contract does not forbid a server
@@ -199,10 +199,10 @@ const setBar = (bar: Bar, progress: ProgramProgress): void => {
 	);
 	bar.track.setAttribute("aria-valuemin", "0");
 	bar.track.setAttribute("aria-valuemax", String(progress.target));
-	bar.track.setAttribute("aria-label", progress.program.name);
+	bar.track.setAttribute("aria-label", progress.campaign.name);
 };
 
-/** The empty state has no progressbar — stale ARIA would announce a program that is gone. */
+/** The empty state has no progressbar — stale ARIA would announce a campaign that is gone. */
 const clearBar = (bar: Bar): void => {
 	bar.fill.style.width = "0%";
 	for (const attr of BAR_ARIA) bar.track.removeAttribute(attr);
@@ -218,7 +218,7 @@ const grantDate = (iso: string): string => {
 /**
  * Mount the floating launcher: a corner bubble that opens into a compact
  * progress panel, which maximizes into a dashboard of the subject's stats —
- * every program's progress and the rewards they have earned.
+ * every campaign's progress and the rewards they have earned.
  *
  * Appends itself to `document.body`; there is no target element because the
  * whole point is that the host page gives up no layout for it.
@@ -303,7 +303,7 @@ export function mountLauncher(
 
 	const body = el("div", "ak-body");
 
-	// Compact view: the one highlighted program, same content as the inline widget.
+	// Compact view: the one highlighted campaign, same content as the inline widget.
 	const solo = el("div", "ak-solo");
 	const soloName = el("p", "ak-name", "Loading…");
 	const soloBar = makeBar();
@@ -312,7 +312,7 @@ export function mountLauncher(
 	soloPill.hidden = true;
 	solo.append(soloName, soloBar.track, soloMeta, soloPill);
 
-	// Dashboard: stat tiles, every program, reward history.
+	// Dashboard: stat tiles, every campaign, reward history.
 	const tilesSection = el("div", "ak-dash");
 	const tiles = el("div", "ak-tiles");
 	const tileValue = (label: string): HTMLParagraphElement => {
@@ -326,19 +326,19 @@ export function mountLauncher(
 		return value;
 	};
 	const earnedValue = tileValue("Rewards earned");
-	const activeValue = tileValue("Active programs");
+	const activeValue = tileValue("Active campaigns");
 	const overallValue = tileValue("Overall progress");
 	tilesSection.append(tiles);
 
-	const programsSection = el("div", "ak-dash");
-	const programsList = el("div");
-	programsSection.append(el("p", "ak-h", "Programs"), programsList);
+	const campaignsSection = el("div", "ak-dash");
+	const campaignsList = el("div");
+	campaignsSection.append(el("p", "ak-h", "Campaigns"), campaignsList);
 
 	const grantsSection = el("div", "ak-dash");
 	const grantsList = el("div");
 	grantsSection.append(el("p", "ak-h", "Reward history"), grantsList);
 
-	body.append(solo, tilesSection, programsSection, grantsSection);
+	body.append(solo, tilesSection, campaignsSection, grantsSection);
 
 	const foot = el("div", "ak-foot", "Powered by ActiveKit");
 
@@ -375,20 +375,20 @@ export function mountLauncher(
 	let grants: Grant[] | null = null;
 	let destroyed = false;
 
-	const highlightOf = (s: SubjectSnapshot): ProgramProgress | undefined =>
-		options.programKey
-			? s.programs.find((p) => p.program.key === options.programKey)
-			: s.programs.find((p) => p.program.status === "active");
+	const highlightOf = (s: SubjectSnapshot): CampaignProgress | undefined =>
+		options.campaignKey
+			? s.campaigns.find((p) => p.campaign.key === options.campaignKey)
+			: s.campaigns.find((p) => p.campaign.status === "active");
 
-	const paintSolo = (progress: ProgramProgress | undefined): void => {
+	const paintSolo = (progress: CampaignProgress | undefined): void => {
 		if (!progress) {
-			soloName.textContent = "No active program";
+			soloName.textContent = "No active campaign";
 			soloMeta.textContent = "";
 			clearBar(soloBar);
 			soloPill.hidden = true;
 			return;
 		}
-		soloName.textContent = progress.program.name;
+		soloName.textContent = progress.campaign.name;
 		soloMeta.textContent = `${progress.current} of ${progress.target}`;
 		setBar(soloBar, progress);
 		soloPill.hidden = !progress.eligible;
@@ -397,7 +397,7 @@ export function mountLauncher(
 	const paintStats = (): void => {
 		earnedValue.textContent = grants === null ? "–" : String(grants.length);
 		if (snapshot === null) return;
-		const active = snapshot.programs.filter((p) => p.program.status === "active");
+		const active = snapshot.campaigns.filter((p) => p.campaign.status === "active");
 		activeValue.textContent = String(active.length);
 		const overall =
 			active.length === 0
@@ -406,24 +406,24 @@ export function mountLauncher(
 		overallValue.textContent = `${Math.round(overall)}%`;
 	};
 
-	const paintPrograms = (s: SubjectSnapshot): void => {
-		programsList.replaceChildren();
-		if (s.programs.length === 0) {
-			programsList.append(el("p", "ak-empty", "No programs yet."));
+	const paintCampaigns = (s: SubjectSnapshot): void => {
+		campaignsList.replaceChildren();
+		if (s.campaigns.length === 0) {
+			campaignsList.append(el("p", "ak-empty", "No campaigns yet."));
 			return;
 		}
-		for (const progress of s.programs) {
+		for (const progress of s.campaigns) {
 			const row = el("div", "ak-prog");
 			const header = el("div", "ak-row");
 			header.append(
-				el("p", "ak-name", progress.program.name),
+				el("p", "ak-name", progress.campaign.name),
 				el("p", "ak-meta", `${progress.current} of ${progress.target}`),
 			);
 			const bar = makeBar();
 			setBar(bar, progress);
 			row.append(header, bar.track);
 			if (progress.eligible) row.append(el("span", "ak-pill", "Reward ready"));
-			programsList.append(row);
+			campaignsList.append(row);
 		}
 	};
 
@@ -456,8 +456,8 @@ export function mountLauncher(
 		const highlight = highlightOf(s);
 		paintSolo(highlight);
 		ringArc.setAttribute("stroke-dasharray", `${highlight ? pctOf(highlight) : 0} 100`);
-		dot.hidden = !s.programs.some((p) => p.eligible);
-		paintPrograms(s);
+		dot.hidden = !s.campaigns.some((p) => p.eligible);
+		paintCampaigns(s);
 		paintStats();
 	};
 
@@ -467,7 +467,7 @@ export function mountLauncher(
 		soloName.textContent = "Unavailable";
 		soloMeta.textContent = "";
 		soloPill.hidden = true;
-		programsList.replaceChildren(el("p", "ak-empty", "Unavailable right now."));
+		campaignsList.replaceChildren(el("p", "ak-empty", "Unavailable right now."));
 	};
 
 	let grantsInflight: Promise<void> | null = null;

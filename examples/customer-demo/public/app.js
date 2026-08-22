@@ -33,7 +33,7 @@ const rotateBefore = (expiresAt) => {
 };
 rotateBefore(expiresAt);
 
-// ⭐ 4. Mount the floating launcher. Compact panel highlights one program;
+// ⭐ 4. Mount the floating launcher. Compact panel highlights one campaign;
 //    the maximize button opens the full stats dashboard.
 //
 //    `colors` re-brands the widget: Acme's indigo for the bubble and fills,
@@ -47,7 +47,7 @@ const ACME_COLORS = {
 const theme = () => document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 const mountAcmeLauncher = (mode) =>
 	mountLauncher(client, {
-		programKey: "daily-practice",
+		campaignKey: "daily-practice",
 		title: "Your rewards",
 		theme: mode,
 		colors: ACME_COLORS,
@@ -103,7 +103,7 @@ document.addEventListener("click", async (event) => {
 	toast(
 		result.advanced.length > 0
 			? `Recorded ${LABELS[action]} → advanced: ${result.advanced.join(", ")}`
-			: `Recorded ${LABELS[action]} (no program advanced)`,
+			: `Recorded ${LABELS[action]} (no campaign advanced)`,
 	);
 });
 

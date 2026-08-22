@@ -31,7 +31,7 @@ the page; the demo server itself needs no restart for SDK-only changes).
 │ @activekit/js         │        │ activekit (server SDK)    │        │ /v1/… (in-memory) │
 │  createClient(token) ─┼─GET──▶ │                           │        │                   │
 │  mountLauncher(...)   │        │ subjects.createToken ─────┼─POST─▶ │ mints token       │
-│                       │        │ events.record ────────────┼─POST─▶ │ advances programs,│
+│                       │        │ events.record ────────────┼─POST─▶ │ advances campaigns,│
 │ "do thing" buttons ───┼─POST─▶ │  (holds the API key)      │        │ issues grants     │
 └───────────────────────┘        └───────────────────────────┘        └───────────────────┘
 ```
@@ -44,13 +44,13 @@ the page; the demo server itself needs no restart for SDK-only changes).
 ## The widget's two modes
 
 - **Bubble** (closed): a small circular button docked bottom-right, wearing a
-  progress ring for the highlighted program and a green dot when a reward is
+  progress ring for the highlighted campaign and a green dot when a reward is
   ready. Click to open.
-- **Compact panel**: one program's progress — the same content as the inline
+- **Compact panel**: one campaign's progress — the same content as the inline
   widget, in a card above the bubble.
 - **Maximized dashboard**: the panel's ⤢ button expands it into the subject's
-  stats — tiles (rewards earned, active programs, overall progress), every
-  program's progress bar, and the full reward history.
+  stats — tiles (rewards earned, active campaigns, completions), every
+  campaign's progress bar, and the full reward history.
 
 `Esc` closes it. The theme toggle in the demo nav remounts it in dark mode.
 

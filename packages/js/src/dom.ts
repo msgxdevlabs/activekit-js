@@ -7,7 +7,7 @@ export const el = <K extends keyof HTMLElementTagNameMap>(
 ): HTMLElementTagNameMap[K] => {
 	const node = document.createElement(tag);
 	if (className) node.className = className;
-	// textContent, never innerHTML. Program names are organization-authored and
+	// textContent, never innerHTML. Campaign names are organization-authored and
 	// this runs on the organization's own page — but "trusted today" is how
 	// stored XSS gets shipped.
 	if (text !== undefined) node.textContent = text;

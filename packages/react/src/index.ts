@@ -116,7 +116,7 @@ export interface ActiveKitWidgetProps extends MountOptions {
  */
 export function ActiveKitWidget({
 	className,
-	programKey,
+	campaignKey,
 	theme,
 }: ActiveKitWidgetProps): ReactElement {
 	const client = useActiveKit();
@@ -127,12 +127,12 @@ export function ActiveKitWidget({
 		if (!host) return;
 
 		const handle = mountWidget(host, client, {
-			...(programKey ? { programKey } : {}),
+			...(campaignKey ? { campaignKey } : {}),
 			...(theme ? { theme } : {}),
 		});
 
 		return () => handle.destroy();
-	}, [client, programKey, theme]);
+	}, [client, campaignKey, theme]);
 
 	return createElement("div", { ref: hostRef, ...(className ? { className } : {}) });
 }
