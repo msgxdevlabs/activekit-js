@@ -186,8 +186,8 @@ an in-memory stand-in for the not-yet-live API, so the whole loop runs
 locally:
 
 ```bash
-pnpm install && pnpm build
-node examples/customer-demo/server.mjs   # → http://localhost:4173
+pnpm install
+pnpm demo   # builds, then serves → http://localhost:4173
 ```
 
 Buttons on the page simulate the user doing things; you watch progress move,

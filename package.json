@@ -13,6 +13,7 @@
 		"lint:publish": "pnpm -r exec publint --strict",
 		"size": "node scripts/size.mjs",
 		"check": "pnpm build && pnpm typecheck && pnpm test && pnpm lint:publish && pnpm size",
+		"demo": "pnpm build && node examples/customer-demo/server.mjs",
 		"changeset": "changeset",
 		"version": "changeset version && pnpm install --lockfile-only",
 		"release": "pnpm publish -r --no-git-checks --access public"

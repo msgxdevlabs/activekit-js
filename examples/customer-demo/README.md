@@ -13,10 +13,15 @@ real customer never writes.
 ## Run it
 
 ```bash
-pnpm install && pnpm build     # repo root — the demo serves the built SDK
-node examples/customer-demo/server.mjs
-# → http://localhost:4173
+pnpm install   # repo root
+pnpm demo      # builds, then serves → http://localhost:4173
 ```
+
+There is no separate dev mode: the demo intentionally serves the **built**
+`@activekit/js` from `packages/js/dist` — the exact minified file a customer
+ships — and the server imports the built `activekit` SDK. After editing SDK
+source, re-run `pnpm demo` (or `pnpm --filter @activekit/js build` and refresh
+the page; the demo server itself needs no restart for SDK-only changes).
 
 ## What you're looking at
 
