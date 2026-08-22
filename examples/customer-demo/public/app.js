@@ -10,11 +10,28 @@ import { createClient, mountLauncher } from "/sdk/index.js";
 
 // ⭐ 2. Ask *your own backend* for a subject token. The browser never sees an
 //    API key — the token is short-lived and scoped to the logged-in user.
-const { token } = await (await fetch("/api/activekit/token")).json();
+const { token, expiresAt } = await (await fetch("/api/activekit/token")).json();
 
 // ⭐ 3. One client per page. `apiUrl` points at the demo's mock API; a real
 //    integration omits it and gets api.activekit.app/v1.
 const client = createClient({ token, apiUrl: `${location.origin}/v1` });
+
+// ⭐ 3½. Tokens expire. Rotate a fresh one in before that happens — otherwise
+//    every read starts failing with 401 after `expiresAt` and the widget
+//    sticks at "Unavailable". `setToken` exists for exactly this.
+const rotateBefore = (expiresAt) => {
+	const ms = Math.max(new Date(expiresAt).getTime() - Date.now() - 60_000, 30_000);
+	setTimeout(async () => {
+		try {
+			const next = await (await fetch("/api/activekit/token")).json();
+			client.setToken(next.token);
+			rotateBefore(next.expiresAt);
+		} catch {
+			rotateBefore(new Date(Date.now() + 90_000).toISOString()); // retry soon
+		}
+	}, ms);
+};
+rotateBefore(expiresAt);
 
 // ⭐ 4. Mount the floating launcher. Compact panel highlights one program;
 //    the maximize button opens the full stats dashboard.
@@ -64,7 +81,12 @@ document.addEventListener("click", async (event) => {
 	// ⭐ 5. After your backend records an event, one read is all it takes:
 	//    the launcher subscribes to the client and repaints on every
 	//    successful progress() — whoever triggered it.
-	await client.progress();
+	try {
+		await client.progress();
+	} catch {
+		toast("Recorded, but refreshing the widget failed — it will catch up on the next read.");
+		return;
+	}
 
 	toast(
 		result.advanced.length > 0

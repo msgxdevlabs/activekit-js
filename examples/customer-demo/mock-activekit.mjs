@@ -51,7 +51,11 @@ const PROGRAMS = [
 
 /** subjectId → { progress: Map<programId, {current, completedAt}>, grants: [] } */
 const subjects = new Map();
-/** idempotency-key → eventId, so a retried record() cannot double-count. */
+/**
+ * idempotency-key → the full original response. Proper Idempotency-Key
+ * semantics replay the first response, not just suppress the side effect — a
+ * retried record() that did advance a program must still be told it advanced.
+ */
 const seenEvents = new Map();
 
 const freshSubject = () => ({
@@ -138,6 +142,10 @@ const snapshotOf = (subjectId) => {
 				program: { id: program.id, key: program.key, name: program.name, status: program.status },
 				current,
 				target: program.target,
+				// Deliberately stays true after the grant is recorded, so the demo's
+				// "Reward ready" pill and bubble dot are actually visible — this mock
+				// auto-issues at the instant of eligibility, which a real deployment
+				// may not. The live API's exact semantics are still under construction.
 				eligible: current >= program.target,
 				completedAt,
 			};
@@ -147,10 +155,9 @@ const snapshotOf = (subjectId) => {
 
 const recordEvent = (body, idempotencyKey) => {
 	if (idempotencyKey && seenEvents.has(idempotencyKey)) {
-		return { eventId: seenEvents.get(idempotencyKey), advanced: [] };
+		return seenEvents.get(idempotencyKey);
 	}
 	const eventId = `evt_${randomUUID().slice(0, 12)}`;
-	if (idempotencyKey) seenEvents.set(idempotencyKey, eventId);
 
 	const state = subjectState(body.subjectId);
 	const advanced = [];
@@ -173,7 +180,9 @@ const recordEvent = (body, idempotencyKey) => {
 			});
 		}
 	}
-	return { eventId, advanced };
+	const response = { eventId, advanced };
+	if (idempotencyKey) seenEvents.set(idempotencyKey, response);
+	return response;
 };
 
 /**

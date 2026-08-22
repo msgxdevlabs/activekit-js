@@ -1,7 +1,7 @@
 # @activekit/js
 
 Browser client and embeddable widget for [ActiveKit](https://activekit.app).
-Vanilla TypeScript, zero dependencies, ~2 kB brotli.
+Vanilla TypeScript, zero dependencies, ~5 kB brotli.
 
 **Read-only.** This package retrieves a subject's own campaign progress and
 grants. It cannot record events, issue grants, or change anything — see

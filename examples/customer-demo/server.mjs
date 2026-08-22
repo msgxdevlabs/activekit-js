@@ -99,9 +99,16 @@ const serveFile = (res, baseDir, relativePath) => {
 
 const readBody = (req) =>
 	new Promise((resolve) => {
+		// Cap the buffer and settle on abort: an uncapped concat is a memory
+		// hole, and a promise that never resolves on a dropped upload pins the
+		// handler closure forever. Demo bodies are tiny; 64 KB is generous.
 		let raw = "";
 		req.on("data", (chunk) => {
 			raw += chunk;
+			if (raw.length > 64 * 1024) {
+				resolve(null);
+				req.destroy();
+			}
 		});
 		req.on("end", () => {
 			try {
@@ -110,6 +117,7 @@ const readBody = (req) =>
 				resolve(null);
 			}
 		});
+		req.on("error", () => resolve(null));
 	});
 
 const server = createServer(async (req, res) => {
@@ -142,7 +150,9 @@ const server = createServer(async (req, res) => {
 	// moves: the browser client is read-only by design.
 	const action = /^\/api\/actions\/(\w+)$/.exec(url.pathname);
 	if (action && req.method === "POST") {
-		const build = ACTIONS[action[1]];
+		// hasOwn, not a bare lookup: /api/actions/constructor must 404, not
+		// reach into Object.prototype.
+		const build = Object.hasOwn(ACTIONS, action[1]) ? ACTIONS[action[1]] : undefined;
 		if (!build) {
 			json(res, 404, { error: `unknown action ${action[1]}` });
 			return;
@@ -172,7 +182,18 @@ const server = createServer(async (req, res) => {
 	serveFile(res, publicDir, url.pathname === "/" ? "index.html" : url.pathname.slice(1));
 });
 
-server.listen(PORT, () => {
+server.on("error", (error) => {
+	if (error.code === "EADDRINUSE") {
+		console.error(`✗ Port ${PORT} is already in use — pick another: PORT=4174 node examples/customer-demo/server.mjs`);
+		process.exit(1);
+	}
+	throw error;
+});
+
+// Loopback only: this process holds a (demo) API key, and a rewards demo has
+// no business being reachable from the rest of the network. HOST=0.0.0.0 if
+// you really need it (e.g. from inside a container).
+server.listen(PORT, process.env.HOST ?? "127.0.0.1", () => {
 	console.log(`Acme Learn demo → http://localhost:${PORT}`);
 	console.log(`  mock ActiveKit API at /v1, Acme backend at /api, SDK served from /sdk`);
 });

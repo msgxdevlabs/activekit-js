@@ -48,10 +48,14 @@ const STYLES = `
    transparent element still hit-tests — without this, the launcher is an
    invisible click-shield over the host page. Interactive pieces opt back in. */
 .ak { --ak-fg: #111; --ak-muted: #666; --ak-bg: #fff; --ak-track: #eee; --ak-fill: #111;
-      --ak-accent: #16a34a; color-scheme: light; pointer-events: none;
+      --ak-accent: #15803d; --ak-ring: #22c55e; color-scheme: light; pointer-events: none;
       display: flex; flex-direction: column; align-items: flex-end; gap: 12px; color: var(--ak-fg); }
+/* --ak-accent sits on the panel (var(--ak-bg)); --ak-ring sits on the bubble
+   (var(--ak-fill)), which is the *opposite* ground — one green cannot pass
+   WCAG contrast on both. Measured: accent 5.0:1 / 10.8:1 on the panel,
+   ring 8.3:1 / 4.6:1 on the bubble, light / dark. */
 .ak[data-theme="dark"] { --ak-fg: #f5f5f5; --ak-muted: #999; --ak-bg: #111;
-      --ak-track: #333; --ak-fill: #f5f5f5; --ak-accent: #4ade80; color-scheme: dark; }
+      --ak-track: #333; --ak-fill: #f5f5f5; --ak-accent: #4ade80; --ak-ring: #15803d; color-scheme: dark; }
 .ak[data-position="bottom-left"] { align-items: flex-start; }
 
 .ak-bubble { pointer-events: auto; position: relative; width: 56px; height: 56px; border-radius: 50%; border: 0; padding: 0;
@@ -61,11 +65,12 @@ const STYLES = `
 .ak-bubble:focus-visible { outline: 2px solid var(--ak-fill); outline-offset: 2px; }
 .ak-ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .ak-dot { position: absolute; top: 1px; right: 1px; width: 12px; height: 12px; border-radius: 50%;
-      background: var(--ak-accent); border: 2px solid var(--ak-bg); }
+      background: var(--ak-ring); border: 2px solid var(--ak-bg); }
 .ak-dot[hidden] { display: none; }
 
 .ak-panel { width: min(340px, calc(100vw - 32px)); background: var(--ak-bg);
       border: 1px solid var(--ak-track); border-radius: 16px; overflow: hidden;
+      max-height: calc(100vh - 128px); max-height: calc(100dvh - 128px);
       box-shadow: 0 12px 40px rgba(0,0,0,.18); display: flex; flex-direction: column;
       opacity: 0; transform: translateY(8px) scale(.98); visibility: hidden; pointer-events: none;
       transition: opacity .18s ease, transform .18s ease, width .2s ease, visibility 0s linear .18s; }
@@ -82,7 +87,10 @@ const STYLES = `
 .ak-icon:focus-visible { outline: 2px solid var(--ak-fg); outline-offset: 1px; }
 .ak-icon[hidden] { display: none; }
 
-.ak-body { padding: 16px; display: grid; gap: 16px; overflow-y: auto; }
+/* min-height: 0 lets the body shrink inside the height-capped flex panel, so
+   in a short viewport (landscape phone, keyboard up) the body scrolls and the
+   header's Close/Minimize stay on screen instead of being pushed past the top. */
+.ak-body { padding: 16px; display: grid; gap: 16px; overflow-y: auto; min-height: 0; }
 .ak[data-view="dashboard"] .ak-body { max-height: min(65vh, 560px); }
 .ak-dash { display: none; }
 .ak[data-view="dashboard"] .ak-dash { display: grid; gap: 8px; }
@@ -169,13 +177,26 @@ const makeBar = (): Bar => {
 const pctOf = (progress: ProgramProgress): number =>
 	progress.target > 0 ? Math.min(progress.current / progress.target, 1) * 100 : 0;
 
+const BAR_ARIA = ["role", "aria-valuenow", "aria-valuemin", "aria-valuemax", "aria-label"] as const;
+
 const setBar = (bar: Bar, progress: ProgramProgress): void => {
 	bar.fill.style.width = `${pctOf(progress)}%`;
 	bar.track.setAttribute("role", "progressbar");
-	bar.track.setAttribute("aria-valuenow", String(progress.current));
+	// Clamped like the visual fill: the contract does not forbid a server
+	// reporting current > target, and valuenow outside min..max is invalid ARIA.
+	bar.track.setAttribute(
+		"aria-valuenow",
+		String(Math.min(Math.max(progress.current, 0), progress.target)),
+	);
 	bar.track.setAttribute("aria-valuemin", "0");
 	bar.track.setAttribute("aria-valuemax", String(progress.target));
 	bar.track.setAttribute("aria-label", progress.program.name);
+};
+
+/** The empty state has no progressbar — stale ARIA would announce a program that is gone. */
+const clearBar = (bar: Bar): void => {
+	bar.fill.style.width = "0%";
+	for (const attr of BAR_ARIA) bar.track.removeAttribute(attr);
 };
 
 const grantDate = (iso: string): string => {
@@ -244,7 +265,7 @@ export function mountLauncher(
 		cy: "18",
 		r: "15.9155",
 		fill: "none",
-		stroke: "var(--ak-accent)",
+		stroke: "var(--ak-ring)",
 		"stroke-width": "2.5",
 		"stroke-linecap": "round",
 		"stroke-dasharray": "0 100",
@@ -315,7 +336,13 @@ export function mountLauncher(
 	panel.append(head, body, foot);
 	root.append(panel, bubble);
 	shadow.append(style, root);
-	document.body.append(host);
+	// A <head> script without `defer` runs before <body> exists. The widget
+	// path degrades gracefully in that placement; so must this one.
+	const attach = (): void => {
+		document.body.append(host);
+	};
+	if (document.body) attach();
+	else document.addEventListener("DOMContentLoaded", attach, { once: true });
 
 	// --- theme -------------------------------------------------------------
 	const scheme = matchMedia("(prefers-color-scheme: dark)");
@@ -346,7 +373,7 @@ export function mountLauncher(
 		if (!progress) {
 			soloName.textContent = "No active program";
 			soloMeta.textContent = "";
-			soloBar.fill.style.width = "0%";
+			clearBar(soloBar);
 			soloPill.hidden = true;
 			return;
 		}
@@ -432,10 +459,33 @@ export function mountLauncher(
 		programsList.replaceChildren(el("p", "ak-empty", "Unavailable right now."));
 	};
 
+	let grantsInflight: Promise<void> | null = null;
+	const loadGrants = (): Promise<void> => {
+		grantsInflight ??= (async () => {
+			try {
+				const fresh = await client.grants();
+				if (destroyed) return;
+				grants = fresh;
+				paintGrants();
+				paintStats();
+			} catch {
+				if (destroyed) return;
+				grantsList.replaceChildren(el("p", "ak-empty", "Unavailable right now."));
+			} finally {
+				grantsInflight = null;
+			}
+		})();
+		return grantsInflight;
+	};
+
 	// The launcher repaints on *every* successful progress() — its own and the
-	// host page's. One subscription is the whole synchronization story.
+	// host page's. One subscription is the whole synchronization story; while
+	// the dashboard is showing, that includes the reward history, so "one
+	// progress() call keeps it current" stays true with the dashboard open.
 	const unsubscribe = client.on("progress", (s) => {
-		if (!destroyed) paintSnapshot(s);
+		if (destroyed) return;
+		paintSnapshot(s);
+		if (view === "dashboard") void loadGrants();
 	});
 
 	const loadProgress = async (): Promise<void> => {
@@ -443,19 +493,6 @@ export function mountLauncher(
 			await client.progress(); // the subscription above paints
 		} catch {
 			if (!destroyed) paintUnavailable();
-		}
-	};
-
-	const loadGrants = async (): Promise<void> => {
-		try {
-			const fresh = await client.grants();
-			if (destroyed) return;
-			grants = fresh;
-			paintGrants();
-			paintStats();
-		} catch {
-			if (destroyed) return;
-			grantsList.replaceChildren(el("p", "ak-empty", "Unavailable right now."));
 		}
 	};
 
@@ -495,26 +532,39 @@ export function mountLauncher(
 		if (view === "closed") open();
 		else close();
 	});
-	expandButton.addEventListener("click", expand);
-	collapseButton.addEventListener("click", collapse);
+	// The activated button hides when the view flips; a focused element going
+	// display:none drops keyboard focus to <body>, ejecting the user from the
+	// dialog. Hand focus to the counterpart before that happens.
+	expandButton.addEventListener("click", () => {
+		expand();
+		collapseButton.focus();
+	});
+	collapseButton.addEventListener("click", () => {
+		collapse();
+		expandButton.focus();
+	});
 	closeButton.addEventListener("click", () => {
 		close();
 		bubble.focus();
 	});
 
+	// Escape belongs to the embed only when the keystroke happened inside it.
+	// The panel is non-modal: a user dismissing their own autocomplete, IME
+	// composition, or a host modal that already consumed the key must not have
+	// this embed close itself — let alone steal their focus.
 	const onKeydown = (event: KeyboardEvent): void => {
-		if (event.key === "Escape" && view !== "closed") {
-			close();
-			bubble.focus();
-		}
+		if (event.key !== "Escape" || view === "closed") return;
+		if (event.defaultPrevented || event.isComposing) return;
+		if (!event.composedPath().includes(host)) return;
+		close();
+		bubble.focus();
 	};
 	window.addEventListener("keydown", onKeydown);
 
 	void loadProgress();
-	if (options.defaultOpen) {
-		setView("panel");
-		panel.focus({ preventScroll: true });
-	}
+	// No focus() here, unlike open(): nobody asked for focus at mount time, and
+	// a third-party embed grabbing it on page load is focus theft.
+	if (options.defaultOpen) setView("panel");
 
 	return {
 		open,
@@ -530,6 +580,7 @@ export function mountLauncher(
 			destroyed = true;
 			unsubscribe();
 			window.removeEventListener("keydown", onKeydown);
+			document.removeEventListener("DOMContentLoaded", attach);
 			if (followsScheme) scheme.removeEventListener("change", applyTheme);
 			host.remove();
 		},
