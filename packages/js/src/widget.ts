@@ -1,3 +1,4 @@
+import { el } from "./dom.js";
 import type { ActiveKitClient } from "./client.js";
 import type { ProgramProgress } from "./types.js";
 
@@ -37,20 +38,6 @@ const STYLES = `
 .ak-pill[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) { .ak-fill { transition: none; } }
 `;
-
-const el = <K extends keyof HTMLElementTagNameMap>(
-	tag: K,
-	className?: string,
-	text?: string,
-): HTMLElementTagNameMap[K] => {
-	const node = document.createElement(tag);
-	if (className) node.className = className;
-	// textContent, never innerHTML. Program names are organization-authored and
-	// this runs on the organization's own page — but "trusted today" is how
-	// stored XSS gets shipped.
-	if (text !== undefined) node.textContent = text;
-	return node;
-};
 
 /**
  * Render the progress widget into `target`.

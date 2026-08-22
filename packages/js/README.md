@@ -106,6 +106,39 @@ It reports and does not act: when a subject becomes eligible it shows a
 "Reward ready" marker and stops there. There is no claim button, for the reason
 above.
 
+## Launcher
+
+The widget's floating sibling: a bubble docked in a corner of the page that
+opens into a compact progress panel, and maximizes into a dashboard of the
+subject's stats — every program's progress and their full reward history.
+
+```ts
+import { createClient, mountLauncher } from "@activekit/js";
+
+const launcher = mountLauncher(client, {
+  programKey: "daily-login",  // highlighted by the bubble's ring and the compact panel
+  position: "bottom-right",   // or "bottom-left"
+  title: "Your rewards",
+  theme: "auto",
+});
+
+launcher.open();     // compact panel
+launcher.expand();   // maximized dashboard
+launcher.close();    // back to the bubble — Esc does the same
+await launcher.refresh();
+launcher.destroy();
+```
+
+It appends itself to `document.body`; there is no target element because your
+layout gives up nothing for it. The bubble wears a progress ring for the
+highlighted program and a dot when a reward is ready. Same shadow root, same
+read-only surface as the widget — the dashboard shows grants, it cannot claim
+them.
+
+One habit worth knowing: the launcher repaints on every successful
+`client.progress()`, whoever triggered it. After your backend records an
+event, a single `client.progress()` call brings the launcher up to date.
+
 ## Script tag
 
 For pages with no build step. **Not live yet** — `cdn.activekit.app` is the
@@ -126,6 +159,10 @@ planned host for this build; until it exists, install through a bundler.
 Pin the exact version and its hash. A floating `/v1/` path is planned for teams
 who want automatic updates; understand that it lets us change code on your page
 without you deploying.
+
+Add `data-mode="launcher"` to self-mount the floating launcher instead of the
+inline widget — no container element needed. `data-position` and `data-title`
+pass through.
 
 ## Support
 

@@ -177,6 +177,22 @@ updating it pushes code to every customer's page without them deploying — whic
 is exactly why it will be gated like a production deploy.
 </details>
 
+## See it running
+
+[`examples/customer-demo`](examples/customer-demo) is a complete fake customer
+— an "Acme Learn" page with the floating launcher widget in its corner, a
+backend that mints subject tokens and records events with the server SDK, and
+an in-memory stand-in for the not-yet-live API, so the whole loop runs
+locally:
+
+```bash
+pnpm install && pnpm build
+node examples/customer-demo/server.mjs   # → http://localhost:4173
+```
+
+Buttons on the page simulate the user doing things; you watch progress move,
+a streak complete, and the reward land in the widget's dashboard.
+
 ## Develop
 
 ```bash
