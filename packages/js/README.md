@@ -110,7 +110,7 @@ above.
 
 The widget's floating sibling: a bubble docked in a corner of the page that
 opens into a compact progress panel, and expands into a centered modal over
-the dimmed page — a slate sidebar with three sections. Overview holds stat
+the dimmed page: a slate sidebar with three sections. Overview holds stat
 values, the nearest goal, and the active-campaign grid; Campaigns lists every
 campaign with its progress and what completing it earns; Rewards is the full
 grant history. Escape and a click on the scrim close it, and focus stays
@@ -137,7 +137,7 @@ launcher.destroy();
 It appends itself to `document.body`; there is no target element because your
 layout gives up nothing for it. The bubble wears a progress ring for the
 highlighted campaign and a dot when a reward is ready. Same shadow root, same
-read-only surface as the widget — the expanded view shows grants, it cannot
+read-only surface as the widget: the expanded view shows grants, it cannot
 claim them.
 
 One habit worth knowing: the launcher repaints on every successful
@@ -166,8 +166,8 @@ mountLauncher(client, {
 
 `onBrand` (the icon color on the bubble), `background`, `foreground`,
 `muted` and `track` are also accepted. `accent` seeds `ring` unless you set
-`ring` yourself — they sit on opposite grounds (panel vs. bubble), and one
-color rarely passes contrast on both. Which is
+`ring` yourself, because they sit on opposite grounds (panel vs. bubble) and
+one color rarely passes contrast on both. Which is
 the caveat: the built-in palette is WCAG-tuned, and overriding moves that
 responsibility to you. Hex pairs that measurably fail AA log a console
 warning; invalid values are ignored, loudly.
@@ -194,8 +194,8 @@ who want automatic updates; understand that it lets us change code on your page
 without you deploying.
 
 Add `data-mode="launcher"` to self-mount the floating launcher instead of the
-inline widget — no container element needed. `data-position`, `data-title`
-and `data-subject-label` pass through, and `data-brand-color` /
+inline widget, with no container element needed. `data-position`,
+`data-title` and `data-subject-label` pass through, and `data-brand-color` /
 `data-accent-color` cover the script tag's share of the `colors` option.
 
 ## Support

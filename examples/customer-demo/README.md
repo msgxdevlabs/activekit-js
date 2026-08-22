@@ -49,7 +49,7 @@ the page; the demo server itself needs no restart for SDK-only changes).
 - **Compact panel**: one campaign's progress — the same content as the inline
   widget, in a card above the bubble.
 - **Expanded view**: the panel's maximize button opens a centered modal over
-  the dimmed page — a slate sidebar with Overview (stat values, the nearest
+  the dimmed page, a slate sidebar beside Overview (stat values, the nearest
   goal, the active-campaign grid), Campaigns (every campaign, its progress,
   and what completing it earns), and Rewards (the grant history).
 
