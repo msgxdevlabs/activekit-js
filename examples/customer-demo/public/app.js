@@ -34,8 +34,8 @@ const rotateBefore = (expiresAt) => {
 rotateBefore(expiresAt);
 
 // ⭐ 4. Mount the floating launcher. The compact panel highlights one
-//    campaign; the maximize button opens the expanded view — overview,
-//    every campaign, reward history — over the dimmed page.
+//    campaign; the maximize button opens the expanded view, with overview,
+//    every campaign, and reward history over the dimmed page.
 //
 //    The built-in look is the ActiveKit design system, light and dark. To
 //    re-brand it, pass `colors`: for example

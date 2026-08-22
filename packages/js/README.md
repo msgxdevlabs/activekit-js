@@ -78,7 +78,7 @@ So the split is:
 | **Reading** progress and grants | browser, this package | subject token, scoped to one subject |
 | **Recording** events, issuing grants | your server, [`activekit`](https://www.npmjs.com/package/activekit) | API key, never leaves your backend |
 
-`CampaignProgress.eligible` tells you the server would honour a grant right now.
+`CampaignProgress.eligible` tells you the server would honor a grant right now.
 Render a button on it if you like — but that button posts to *your* backend,
 which calls the server SDK. Nothing in this package can complete that action,
 and the test suite asserts as much: it walks the client's prototype chain for
