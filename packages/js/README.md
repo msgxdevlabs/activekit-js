@@ -109,8 +109,12 @@ above.
 ## Launcher
 
 The widget's floating sibling: a bubble docked in a corner of the page that
-opens into a compact progress panel, and maximizes into a dashboard of the
-subject's stats — every campaign's progress and their full reward history.
+opens into a compact progress panel, and expands into a centered modal over
+the dimmed page — a slate sidebar with three sections. Overview holds stat
+values, the nearest goal, and the active-campaign grid; Campaigns lists every
+campaign with its progress and what completing it earns; Rewards is the full
+grant history. Escape and a click on the scrim close it, and focus stays
+inside while it is open.
 
 ```ts
 import { createClient, mountLauncher } from "@activekit/js";
@@ -119,11 +123,12 @@ const launcher = mountLauncher(client, {
   campaignKey: "daily-login",  // highlighted by the bubble's ring and the compact panel
   position: "bottom-right",   // or "bottom-left"
   title: "Your rewards",
+  subjectLabel: "Pat",        // sidebar display name; the API only knows subject IDs
   theme: "auto",
 });
 
 launcher.open();     // compact panel
-launcher.expand();   // maximized dashboard
+launcher.expand();   // expanded view
 launcher.close();    // back to the bubble — Esc does the same
 await launcher.refresh();
 launcher.destroy();
@@ -132,8 +137,8 @@ launcher.destroy();
 It appends itself to `document.body`; there is no target element because your
 layout gives up nothing for it. The bubble wears a progress ring for the
 highlighted campaign and a dot when a reward is ready. Same shadow root, same
-read-only surface as the widget — the dashboard shows grants, it cannot claim
-them.
+read-only surface as the widget — the expanded view shows grants, it cannot
+claim them.
 
 One habit worth knowing: the launcher repaints on every successful
 `client.progress()`, whoever triggered it. After your backend records an
@@ -141,9 +146,12 @@ event, a single `client.progress()` call brings the launcher up to date.
 
 ### Brand colors
 
-Both `mountWidget` and `mountLauncher` take a `colors` option. The shadow
-root seals the embed off from your CSS on purpose, so theming crosses the
-boundary as an option, not a stylesheet:
+The built-in look is the ActiveKit design system, light and dark: teal fills
+that white text can be read on, ink on canvas in the light theme, the slate
+ladder in the dark one, and tabular figures on every number. Both
+`mountWidget` and `mountLauncher` take a `colors` option to re-brand it. The
+shadow root seals the embed off from your CSS on purpose, so theming crosses
+the boundary as an option, not a stylesheet:
 
 ```ts
 mountLauncher(client, {
@@ -156,9 +164,10 @@ mountLauncher(client, {
 });
 ```
 
-`background`, `foreground`, `muted` and `track` are also accepted. `accent`
-seeds `ring` unless you set `ring` yourself — they sit on opposite grounds
-(panel vs. bubble), and one color rarely passes contrast on both. Which is
+`onBrand` (the icon color on the bubble), `background`, `foreground`,
+`muted` and `track` are also accepted. `accent` seeds `ring` unless you set
+`ring` yourself — they sit on opposite grounds (panel vs. bubble), and one
+color rarely passes contrast on both. Which is
 the caveat: the built-in palette is WCAG-tuned, and overriding moves that
 responsibility to you. Hex pairs that measurably fail AA log a console
 warning; invalid values are ignored, loudly.
@@ -185,9 +194,9 @@ who want automatic updates; understand that it lets us change code on your page
 without you deploying.
 
 Add `data-mode="launcher"` to self-mount the floating launcher instead of the
-inline widget — no container element needed. `data-position` and `data-title`
-pass through, and `data-brand-color` / `data-accent-color` cover the script
-tag's share of the `colors` option.
+inline widget — no container element needed. `data-position`, `data-title`
+and `data-subject-label` pass through, and `data-brand-color` /
+`data-accent-color` cover the script tag's share of the `colors` option.
 
 ## Support
 

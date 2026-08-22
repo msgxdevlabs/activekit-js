@@ -33,24 +33,24 @@ const rotateBefore = (expiresAt) => {
 };
 rotateBefore(expiresAt);
 
-// ⭐ 4. Mount the floating launcher. Compact panel highlights one campaign;
-//    the maximize button opens the full stats dashboard.
+// ⭐ 4. Mount the floating launcher. The compact panel highlights one
+//    campaign; the maximize button opens the expanded view — overview,
+//    every campaign, reward history — over the dimmed page.
 //
-//    `colors` re-brands the widget: Acme's indigo for the bubble and fills,
-//    per-theme variants, and a white progress ring — the ring sits on the
-//    (now indigo) bubble, where the default green would fail contrast.
-const ACME_COLORS = {
-	brand: "#5b5bd6",
-	ring: "#ffffff",
-	dark: { brand: "#7b7bec" },
-};
+//    The built-in look is the ActiveKit design system, light and dark. To
+//    re-brand it, pass `colors`: for example
+//    `{ brand: "#5b5bd6", dark: { brand: "#7b7bec" } }` puts Acme's indigo
+//    on the bubble and fills (hex pairs that fail WCAG log a warning).
+//
+//    `subjectLabel` names the expanded view's sidebar: the API only knows
+//    subject IDs, so the display name comes from the app that has one.
 const theme = () => document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 const mountAcmeLauncher = (mode) =>
 	mountLauncher(client, {
 		campaignKey: "daily-practice",
 		title: "Your rewards",
+		subjectLabel: "Pat",
 		theme: mode,
-		colors: ACME_COLORS,
 	});
 let launcher = mountAcmeLauncher(theme());
 

@@ -47,12 +47,14 @@ if (token) {
 	if (script?.dataset["mode"] === "launcher") {
 		const position = script.dataset["position"] as "bottom-right" | "bottom-left" | undefined;
 		const title = script.dataset["title"];
+		const subjectLabel = script.dataset["subjectLabel"];
 
 		mountLauncher(createClient({ token, ...(apiUrl ? { apiUrl } : {}) }), {
 			...(campaignKey ? { campaignKey } : {}),
 			...(theme ? { theme } : {}),
 			...(position ? { position } : {}),
 			...(title ? { title } : {}),
+			...(subjectLabel ? { subjectLabel } : {}),
 			...(colors ? { colors } : {}),
 		});
 	} else {

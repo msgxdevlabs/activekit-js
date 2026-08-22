@@ -5,11 +5,23 @@
  * theming crosses the boundary the same way everything else does: as an
  * option. Values land as inline custom properties on the embed's root
  * element, which beat the stylesheet's defaults and nothing else.
+ *
+ * The built-in defaults are the ActiveKit design system's values (see
+ * `design/tokens/colors.css` in this repo — values are copied, never
+ * imported, because the embed inlines all CSS and pays for every byte).
+ * Every default pair below is measured against WCAG 4.5:1 for text and 3:1
+ * for graphics; the ratios are noted where a value was chosen for one.
  */
 
 export interface WidgetColorTokens {
 	/** Primary brand color: the bubble and every progress fill. */
 	brand?: string;
+	/**
+	 * Icon and label color on top of `brand` fills (the bubble). The defaults
+	 * are tuned for the built-in teal fills: white in the light theme, deep
+	 * slate in the dark one. Override it when `brand` changes polarity.
+	 */
+	onBrand?: string;
 	/** Reward color on the panel: the "Reward ready" pill and fulfilled chips. */
 	accent?: string;
 	/**
@@ -18,7 +30,7 @@ export interface WidgetColorTokens {
 	 * `accent` when that is set, else the built-in.
 	 */
 	ring?: string;
-	/** Panel background. */
+	/** Panel and card background. Also the expanded view's content ground. */
 	background?: string;
 	/** Primary text. */
 	foreground?: string;
@@ -35,26 +47,40 @@ export interface WidgetColors extends WidgetColorTokens {
 	dark?: WidgetColorTokens;
 }
 
-/** Order matters: `accent` seeds the ring, a later `ring` entry overrides it. */
+/**
+ * Order matters: `accent` seeds the ring, a later `ring` entry overrides it.
+ * `brand` writes both gradient stops, so an override flattens the built-in
+ * brand gradient to one color instead of mixing with half of ours.
+ */
 const TOKENS: ReadonlyArray<[keyof WidgetColorTokens, readonly string[]]> = [
-	["brand", ["--ak-fill"]],
+	["brand", ["--ak-fill", "--ak-fill2"]],
+	["onBrand", ["--ak-on-fill"]],
 	["accent", ["--ak-accent", "--ak-ring"]],
 	["ring", ["--ak-ring"]],
-	["background", ["--ak-bg"]],
+	["background", ["--ak-bg", "--ak-bg2"]],
 	["foreground", ["--ak-fg"]],
 	["muted", ["--ak-muted"]],
 	["track", ["--ak-track"]],
 ];
 
-/** The built-in palette, for filling in the unchanged side of a contrast pair. */
+/**
+ * The built-in palette, for filling in the unchanged side of a contrast pair.
+ * Light: ink #102033 and ink-mute #607087 on canvas #ffffff (16.45:1, 5.04:1),
+ * primary-deep #087f7a as accent (4.85:1) and brand fill (white on it 4.85:1),
+ * hairline #dbe6ef for tracks. Dark: the brand-dark slate ladder — panel
+ * #0b1220 with white text (18.72:1) and the design system's white-alpha
+ * convention for muted text and hairlines; primary-soft #15c6bc as brand and
+ * accent (8.77:1 on the panel), with slate #0b1220 back on top of it (8.77:1).
+ */
 const DEFAULTS: Record<"light" | "dark", Required<WidgetColorTokens>> = {
 	light: {
-		brand: "#111111", accent: "#15803d", ring: "#22c55e",
-		background: "#ffffff", foreground: "#111111", muted: "#666666", track: "#eeeeee",
+		brand: "#087f7a", onBrand: "#ffffff", accent: "#087f7a", ring: "#ffffff",
+		background: "#ffffff", foreground: "#102033", muted: "#607087", track: "#dbe6ef",
 	},
 	dark: {
-		brand: "#f5f5f5", accent: "#4ade80", ring: "#15803d",
-		background: "#111111", foreground: "#f5f5f5", muted: "#999999", track: "#333333",
+		brand: "#15c6bc", onBrand: "#0b1220", accent: "#15c6bc", ring: "#0b1220",
+		background: "#0b1220", foreground: "#ffffff",
+		muted: "rgba(255,255,255,.72)", track: "rgba(255,255,255,.14)",
 	},
 };
 
@@ -86,10 +112,12 @@ const warnContrast = (
 ): void => {
 	const value = (name: keyof WidgetColorTokens): string =>
 		set[name] ?? (name === "ring" ? (set.accent ?? DEFAULTS[theme][name]) : DEFAULTS[theme][name]);
+	// Ring and onBrand sit at 3:1 — they carry graphics, never text.
 	const pairs: ReadonlyArray<[keyof WidgetColorTokens, keyof WidgetColorTokens, number]> = [
 		["foreground", "background", 4.5],
 		["accent", "background", 4.5],
 		["ring", "brand", 3],
+		["onBrand", "brand", 3],
 	];
 	for (const [fore, back, minimum] of pairs) {
 		if (set[fore] === undefined && set[back] === undefined && !(fore === "ring" && set.accent !== undefined)) continue;
@@ -100,7 +128,7 @@ const warnContrast = (
 		if (measured >= minimum) continue;
 		console.warn(
 			`[ActiveKit] colors: ${fore} (${value(fore)}) on ${back} (${value(back)}) measures ` +
-				`${measured.toFixed(2)}:1 in the ${theme} theme — below WCAG's ${minimum}:1.`,
+				`${measured.toFixed(2)}:1 in the ${theme} theme, below WCAG's ${minimum}:1.`,
 		);
 	}
 };
@@ -127,7 +155,7 @@ export const applyColors = (
 		const value = themed?.[name] ?? colors[name];
 		if (value === undefined) continue;
 		if (!CSS.supports("color", value)) {
-			console.warn(`[ActiveKit] colors.${name}: ${JSON.stringify(value)} is not a valid CSS color — ignored.`);
+			console.warn(`[ActiveKit] colors.${name}: ${JSON.stringify(value)} is not a valid CSS color, ignored.`);
 			continue;
 		}
 		applied[name] = value;

@@ -41,18 +41,20 @@ the page; the demo server itself needs no restart for SDK-only changes).
 - Progress only ever moves because **Acme's backend** records an event with
   the API key. The demo buttons go through it; nothing writes from the page.
 
-## The widget's two modes
+## The launcher's three states
 
 - **Bubble** (closed): a small circular button docked bottom-right, wearing a
-  progress ring for the highlighted campaign and a green dot when a reward is
+  progress ring for the highlighted campaign and a dot when a reward is
   ready. Click to open.
 - **Compact panel**: one campaign's progress — the same content as the inline
   widget, in a card above the bubble.
-- **Maximized dashboard**: the panel's ⤢ button expands it into the subject's
-  stats — tiles (rewards earned, active campaigns, completions), every
-  campaign's progress bar, and the full reward history.
+- **Expanded view**: the panel's maximize button opens a centered modal over
+  the dimmed page — a slate sidebar with Overview (stat values, the nearest
+  goal, the active-campaign grid), Campaigns (every campaign, its progress,
+  and what completing it earns), and Rewards (the grant history).
 
-`Esc` closes it. The theme toggle in the demo nav remounts it in dark mode.
+`Esc` and the scrim close it. The theme toggle in the demo nav remounts it in
+dark mode.
 
 ## Which files are "the integration"
 
