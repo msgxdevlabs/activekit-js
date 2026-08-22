@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Pricing page" description="Four-up pricing with a working monthly and annual toggle, feature comparison table, FAQ, and footer." -->
+<helmet><script src="./ds-base.js"></script><style>body{margin:0;background:var(--canvas)}</style></helmet>
+<div style="background:var(--canvas);font-family:var(--font-sans);color:var(--ink)">
+<div style="position:relative;background:var(--canvas);overflow:hidden;isolation:isolate">
+<div aria-hidden="true" style="position:absolute;left:0;right:0;top:0;height:66%;pointer-events:none">
+<div style="position:absolute;left:-12%;top:-40%;width:46%;height:80%;border-radius:50%;background:var(--wash-orb-aqua);filter:blur(var(--wash-blur));opacity:0.32"></div>
+<div style="position:absolute;left:16%;top:-24%;width:30%;height:58%;border-radius:50%;background:var(--wash-orb-teal);filter:blur(var(--wash-blur));opacity:0.32"></div>
+<div style="position:absolute;left:40%;top:-46%;width:42%;height:84%;border-radius:50%;background:var(--wash-orb-blue);filter:blur(var(--wash-blur));opacity:0.32"></div>
+<div style="position:absolute;left:70%;top:-30%;width:40%;height:76%;border-radius:50%;background:var(--wash-orb-lavender);filter:blur(var(--wash-blur));opacity:0.32"></div>
+</div>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.NavBar" items="{{ navItems }}" active-item="Pricing" cta-label="Start free" hint-size="100%,72px"></x-import>
+<header style="max-width:var(--container-max);margin:0 auto;padding:var(--space-huge) var(--space-xl) var(--space-xl);display:flex;flex-direction:column;align-items:center;gap:var(--space-lg);text-align:center">
+<h1 style="font-family:var(--font-display);font-size:var(--display-xl-size);font-weight:var(--display-xl-weight);line-height:var(--display-xl-lh);letter-spacing:var(--display-xl-ls);margin:0;max-width:22ch">Pay for credits paid.</h1>
+<p style="margin:0;font-size:var(--body-lg-size);line-height:var(--body-lg-lh);color:var(--ink-secondary);max-width:58ch">Every plan includes unlimited drafts, sandbox ledgers, and the full API. Metering starts when a campaign pays out, so a plan you are not using costs you nothing.</p>
+<div style="display:inline-flex;align-items:center;gap:var(--space-xs);background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-pill);padding:var(--space-xs)">
+<sc-if value="{{ isMonthly }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ setMonthly }}" style="border:none;cursor:pointer;border-radius:var(--radius-pill);padding:var(--space-sm) var(--space-md);min-height:40px;font-family:var(--font-sans);font-size:var(--button-sm-size);line-height:var(--button-sm-lh);font-feature-settings:var(--font-feature-numeric);background:var(--cta-gradient);box-shadow:var(--elevation-cta);color:var(--cta-on-fill)">Monthly</button></sc-if>
+<sc-if value="{{ isAnnual }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ setMonthly }}" style="border:none;cursor:pointer;border-radius:var(--radius-pill);padding:var(--space-sm) var(--space-md);min-height:40px;font-family:var(--font-sans);font-size:var(--button-sm-size);line-height:var(--button-sm-lh);font-feature-settings:var(--font-feature-numeric);background:transparent;color:var(--ink-mute)">Monthly</button></sc-if>
+<sc-if value="{{ isAnnual }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ setAnnual }}" style="border:none;cursor:pointer;border-radius:var(--radius-pill);padding:var(--space-sm) var(--space-md);min-height:40px;font-family:var(--font-sans);font-size:var(--button-sm-size);line-height:var(--button-sm-lh);font-feature-settings:var(--font-feature-numeric);background:var(--cta-gradient);box-shadow:var(--elevation-cta);color:var(--cta-on-fill)">Annual, save 20%</button></sc-if>
+<sc-if value="{{ isMonthly }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ setAnnual }}" style="border:none;cursor:pointer;border-radius:var(--radius-pill);padding:var(--space-sm) var(--space-md);min-height:40px;font-family:var(--font-sans);font-size:var(--button-sm-size);line-height:var(--button-sm-lh);font-feature-settings:var(--font-feature-numeric);background:transparent;color:var(--ink-mute)">Annual, save 20%</button></sc-if>
+</div>
+</header>
+<section style="max-width:var(--container-max);margin:0 auto;padding:var(--space-xl) var(--space-xl) var(--space-huge)">
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-lg);align-items:stretch">
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.PricingCard" tier-name="Starter" cta-variant="primary" price="$0" price-suffix="{{ suffix }}" description="One live campaign against a sandbox or production ledger." features="{{ starterFeatures }}" cta-label="Start free" hint-size="100%,440px"></x-import>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.PricingCard" featured="{{ true }}" tier-name="Growth" cta-variant="brand" price="{{ growthPrice }}" price-suffix="{{ suffix }}" description="For teams running always-on acquisition loops." features="{{ growthFeatures }}" cta-label="Start free" footnote="{{ growthFootnote }}" hint-size="100%,440px"></x-import>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.PricingCard" tier-name="Scale" cta-variant="primary" price="{{ scalePrice }}" price-suffix="{{ suffix }}" description="Metered payouts across every surface you ship." features="{{ scaleFeatures }}" cta-label="Start free" hint-size="100%,440px"></x-import>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.PricingCard" tier-name="Enterprise" cta-variant="primary" price="Custom" description="Private ledgers, contractual payout caps, and a named engineer." features="{{ enterpriseFeatures }}" cta-label="Talk to sales" hint-size="100%,440px"></x-import>
+</div>
+</section>
+</div>
+<section style="background:var(--canvas-soft);border-top:var(--border-width-hairline) solid var(--hairline);padding:var(--space-huge) var(--space-xl)">
+<div style="max-width:var(--container-max);margin:0 auto">
+<h2 style="font-family:var(--font-display);font-size:var(--display-lg-size);font-weight:var(--display-lg-weight);line-height:var(--display-lg-lh);letter-spacing:var(--display-lg-ls);margin:0 0 var(--space-xl)">What is in each plan</h2>
+<div style="background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);overflow:hidden">
+<table style="width:100%;border-collapse:collapse;font-size:var(--body-tabular-size);letter-spacing:var(--body-tabular-ls);font-feature-settings:var(--font-feature-numeric)">
+<thead>
+<tr style="background:var(--canvas-soft)">
+<th style="text-align:left;padding:var(--space-md) var(--space-lg);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">Included</th>
+<th style="text-align:right;padding:var(--space-md) var(--space-lg);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">Starter</th>
+<th style="text-align:right;padding:var(--space-md) var(--space-lg);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">Growth</th>
+<th style="text-align:right;padding:var(--space-md) var(--space-lg);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">Scale</th>
+<th style="text-align:right;padding:var(--space-md) var(--space-lg);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">Enterprise</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ comparisonRows }}" as="row" hint-placeholder-count="6">
+<tr>
+<td style="padding:var(--space-md) var(--space-lg);border-bottom:var(--border-width-hairline) solid var(--hairline);color:var(--ink)">{{ row.label }}</td>
+<td style="padding:var(--space-md) var(--space-lg);border-bottom:var(--border-width-hairline) solid var(--hairline);color:var(--ink-secondary);text-align:right">{{ row.starter }}</td>
+<td style="padding:var(--space-md) var(--space-lg);border-bottom:var(--border-width-hairline) solid var(--hairline);color:var(--ink);text-align:right;background:var(--canvas-soft)">{{ row.growth }}</td>
+<td style="padding:var(--space-md) var(--space-lg);border-bottom:var(--border-width-hairline) solid var(--hairline);color:var(--ink-secondary);text-align:right">{{ row.scale }}</td>
+<td style="padding:var(--space-md) var(--space-lg);border-bottom:var(--border-width-hairline) solid var(--hairline);color:var(--ink-secondary);text-align:right">{{ row.enterprise }}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section style="background:var(--canvas);padding:var(--space-huge) var(--space-xl)">
+<div style="max-width:var(--container-max);margin:0 auto;display:grid;grid-template-columns:1fr 1.4fr;gap:var(--space-huge)">
+<div>
+<h2 style="font-family:var(--font-display);font-size:var(--display-lg-size);font-weight:var(--display-lg-weight);line-height:var(--display-lg-lh);letter-spacing:var(--display-lg-ls);margin:0 0 var(--space-md)">Questions we get</h2>
+<p style="margin:0;font-size:var(--body-md-size);line-height:var(--body-md-lh);color:var(--ink-secondary);max-width:32ch">If yours is not here, the docs go deeper on metering and payout mechanics.</p>
+<div style="margin-top:var(--space-lg)">
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Link" href="#" hint-size="150px,22px">Read the docs</x-import>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:var(--space-lg)">
+<div style="border-bottom:var(--border-width-hairline) solid var(--hairline);padding-bottom:var(--space-lg)"><div style="font-size:var(--heading-sm-size);font-weight:var(--heading-sm-weight);margin-bottom:var(--space-sm)">What counts as a credit?</div><p style="margin:0;font-size:var(--body-md-size);line-height:var(--body-md-lh);color:var(--ink-secondary)">Whatever your ledger already calls one. ActiveKit meters the payout, so a credit in your product is a credit here, at your own unit price.</p></div>
+<div style="border-bottom:var(--border-width-hairline) solid var(--hairline);padding-bottom:var(--space-lg)"><div style="font-size:var(--heading-sm-size);font-weight:var(--heading-sm-weight);margin-bottom:var(--space-sm)">What happens when I hit the monthly cap?</div><p style="margin:0;font-size:var(--body-md-size);line-height:var(--body-md-lh);color:var(--ink-secondary)">Campaigns pause instead of overspending, and the ledger records the attempted payouts so you can replay them after raising the cap.</p></div>
+<div style="border-bottom:var(--border-width-hairline) solid var(--hairline);padding-bottom:var(--space-lg)"><div style="font-size:var(--heading-sm-size);font-weight:var(--heading-sm-weight);margin-bottom:var(--space-sm)">Do drafts and sandbox runs cost anything?</div><p style="margin:0;font-size:var(--body-md-size);line-height:var(--body-md-lh);color:var(--ink-secondary)">No. Draft campaigns, replays against past events, and sandbox ledgers are unmetered on every plan, including Starter.</p></div>
+<div><div style="font-size:var(--heading-sm-size);font-weight:var(--heading-sm-weight);margin-bottom:var(--space-sm)">Can I move a campaign between workspaces?</div><p style="margin:0;font-size:var(--body-md-size);line-height:var(--body-md-lh);color:var(--ink-secondary)">Yes, and the ledger history moves with it, because a campaign is a versioned object rather than a dashboard setting.</p></div>
+</div>
+</div>
+</section>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Footer" tagline="Growth loops that pay out, metered against your own credit ledger." columns="{{ footerColumns }}" legal-links="{{ legalLinks }}" hint-size="100%,320px"></x-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;defaultPeriod&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;monthly&quot;,&quot;annual&quot;],&quot;default&quot;:&quot;monthly&quot;,&quot;tsType&quot;:&quot;'monthly' | 'annual'&quot;,&quot;section&quot;:&quot;Pricing&quot;}}">
+class Component extends DCLogic {
+  state = { period: null };
+
+  get period() {
+    return this.state.period || this.props.defaultPeriod || 'monthly';
+  }
+
+  renderVals() {
+    const annual = this.period === 'annual';
+    return {
+      navItems: ['Outcomes', 'Campaigns', 'Developers', 'Pricing'],
+      setMonthly: () => this.setState({ period: 'monthly' }),
+      setAnnual: () => this.setState({ period: 'annual' }),
+      isMonthly: !annual,
+      isAnnual: annual,
+      suffix: annual ? '/mo, billed yearly' : '/mo',
+      growthPrice: annual ? '$199' : '$249',
+      scalePrice: annual ? '$719' : '$899',
+      growthFootnote: annual ? 'Two months free on the annual plan.' : 'Billed monthly, cancel anytime.',
+      starterFeatures: ['2,500 credits / mo', '1 live campaign', 'Sandbox ledgers', 'Community support'],
+      growthFeatures: ['25,000 credits / mo', '10 live campaigns', 'Webhook + SDK access', 'Replay and audit log'],
+      scaleFeatures: ['150,000 credits / mo', 'Unlimited campaigns', 'SSO and audit exports', 'Priority support'],
+      enterpriseFeatures: ['Custom credit ceiling', 'Private ledger isolation', 'Contractual payout caps', 'Named support engineer'],
+      comparisonRows: [
+        { label: 'Included credits per month', starter: '2,500', growth: '25,000', scale: '150,000', enterprise: 'Custom' },
+        { label: 'Live campaigns', starter: '1', growth: '10', scale: 'Unlimited', enterprise: 'Unlimited' },
+        { label: 'Workspace seats', starter: '2', growth: '10', scale: '50', enterprise: 'Unlimited' },
+        { label: 'Event history', starter: '7 days', growth: '90 days', scale: '400 days', enterprise: 'Custom' },
+        { label: 'Webhook replay', starter: 'No', growth: 'Yes', scale: 'Yes', enterprise: 'Yes' },
+        { label: 'SSO and SCIM', starter: 'No', growth: 'No', scale: 'Yes', enterprise: 'Yes' },
+        { label: 'Support response', starter: 'Community', growth: '1 business day', scale: '4 hours', enterprise: '1 hour' }
+      ],
+      footerColumns: [
+        { title: 'Product', links: ['Campaigns', 'Outcomes', 'Pricing', 'Changelog'] },
+        { title: 'Developers', links: ['SDK', 'API reference', 'Webhooks', 'Status'] },
+        { title: 'Company', links: ['About', 'Customers', 'Careers'] },
+        { title: 'Resources', links: ['Guides', 'Ledger primer', 'Support'] }
+      ],
+      legalLinks: ['Privacy', 'Terms', 'DPA']
+    };
+  }
+}
+
+</script>
+</body>
+</html>

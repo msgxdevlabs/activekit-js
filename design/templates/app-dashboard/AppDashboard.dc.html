@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="App dashboard" description="Product shell with slate sidebar: metric row, credits-paid chart, live campaign table, and a payout activity feed." -->
+<helmet><script src="./ds-base.js"></script><style>body{margin:0;background:var(--canvas-soft)}</style></helmet>
+<div style="display:grid;grid-template-columns:248px 1fr;min-height:100vh;font-family:var(--font-sans);color:var(--ink);background:var(--canvas-soft)">
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.AppSidebar" workspace="{{ sidebarWorkspace }}" items="{{ sidebarItems }}" meter="{{ sidebarMeter }}" user="{{ sidebarUser }}" hint-size="248px,100%"></x-import>
+<main style="display:flex;flex-direction:column;min-width:0">
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.AppTopBar" eyebrow="Workspace" title="Overview" hint-size="100%,84px">
+<div style="display:flex;gap:var(--space-xs);background:var(--canvas-soft);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-pill);padding:var(--space-xxs)">
+<sc-if value="{{ is7 }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ pick7 }}" style="border:none;cursor:pointer;border-radius:var(--radius-pill);padding:var(--space-sm) var(--space-md);min-height:40px;font-family:var(--font-sans);font-size:var(--button-sm-size);line-height:var(--button-sm-lh);font-feature-settings:var(--font-feature-numeric);background:var(--cta-gradient);color:var(--cta-on-fill)">7d</button></sc-if>
+<sc-if value="{{ not7 }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ pick7 }}" style="border:none;cursor:pointer;border-radius:var(--radius-pill);padding:var(--space-sm) var(--space-md);min-height:40px;font-family:var(--font-sans);font-size:var(--button-sm-size);line-height:var(--button-sm-lh);font-feature-settings:var(--font-feature-numeric);background:transparent;color:var(--ink-mute)">7d</button></sc-if>
+<sc-if value="{{ is14 }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ pick14 }}" style="border:none;cursor:pointer;border-radius:var(--radius-pill);padding:var(--space-sm) var(--space-md);min-height:40px;font-family:var(--font-sans);font-size:var(--button-sm-size);line-height:var(--button-sm-lh);font-feature-settings:var(--font-feature-numeric);background:var(--cta-gradient);color:var(--cta-on-fill)">14d</button></sc-if>
+<sc-if value="{{ not14 }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ pick14 }}" style="border:none;cursor:pointer;border-radius:var(--radius-pill);padding:var(--space-sm) var(--space-md);min-height:40px;font-family:var(--font-sans);font-size:var(--button-sm-size);line-height:var(--button-sm-lh);font-feature-settings:var(--font-feature-numeric);background:transparent;color:var(--ink-mute)">14d</button></sc-if>
+<sc-if value="{{ is30 }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ pick30 }}" style="border:none;cursor:pointer;border-radius:var(--radius-pill);padding:var(--space-sm) var(--space-md);min-height:40px;font-family:var(--font-sans);font-size:var(--button-sm-size);line-height:var(--button-sm-lh);font-feature-settings:var(--font-feature-numeric);background:var(--cta-gradient);color:var(--cta-on-fill)">30d</button></sc-if>
+<sc-if value="{{ not30 }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ pick30 }}" style="border:none;cursor:pointer;border-radius:var(--radius-pill);padding:var(--space-sm) var(--space-md);min-height:40px;font-family:var(--font-sans);font-size:var(--button-sm-size);line-height:var(--button-sm-lh);font-feature-settings:var(--font-feature-numeric);background:transparent;color:var(--ink-mute)">30d</button></sc-if>
+</div>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Button" variant="secondary" size="sm" hint-size="110px,40px">Export CSV</x-import>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Button" variant="primary" size="sm" href="../app-create-campaign/AppCreateCampaign.dc.html" hint-size="140px,40px">New campaign</x-import>
+</x-import>
+<div style="padding:var(--space-xl);display:flex;flex-direction:column;gap:var(--space-lg)">
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-lg)">
+<sc-for list="{{ metrics }}" as="m" hint-placeholder-count="4">
+<div style="background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);box-shadow:var(--elevation-1);padding:var(--space-xl)">
+<div style="font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute)">{{ m.label }}</div>
+<div style="margin-top:var(--space-sm);font-family:var(--font-display);font-size:var(--display-lg-size);font-weight:700;letter-spacing:var(--display-lg-ls);font-feature-settings:var(--font-feature-numeric)">{{ m.value }}</div>
+<div style="margin-top:var(--space-sm);font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute);font-feature-settings:var(--font-feature-numeric)">{{ m.delta }}</div>
+</div>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:1.6fr 1fr;gap:var(--space-lg)">
+<div style="background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);box-shadow:var(--elevation-1);padding:var(--space-xl)">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-md);margin-bottom:var(--space-lg)">
+<div><div style="font-size:var(--heading-sm-size);font-weight:var(--heading-sm-weight)">Credits paid</div><div style="font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute);font-feature-settings:var(--font-feature-numeric)">{{ chartCaption }}</div></div>
+<div style="display:flex;gap:var(--space-lg);font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute)">
+<span style="display:flex;align-items:center;gap:var(--space-xs)"><span style="width:8px;height:8px;border-radius:2px;background:var(--primary)"></span>Referral</span>
+<span style="display:flex;align-items:center;gap:var(--space-xs)"><span style="width:8px;height:8px;border-radius:2px;background:var(--purple)"></span>Streak</span>
+<span style="display:flex;align-items:center;gap:var(--space-xs)"><span style="width:8px;height:8px;border-radius:2px;background:var(--primary-bg-subdued-hover)"></span>Win-back</span>
+</div>
+</div>
+<div style="display:flex;align-items:flex-end;gap:6px;height:190px">{{ chartBars }}</div>
+</div>
+<div style="background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);box-shadow:var(--elevation-1);padding:var(--space-xl);display:flex;flex-direction:column;gap:var(--space-lg)">
+<div style="font-size:var(--heading-sm-size);font-weight:var(--heading-sm-weight)">Payout activity</div>
+<sc-for list="{{ activity }}" as="a" hint-placeholder-count="5">
+<div style="display:flex;gap:var(--space-md);align-items:flex-start;padding-bottom:var(--space-md);border-bottom:var(--border-width-hairline) solid var(--hairline)">
+<span style="width:6px;height:6px;border-radius:var(--radius-pill);background:var(--primary);flex:0 0 auto;margin-top:6px"></span>
+<div style="min-width:0;flex:1">
+<div style="font-size:var(--body-md-size);color:var(--ink)">{{ a.title }}</div>
+<div style="font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute);font-feature-settings:var(--font-feature-numeric)">{{ a.meta }}</div>
+</div>
+<div style="font-size:var(--body-tabular-size);letter-spacing:var(--body-tabular-ls);color:var(--ink);font-feature-settings:var(--font-feature-numeric);white-space:nowrap">{{ a.amount }}</div>
+</div>
+</sc-for>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Link" href="#" size="sm" hint-size="140px,20px">Open the ledger</x-import>
+</div>
+</div>
+<div style="background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);box-shadow:var(--elevation-1);overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-md);padding:var(--space-lg) var(--space-xl);border-bottom:var(--border-width-hairline) solid var(--hairline)">
+<div style="font-size:var(--heading-sm-size);font-weight:var(--heading-sm-weight)">Live campaigns</div>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Link" href="#" size="sm" hint-size="120px,20px">See all 14</x-import>
+</div>
+<table style="width:100%;border-collapse:collapse;font-size:var(--body-tabular-size);letter-spacing:var(--body-tabular-ls);font-feature-settings:var(--font-feature-numeric)">
+<thead><tr style="background:var(--canvas-soft)">
+<th style="text-align:left;padding:var(--space-sm) var(--space-xl);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">Campaign</th>
+<th style="text-align:left;padding:var(--space-sm) var(--space-xl);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">Status</th>
+<th style="text-align:right;padding:var(--space-sm) var(--space-xl);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">Enrolled</th>
+<th style="text-align:right;padding:var(--space-sm) var(--space-xl);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">Completion</th>
+<th style="text-align:right;padding:var(--space-sm) var(--space-xl);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">Credits paid</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{ campaigns }}" as="c" hint-placeholder-count="5">
+<tr>
+<td style="padding:var(--space-md) var(--space-xl);border-bottom:var(--border-width-hairline) solid var(--hairline);color:var(--ink)"><a href="../app-campaign-detail/AppCampaignDetail.dc.html" style="color:inherit;text-decoration:none" style-hover="color:var(--primary-deep)">{{ c.name }}</a></td>
+<td style="padding:var(--space-md) var(--space-xl);border-bottom:var(--border-width-hairline) solid var(--hairline)"><sc-if value="{{ c.isLive }}" hint-placeholder-val="{{ true }}"><span style="display:inline-block;border-radius:var(--radius-pill);padding:var(--pad-tag);font-size:var(--micro-cap-size);line-height:var(--micro-cap-lh);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;white-space:nowrap;background:var(--surface-tag);color:var(--text-tag)">Live</span></sc-if><sc-if value="{{ c.isPaused }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;border-radius:var(--radius-pill);padding:var(--pad-tag);font-size:var(--micro-cap-size);line-height:var(--micro-cap-lh);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;white-space:nowrap;background:var(--canvas-soft);color:var(--ink-mute)">Paused</span></sc-if><sc-if value="{{ c.isDraft }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;border-radius:var(--radius-pill);padding:var(--pad-tag);font-size:var(--micro-cap-size);line-height:var(--micro-cap-lh);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;white-space:nowrap;background:var(--canvas-violet);color:var(--purple)">Draft</span></sc-if></td>
+<td style="padding:var(--space-md) var(--space-xl);border-bottom:var(--border-width-hairline) solid var(--hairline);text-align:right;color:var(--ink-secondary)">{{ c.enrolled }}</td>
+<td style="padding:var(--space-md) var(--space-xl);border-bottom:var(--border-width-hairline) solid var(--hairline);text-align:right;color:var(--ink-secondary)">{{ c.completion }}</td>
+<td style="padding:var(--space-md) var(--space-xl);border-bottom:var(--border-width-hairline) solid var(--hairline);text-align:right;color:var(--ink)">{{ c.paid }}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { range: '14d' };
+
+  /* Bar geometry is computed per range, so it cannot be a literal style in the template. */
+  chartBars(n) {
+    const seed = [42, 55, 48, 61, 58, 72, 66, 80, 74, 88, 82, 95, 90, 100];
+    const seg = (h, background, borderRadius) => React.createElement('div', { style: { height: h + '%', background, borderRadius } });
+    const cols = [];
+    for (let i = 0; i < n; i++) {
+      const v = seed[i % seed.length];
+      cols.push(React.createElement('div', {
+        key: i,
+        style: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '2px', height: '100%' }
+      }, [
+        seg(Math.round(v * 0.2), 'var(--primary-bg-subdued-hover)', 'var(--radius-xs) var(--radius-xs) 0 0'),
+        seg(Math.round(v * 0.28), 'var(--purple)', undefined),
+        seg(Math.round(v * 0.52), 'var(--primary)', '0 0 var(--radius-xs) var(--radius-xs)')
+      ]));
+    }
+    return cols;
+  }
+
+  renderVals() {
+    const range = this.state.range;
+    const sidebar = {
+      sidebarItems: [
+        { section: 'Workspace' },
+        { label: 'Overview', href: '../app-dashboard/AppDashboard.dc.html', active: true },
+        { label: 'Campaigns', badge: '4', href: '../app-campaigns-list/AppCampaignsList.dc.html', active: false },
+        { label: 'Ledger', active: false },
+        { section: 'Build' },
+        { label: 'Developers', active: false },
+        { label: 'Credits', href: '../app-credits-billing/AppCreditsBilling.dc.html', active: false },
+        { label: 'Settings', href: '../app-settings/AppSettings.dc.html', active: false }
+      ],
+      sidebarWorkspace: { initials: 'PQ', name: 'Parseq', plan: 'Scale' },
+      sidebarMeter: { label: 'Credit balance', value: '18,240', note: '73% of 25,000 monthly cap', pct: 73 },
+      sidebarUser: { initials: 'DW', name: 'Dana Whitlock', role: 'Owner' }
+    };
+    const days = range === '7d' ? 7 : range === '30d' ? 30 : 14;
+    const totals = { '7d': '482,900', '14d': '1,009,200', '30d': '2,146,800' };
+    return {
+      ...sidebar,
+      pick7: () => this.setState({ range: '7d' }),
+      pick14: () => this.setState({ range: '14d' }),
+      pick30: () => this.setState({ range: '30d' }),
+      is7: range === '7d',
+      not7: range !== '7d',
+      is14: range === '14d',
+      not14: range !== '14d',
+      is30: range === '30d',
+      not30: range !== '30d',
+      chartCaption: totals[range] + ' credits over ' + days + ' days',
+      chartBars: this.chartBars(days),
+      metrics: [
+        { label: 'Credits paid', value: totals[range], delta: '+18.4% vs previous period' },
+        { label: 'Enrolled', value: '10,480', delta: '+1,204 new this period' },
+        { label: 'Completion', value: '61.0%', delta: '+2.8 points' },
+        { label: 'Cost per activation', value: '$0.84', delta: '-$0.11' }
+      ],
+      activity: [
+        { title: 'Referral loop paid u_8412', meta: '2 minutes ago, idempotency ref_8412_04', amount: '1,000' },
+        { title: 'Streak day 7 paid u_1188', meta: '14 minutes ago', amount: '250' },
+        { title: 'Win-back top-up paid u_9042', meta: '38 minutes ago', amount: '500' },
+        { title: 'Referral loop held u_7781', meta: '1 hour ago, activation check pending', amount: '0' },
+        { title: 'Streak day 7 paid u_4409', meta: '2 hours ago', amount: '250' }
+      ],
+      campaigns: [
+        { name: 'Referral loop', isLive: true, enrolled: '10,480', completion: '61.0%', paid: '1,009,200' },
+        { name: 'Onboarding streak', isLive: true, enrolled: '908', completion: '40.8%', paid: '100,050' },
+        { name: 'Win-back 21d', isLive: true, enrolled: '1,100', completion: '08.4%', paid: '10,800' },
+        { name: 'Power user bonus', isPaused: true, enrolled: '410', completion: '22.0%', paid: '4,100' },
+        { name: 'Team invite v2', isDraft: true, enrolled: '0', completion: '00.0%', paid: '0' }
+      ]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

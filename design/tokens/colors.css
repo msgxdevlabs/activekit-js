@@ -1,0 +1,135 @@
+:root{
+/* --- Brand & accent --- */
+--primary:#00a7a0;
+--primary-deep:#087f7a;
+--primary-press:#087a76;
+--primary-soft:#15c6bc;
+/* Two rungs below --primary-deep, each the same teal at a lower luminance:
+   both are --primary-deep scaled in linear light (55% and 30%), so
+   chromaticity is invariant and only luminance moves, and hue holds at 177.4
+   degrees. HSL saturation is not that invariant and rises 88.1 to 92.0 to 94.5
+   percent down the three rungs, because HSL reads the gamma-encoded value
+   rather than the light. The colorimetric claim is the chromaticity one.
+
+   They exist because white text needs a ground at 4.5:1 and the teal ladder
+   ran out. White clears the floor only from --primary-deep (4.85:1) down, so
+   an applied CTA ramp has to live entirely below that stop, and --primary-deep
+   to --primary-press is 1.8 L* of range, which is not a gradient. These two
+   give the ramp somewhere to go: rest runs deep to deeper, hover runs deeper
+   to deepest, and a press flattens onto deepest, which is the same
+   rest/hover/press structure the ramp had before, moved into the legible half
+   of the ladder. White on them is 7.41:1 and 10.57:1.
+
+   Press sits on deepest rather than on deeper, and the depth is the point.
+   Hover is already the gradient deeper to deepest, mean 31.4 L*, so a press on
+   deeper would mean 36.3 L*: the control would lighten under the finger.
+   Deepest is the shallowest press that still reads as deeper than hover.
+
+   Nothing here replaces --primary or --primary-soft. Those two are the brand
+   hue, they are configured by hand in the Kinde console and drawn into the
+   reviewed landing design, and this change does not reach either. */
+--primary-deeper:#04605c;
+--primary-deepest:#024744;
+--primary-bg-subdued-hover:#e4f8f6;
+--brand-dark-900:#0b1220;
+--brand-dark-700:#17253d;
+--brand-dark-950:#080e1a;
+/* One step lighter than 700, so dark chrome has somewhere to lift to on
+   hover. It was a bare literal inside the Button export's onDark hover ramp,
+   which is the one place the dark track needed a lighter stop. */
+--brand-dark-600:#1e3050;
+--ruby:#ef4da8;
+--ruby-soft:#fdeaf4;
+/* The hairline that goes around a ruby-soft surface. It was a bare
+   literal inside Modal's danger tone, the one place the system already
+   draws a ruby medallion, and EmptyState's danger tone needs the same
+   line, so it stops being a literal and becomes the token both read. */
+--ruby-line:#f6d3e6;
+--purple:#6b4cf6;
+--purple-deep:#5a3ce0;
+--amber:#f59e0b;
+--amber-soft:#fef3e2;
+/* Documented gradient stops that carry no frontmatter token */
+--gradient-aqua:#7ce8e2;
+--gradient-blue:#087fd9;
+--gradient-blue-deep:#0a6cb8;
+--gradient-lavender:#c8b8ff;
+/* --- Text --- */
+--ink:#102033;
+--ink-secondary:#294056;
+--ink-mute:#607087;
+/* The fine-label rung, and the last one that is a text color at all. It was
+   #7b899b, which measured 3.56:1 on --canvas and 3.43:1 on --canvas-soft, and
+   it is the color four components put 11px copy in. This value is #7b899b
+   darkened in linear light (70%), so the hue is unchanged, and it clears the
+   floor on both canvases: 4.75:1 on white, 4.57:1 on --canvas-soft.
+
+   It now sits close to --ink-mute, and that is the honest reading of the
+   palette rather than a mistake. --ink-mute is 4.85:1 on --canvas-soft, the
+   floor is 4.5:1, so the whole band a fourth rung could occupy is 2.1 L* wide;
+   this value is at the top of it. There is no quieter text color available on
+   a near-white canvas. Make a fine label quieter by making it smaller or
+   shorter, not lighter. */
+--ink-mute-2:#687484;
+--on-primary:#ffffff;
+/* --- Surface --- */
+--canvas:#ffffff;
+--canvas-soft:#f7fbff;
+--canvas-violet:#f2efff;
+--hairline:#dbe6ef;
+--hairline-input:#d1dee9;
+/* --- Shadow base --- */
+--shadow-blue:#1f3f5e;
+
+/* --- Semantic aliases --- */
+--text-body:var(--ink);
+--text-secondary:var(--ink-secondary);
+--text-mute:var(--ink-mute);
+--text-mute-2:var(--ink-mute-2);
+--text-on-dark:var(--on-primary);
+/* Was --primary, which is 2.99:1 on --canvas and 2.87:1 on --canvas-soft: the
+   brand hue is a fill color, not a reading color. --primary-deep is the
+   first rung that clears the floor, 4.85:1 and 4.67:1. */
+--text-link:var(--primary-deep);
+/* Was --primary-deep, which is 4.85:1 on white but 4.40:1 on --surface-tag,
+   the pale teal the soft pill is filled with. The label moves down a rung
+   rather than the fill moving up one, and what rules that out is a floor on
+   lightness rather than any one tint: everything that carries --primary-deep
+   at 4.5:1 sits at L* 96.97 or lighter, white among them at 4.85:1, so the
+   least the fill can move is onto that floor. #ecf9f8 is on it, at 4.5001:1,
+   and from there the pill's separation from a white card falls from 3.89 L* to
+   3.03 and from --canvas-soft from 2.31 to 1.46, which is under the threshold
+   at which two adjacent fields read as different colors at all. Erasing the
+   chip to rescue its label is not a fix. 6.73:1 on the tag, 7.41:1 on white. */
+--text-tag:var(--primary-deeper);
+
+--surface-page:var(--canvas-soft);
+--surface-card:var(--canvas);
+--surface-band-violet:var(--canvas-violet);
+--surface-dark:var(--brand-dark-900);
+--surface-tag:var(--primary-bg-subdued-hover);
+--surface-danger:var(--ruby-soft);
+--surface-warning:var(--amber-soft);
+--text-danger:var(--ruby);
+--border-danger:var(--ruby-line);
+
+--border-hairline:var(--hairline);
+--border-input:var(--hairline-input);
+--border-focus:var(--primary);
+
+/* The filled-CTA family, every rung one or two steps lower than it was. The
+   pair this family declares is a fill plus --cta-on-fill, which is white, and
+   white did not clear 4.5:1 on any of the old three: --primary was 2.99:1 and
+   --primary-deep, at 4.85:1, was the hover. Each fill now sits where white can
+   be read on it, and --primary keeps its value for the brand's own uses. */
+--cta-fill:var(--primary-deep);
+--cta-fill-hover:var(--primary-deeper);
+--cta-fill-press:var(--primary-deepest);
+--cta-fill-subdued:var(--primary-bg-subdued-hover);
+--cta-on-fill:var(--on-primary);
+/* The other half of the subdued pair. --cta-fill-subdued had no declared text
+   color, so the outline and ghost buttons reached for --primary-deep, which
+   is 4.40:1 on it. Naming the pair is what stops the next component guessing
+   again. Same rung and same reasoning as --text-tag: 6.73:1. */
+--cta-on-subdued:var(--primary-deeper);
+}

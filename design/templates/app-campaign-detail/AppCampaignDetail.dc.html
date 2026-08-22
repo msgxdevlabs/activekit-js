@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Campaign detail" description="Single campaign view: header with status controls, logic row, metric grid, funnel, payout ledger table, and version history." -->
+<helmet><script src="./ds-base.js"></script><style>body{margin:0;background:var(--canvas-soft)}</style></helmet>
+<div style="display:grid;grid-template-columns:248px 1fr;min-height:100vh;font-family:var(--font-sans);color:var(--ink);background:var(--canvas-soft)">
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.AppSidebar" workspace="{{ sidebarWorkspace }}" items="{{ sidebarItems }}" meter="{{ sidebarMeter }}" user="{{ sidebarUser }}" hint-size="248px,100%"></x-import>
+<main style="display:flex;flex-direction:column;min-width:0">
+<header style="padding:var(--space-lg) var(--space-xl);background:var(--canvas);border-bottom:var(--border-width-hairline) solid var(--hairline);display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-lg);flex-wrap:wrap">
+<div>
+<div style="display:flex;align-items:center;gap:var(--space-sm);font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute)"><a href="../app-campaigns-list/AppCampaignsList.dc.html" style="color:inherit;text-decoration:none" style-hover="color:var(--primary-deep)">Campaigns</a><span>/</span><span style="color:var(--ink-secondary)">Referral loop</span></div>
+<div style="display:flex;align-items:center;gap:var(--space-md);margin-top:var(--space-xs)">
+<div style="font-family:var(--font-display);font-size:var(--display-md-size);font-weight:var(--display-md-weight);line-height:var(--display-md-lh);letter-spacing:var(--display-md-ls)">Referral loop</div>
+<sc-if value="{{ isLive }}" hint-placeholder-val="{{ true }}"><span style="display:inline-block;border-radius:var(--radius-pill);padding:var(--pad-tag);font-size:var(--micro-cap-size);line-height:var(--micro-cap-lh);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;white-space:nowrap;background:var(--surface-tag);color:var(--text-tag)">Live</span></sc-if><sc-if value="{{ isPaused }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;border-radius:var(--radius-pill);padding:var(--pad-tag);font-size:var(--micro-cap-size);line-height:var(--micro-cap-lh);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;white-space:nowrap;background:var(--canvas-soft);color:var(--ink-mute)">Paused</span></sc-if>
+<span style="font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute);font-feature-settings:var(--font-feature-numeric)">v4, edited 2 hours ago</span>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:var(--space-md)">
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Button" variant="secondary" size="sm" hint-size="120px,40px">Replay events</x-import>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Button" variant="secondary" size="sm" onClick="{{ toggleStatus }}" hint-size="100px,40px">{{ toggleLabel }}</x-import>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Button" variant="primary" size="sm" hint-size="120px,40px">Edit campaign</x-import>
+</div>
+</header>
+<div style="padding:var(--space-xl);display:flex;flex-direction:column;gap:var(--space-lg)">
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-md);background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);box-shadow:var(--elevation-1);padding:var(--space-xl)">
+<div><div style="font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute)">Trigger</div><div style="margin-top:var(--space-sm);font-family:var(--font-mono);font-size:13px;color:var(--ink)">referral.completed</div></div>
+<div><div style="font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute)">Reward</div><div style="margin-top:var(--space-sm);font-family:var(--font-mono);font-size:13px;color:var(--ink);font-feature-settings:var(--font-feature-numeric)">1,000 credits, both sides</div></div>
+<div><div style="font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute)">Caps</div><div style="margin-top:var(--space-sm);font-family:var(--font-mono);font-size:13px;color:var(--ink);font-feature-settings:var(--font-feature-numeric)">5 / user, 25,000 / mo</div></div>
+<div><div style="font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute)">Ledger</div><div style="margin-top:var(--space-sm);font-family:var(--font-mono);font-size:13px;color:var(--ink)">prod-credits</div></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-lg)">
+<sc-for list="{{ metrics }}" as="m" hint-placeholder-count="4">
+<div style="background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);box-shadow:var(--elevation-1);padding:var(--space-xl)">
+<div style="font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute)">{{ m.label }}</div>
+<div style="margin-top:var(--space-sm);font-family:var(--font-display);font-size:var(--display-lg-size);font-weight:700;letter-spacing:var(--display-lg-ls);font-feature-settings:var(--font-feature-numeric)">{{ m.value }}</div>
+<div style="margin-top:var(--space-sm);font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute);font-feature-settings:var(--font-feature-numeric)">{{ m.delta }}</div>
+</div>
+</sc-for>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1.4fr;gap:var(--space-lg)">
+<div style="background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);box-shadow:var(--elevation-1);padding:var(--space-xl)">
+<div style="font-size:var(--heading-sm-size);font-weight:var(--heading-sm-weight);margin-bottom:var(--space-lg)">Loop funnel</div>
+<div style="display:flex;flex-direction:column;gap:var(--space-md)">
+<sc-for list="{{ funnel }}" as="f" hint-placeholder-count="4">
+<div>
+<div style="display:flex;justify-content:space-between;gap:var(--space-md);font-size:var(--body-tabular-size);letter-spacing:var(--body-tabular-ls);font-feature-settings:var(--font-feature-numeric)"><span style="color:var(--ink-secondary)">{{ f.label }}</span><span style="color:var(--ink)">{{ f.value }}</span></div>
+<div style="margin-top:var(--space-sm);height:8px;border-radius:var(--radius-pill);background:var(--canvas-soft);overflow:hidden">{{ f.meter }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);box-shadow:var(--elevation-1);overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-md);padding:var(--space-lg) var(--space-xl);border-bottom:var(--border-width-hairline) solid var(--hairline)">
+<div style="font-size:var(--heading-sm-size);font-weight:var(--heading-sm-weight)">Payout ledger</div>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Link" href="#" size="sm" hint-size="120px,20px">Export CSV</x-import>
+</div>
+<table style="width:100%;border-collapse:collapse;font-size:var(--body-tabular-size);letter-spacing:var(--body-tabular-ls);font-feature-settings:var(--font-feature-numeric)">
+<thead><tr style="background:var(--canvas-soft)">
+<th style="text-align:left;padding:var(--space-sm) var(--space-xl);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">User</th>
+<th style="text-align:left;padding:var(--space-sm) var(--space-lg);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">Event</th>
+<th style="text-align:left;padding:var(--space-sm) var(--space-lg);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">State</th>
+<th style="text-align:right;padding:var(--space-sm) var(--space-xl);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);font-weight:500;border-bottom:var(--border-width-hairline) solid var(--hairline)">Credits</th>
+</tr></thead>
+<tbody>
+<sc-for list="{{ ledger }}" as="l" hint-placeholder-count="7">
+<tr>
+<td style="padding:var(--space-sm) var(--space-xl);border-bottom:var(--border-width-hairline) solid var(--hairline);font-family:var(--font-mono);font-size:12px;color:var(--ink)">{{ l.user }}</td>
+<td style="padding:var(--space-sm) var(--space-lg);border-bottom:var(--border-width-hairline) solid var(--hairline);color:var(--ink-secondary)">{{ l.time }}</td>
+<td style="padding:var(--space-sm) var(--space-lg);border-bottom:var(--border-width-hairline) solid var(--hairline)"><sc-if value="{{ l.isPaid }}" hint-placeholder-val="{{ true }}"><span style="display:inline-block;border-radius:var(--radius-pill);padding:var(--pad-tag);font-size:var(--micro-cap-size);line-height:var(--micro-cap-lh);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;white-space:nowrap;background:var(--surface-tag);color:var(--text-tag)">Paid</span></sc-if><sc-if value="{{ l.isHeld }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;border-radius:var(--radius-pill);padding:var(--pad-tag);font-size:var(--micro-cap-size);line-height:var(--micro-cap-lh);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;white-space:nowrap;background:var(--canvas-violet);color:var(--purple)">Held</span></sc-if><sc-if value="{{ l.isFailed }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block;border-radius:var(--radius-pill);padding:var(--pad-tag);font-size:var(--micro-cap-size);line-height:var(--micro-cap-lh);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;white-space:nowrap;background:var(--surface-danger);color:var(--text-body)">Failed</span></sc-if></td>
+<td style="padding:var(--space-sm) var(--space-xl);border-bottom:var(--border-width-hairline) solid var(--hairline);text-align:right;color:var(--ink)">{{ l.credits }}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:var(--space-lg)">
+<div style="background:var(--brand-dark-900);border-radius:var(--radius-xl);box-shadow:var(--elevation-2);overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-md) var(--space-lg);border-bottom:var(--border-width-hairline) solid rgba(255,255,255,0.10);font-size:var(--caption-size);letter-spacing:var(--caption-ls)"><span style="color:var(--on-primary);font-family:var(--font-mono)">referral-loop.v4.json</span><span style="color:rgba(255,255,255,0.45)">read only</span></div>
+<div style="padding:var(--space-lg);font-family:var(--font-mono);font-size:13px;line-height:1.8;color:rgba(255,255,255,0.82)">
+<div>{</div>
+<div>&nbsp;&nbsp;<span style="color:var(--gradient-aqua)">"trigger"</span>: <span style="color:var(--gradient-lavender)">"referral.completed"</span>,</div>
+<div>&nbsp;&nbsp;<span style="color:var(--gradient-aqua)">"hold_until"</span>: <span style="color:var(--gradient-lavender)">"activation.cleared"</span>,</div>
+<div>&nbsp;&nbsp;<span style="color:var(--gradient-aqua)">"reward"</span>: { <span style="color:var(--gradient-aqua)">"credits"</span>: <span style="color:var(--ruby)">1000</span>, <span style="color:var(--gradient-aqua)">"both_sides"</span>: <span style="color:var(--purple)">true</span> },</div>
+<div>&nbsp;&nbsp;<span style="color:var(--gradient-aqua)">"cap"</span>: { <span style="color:var(--gradient-aqua)">"per_user"</span>: <span style="color:var(--ruby)">5</span>, <span style="color:var(--gradient-aqua)">"per_month"</span>: <span style="color:var(--ruby)">25000</span> },</div>
+<div>&nbsp;&nbsp;<span style="color:var(--gradient-aqua)">"ledger"</span>: <span style="color:var(--gradient-lavender)">"prod-credits"</span></div>
+<div>}</div>
+</div>
+</div>
+<div style="background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);box-shadow:var(--elevation-1);padding:var(--space-xl)">
+<div style="font-size:var(--heading-sm-size);font-weight:var(--heading-sm-weight);margin-bottom:var(--space-lg)">Version history</div>
+<div style="display:flex;flex-direction:column;gap:var(--space-md)">
+<sc-for list="{{ versions }}" as="v" hint-placeholder-count="4">
+<div style="display:flex;gap:var(--space-md);align-items:flex-start;padding-bottom:var(--space-md);border-bottom:var(--border-width-hairline) solid var(--hairline)">
+<span style="font-family:var(--font-mono);font-size:12px;background:var(--surface-tag);color:var(--text-tag);border-radius:var(--radius-xs);padding:2px 6px;flex:0 0 auto">{{ v.tag }}</span>
+<div style="min-width:0"><div style="font-size:var(--body-md-size);color:var(--ink)">{{ v.change }}</div><div style="font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute);font-feature-settings:var(--font-feature-numeric)">{{ v.when }}</div></div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { live: true };
+
+  /* Fill width is data-driven, so it cannot be a literal style in the template. */
+  meter(pct) {
+    return React.createElement('div', {
+      style: { width: pct + '%', height: '100%', background: 'var(--primary)', borderRadius: 'var(--radius-pill)' }
+    });
+  }
+
+  renderVals() {
+    const live = this.state.live;
+    return {
+      sidebarItems: [
+        { section: 'Workspace' },
+        { label: 'Overview', href: '../app-dashboard/AppDashboard.dc.html', active: false },
+        { label: 'Campaigns', badge: '4', href: '../app-campaigns-list/AppCampaignsList.dc.html', active: true },
+        { label: 'Ledger', active: false },
+        { section: 'Build' },
+        { label: 'Developers', active: false },
+        { label: 'Credits', href: '../app-credits-billing/AppCreditsBilling.dc.html', active: false },
+        { label: 'Settings', href: '../app-settings/AppSettings.dc.html', active: false }
+      ],
+      sidebarWorkspace: { initials: 'PQ', name: 'Parseq', plan: 'Scale' },
+      sidebarMeter: { label: 'This campaign, month to date', value: '14,600', note: 'of 25,000 cap', pct: 58 },
+      sidebarUser: { initials: 'DW', name: 'Dana Whitlock', role: 'Owner' },
+      isLive: live,
+      isPaused: !live,
+      toggleLabel: live ? 'Pause' : 'Resume',
+      toggleStatus: () => this.setState({ live: !live }),
+      metrics: [
+        { label: 'Enrolled', value: '10,480', delta: '+1,204 this period' },
+        { label: 'Completion', value: '61.0%', delta: '+2.8 points' },
+        { label: 'Credits paid', value: '1,009,200', delta: '14,600 month to date' },
+        { label: 'Cost per activation', value: '$0.84', delta: '-$0.11' }
+      ],
+      funnel: [
+        { label: 'Invites sent', value: '24,180', pct: 100 },
+        { label: 'Invited accounts created', value: '10,480', pct: 43 },
+        { label: 'Activation cleared', value: '6,393', pct: 26 },
+        { label: 'Credits paid', value: '6,393', pct: 26 }
+      ].map((f) => Object.assign({}, f, { meter: this.meter(f.pct) })),
+      ledger: [
+        { user: 'u_8412', time: '2 minutes ago', isPaid: true, credits: '1,000' },
+        { user: 'u_7781', time: '1 hour ago', isHeld: true, credits: '0' },
+        { user: 'u_9042', time: '3 hours ago', isPaid: true, credits: '1,000' },
+        { user: 'u_4409', time: '5 hours ago', isPaid: true, credits: '1,000' },
+        { user: 'u_2210', time: '6 hours ago', isFailed: true, credits: '0' },
+        { user: 'u_1188', time: '8 hours ago', isPaid: true, credits: '1,000' },
+        { user: 'u_0934', time: '11 hours ago', isPaid: true, credits: '1,000' }
+      ],
+      versions: [
+        { tag: 'v4', change: 'Raised per-user cap from 3 to 5', when: '2 hours ago, Dana Whitlock' },
+        { tag: 'v3', change: 'Added activation hold before payout', when: '6 days ago, Dana Whitlock' },
+        { tag: 'v2', change: 'Reward increased to 1,000 credits', when: '3 weeks ago, Ito Adeyemi' },
+        { tag: 'v1', change: 'Campaign created', when: 'Feb 2026, Ito Adeyemi' }
+      ]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

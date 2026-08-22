@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Customer story" description="Case study page: wash header with result metrics, pull quote, prose with sidebar facts, campaign mockup, and a closing CTA." -->
+<helmet><script src="./ds-base.js"></script><style>body{margin:0;background:var(--canvas)}</style></helmet>
+<div style="background:var(--canvas);font-family:var(--font-sans);color:var(--ink)">
+<div style="position:relative;background:var(--canvas);overflow:hidden;isolation:isolate">
+<div aria-hidden="true" style="position:absolute;left:0;right:0;top:0;height:64%;pointer-events:none">
+<div style="position:absolute;left:-12%;top:-32%;width:44%;height:70%;border-radius:50%;background:var(--wash-orb-aqua);filter:blur(var(--wash-blur));opacity:0.3"></div>
+<div style="position:absolute;left:24%;top:-16%;width:30%;height:50%;border-radius:50%;background:var(--wash-orb-teal);filter:blur(var(--wash-blur));opacity:0.3"></div>
+<div style="position:absolute;left:50%;top:-38%;width:42%;height:76%;border-radius:50%;background:var(--wash-orb-blue);filter:blur(var(--wash-blur));opacity:0.3"></div>
+<div style="position:absolute;left:78%;top:-20%;width:34%;height:58%;border-radius:50%;background:var(--wash-orb-lavender);filter:blur(var(--wash-blur));opacity:0.32"></div>
+</div>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.NavBar" items="{{ navItems }}" cta-label="Start free" hint-size="100%,72px"></x-import>
+<header style="max-width:var(--container-max);margin:0 auto;padding:var(--space-huge) var(--space-xl) var(--space-xxl);display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-lg)">
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Pill" hint-size="140px,20px">Customer story</x-import>
+<h1 style="font-family:var(--font-display);font-size:var(--display-xl-size);font-weight:var(--display-xl-weight);line-height:var(--display-xl-lh);letter-spacing:var(--display-xl-ls);margin:0;max-width:26ch;text-wrap:pretty">Parseq replaced three growth scripts with one ledger.</h1>
+<p style="margin:0;font-size:var(--body-lg-size);line-height:var(--body-lg-lh);color:var(--ink-secondary);max-width:64ch">Parseq sells an AI research assistant metered in credits. Their referral, streak, and win-back offers each lived in a different cron job, and none of them agreed with finance. Four days after installing the SDK, all three ran as campaigns against the production balance.</p>
+<div style="display:flex;gap:var(--space-huge);flex-wrap:wrap;margin-top:var(--space-md);font-feature-settings:var(--font-feature-numeric)">
+<div><div style="font-family:var(--font-display);font-size:var(--display-lg-size);font-weight:700;letter-spacing:var(--display-lg-ls)">+38.4%</div><div style="font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute)">activation from referrals</div></div>
+<div><div style="font-family:var(--font-display);font-size:var(--display-lg-size);font-weight:700;letter-spacing:var(--display-lg-ls)">120 hrs</div><div style="font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute)">engineering time returned</div></div>
+<div><div style="font-family:var(--font-display);font-size:var(--display-lg-size);font-weight:700;letter-spacing:var(--display-lg-ls)">$0.84</div><div style="font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute)">cost per activation</div></div>
+<div><div style="font-family:var(--font-display);font-size:var(--display-lg-size);font-weight:700;letter-spacing:var(--display-lg-ls)">14</div><div style="font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute)">loops live today</div></div>
+</div>
+</header>
+</div>
+<section style="background:var(--canvas);padding:var(--space-xxl) var(--space-xl) var(--space-huge)">
+<div style="max-width:var(--container-max);margin:0 auto;display:grid;grid-template-columns:1.6fr 1fr;gap:var(--space-huge);align-items:start">
+<div style="display:flex;flex-direction:column;gap:var(--space-xl)">
+<div>
+<h2 style="font-family:var(--font-display);font-size:var(--display-md-size);font-weight:var(--display-md-weight);line-height:var(--display-md-lh);letter-spacing:var(--display-md-ls);margin:0 0 var(--space-md)">The problem was reconciliation, not growth</h2>
+<p style="margin:0 0 var(--space-md);font-size:var(--body-lg-size);line-height:var(--body-lg-lh);color:var(--ink-secondary)">Parseq already knew referrals worked. What they could not do was tell finance how much a referral cost, because the grant happened in one service, the fraud check in another, and the reversal by hand.</p>
+<p style="margin:0;font-size:var(--body-lg-size);line-height:var(--body-lg-lh);color:var(--ink-secondary)">Moving the logic into campaign objects meant every grant carried a reason, a cap, and a version. The finance export stopped being an argument.</p>
+</div>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Card" variant="violet" hint-size="100%,180px">
+<div style="font-family:var(--font-display);font-size:var(--display-md-size);font-weight:700;line-height:var(--display-md-lh);letter-spacing:var(--display-md-ls);margin-bottom:var(--space-md);max-width:34ch">"We deleted the referral cron job and the spreadsheet that checked it. The ledger is the answer now."</div>
+<div style="font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-mute)">Dana Whitlock, Staff Engineer at Parseq</div>
+</x-import>
+<div>
+<h2 style="font-family:var(--font-display);font-size:var(--display-md-size);font-weight:var(--display-md-weight);line-height:var(--display-md-lh);letter-spacing:var(--display-md-ls);margin:0 0 var(--space-md)">What they shipped in week one</h2>
+<p style="margin:0 0 var(--space-lg);font-size:var(--body-lg-size);line-height:var(--body-lg-lh);color:var(--ink-secondary)">Three campaigns, each with a cap that pauses rather than overspends, and a sandbox replay of the previous quarter to check the numbers before anything paid out.</p>
+<div style="display:flex;flex-direction:column;gap:var(--space-md)">
+<div style="display:flex;gap:var(--space-md);align-items:baseline;font-size:var(--body-md-size);color:var(--ink-secondary)"><span style="font-family:var(--font-mono);font-size:12px;background:var(--surface-tag);color:var(--text-tag);border-radius:var(--radius-xs);padding:2px 6px">01</span><span>Referral loop, 1,000 credits both sides, capped at 5 per user</span></div>
+<div style="display:flex;gap:var(--space-md);align-items:baseline;font-size:var(--body-md-size);color:var(--ink-secondary)"><span style="font-family:var(--font-mono);font-size:12px;background:var(--surface-tag);color:var(--text-tag);border-radius:var(--radius-xs);padding:2px 6px">02</span><span>Seven-day streak, tapering after the third week</span></div>
+<div style="display:flex;gap:var(--space-md);align-items:baseline;font-size:var(--body-md-size);color:var(--ink-secondary)"><span style="font-family:var(--font-mono);font-size:12px;background:var(--surface-tag);color:var(--text-tag);border-radius:var(--radius-xs);padding:2px 6px">03</span><span>Win-back at 21 days idle, stopping the moment usage recovers</span></div>
+</div>
+</div>
+</div>
+<aside style="display:flex;flex-direction:column;gap:var(--space-lg);position:sticky;top:var(--space-xl)">
+<div style="background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);box-shadow:var(--elevation-1);padding:var(--space-xl)">
+<div style="font-family:var(--font-display);font-size:var(--heading-lg-size);font-weight:700;letter-spacing:-0.4px;margin-bottom:var(--space-lg)">Parseq</div>
+<div style="display:flex;flex-direction:column;gap:var(--space-md);font-size:var(--body-md-size)">
+<div style="display:flex;justify-content:space-between;gap:var(--space-md)"><span style="color:var(--ink-mute)">Product</span><span style="color:var(--ink);text-align:right">AI research assistant</span></div>
+<div style="display:flex;justify-content:space-between;gap:var(--space-md)"><span style="color:var(--ink-mute)">Team size</span><span style="color:var(--ink);text-align:right;font-feature-settings:var(--font-feature-numeric)">34</span></div>
+<div style="display:flex;justify-content:space-between;gap:var(--space-md)"><span style="color:var(--ink-mute)">Plan</span><span style="color:var(--ink);text-align:right">Scale</span></div>
+<div style="display:flex;justify-content:space-between;gap:var(--space-md)"><span style="color:var(--ink-mute)">Live since</span><span style="color:var(--ink);text-align:right;font-feature-settings:var(--font-feature-numeric)">Feb 2026</span></div>
+</div>
+</div>
+<div style="background:var(--canvas-soft);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);padding:var(--space-xl)">
+<div style="font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute);margin-bottom:var(--space-md)">Credits paid, 14 days</div>
+<div style="display:flex;align-items:flex-end;gap:3px;height:72px"><div style="flex:1;height:24%;background:var(--primary-bg-subdued-hover);border-radius:var(--radius-xs)"></div><div style="flex:1;height:38%;background:var(--primary-bg-subdued-hover);border-radius:var(--radius-xs)"></div><div style="flex:1;height:30%;background:var(--primary-bg-subdued-hover);border-radius:var(--radius-xs)"></div><div style="flex:1;height:46%;background:var(--primary-soft);border-radius:var(--radius-xs)"></div><div style="flex:1;height:52%;background:var(--primary-soft);border-radius:var(--radius-xs)"></div><div style="flex:1;height:64%;background:var(--primary);border-radius:var(--radius-xs)"></div><div style="flex:1;height:58%;background:var(--primary);border-radius:var(--radius-xs)"></div><div style="flex:1;height:80%;background:var(--purple);border-radius:var(--radius-xs)"></div></div>
+<div style="margin-top:var(--space-md);font-size:var(--caption-size);letter-spacing:var(--caption-ls);color:var(--ink-secondary);font-feature-settings:var(--font-feature-numeric)">1,009,200 credits, +18.4% week over week</div>
+</div>
+<div style="background:var(--canvas);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-lg);padding:var(--space-xl);display:flex;flex-direction:column;gap:var(--space-md)">
+<div style="font-size:var(--body-md-size);line-height:var(--body-md-lh);color:var(--ink-secondary)">Running something similar? The ledger primer covers metering a balance you already own.</div>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Link" href="#" hint-size="160px,22px">Read the primer</x-import>
+</div>
+</aside>
+</div>
+</section>
+<section style="background:var(--canvas-soft);border-top:var(--border-width-hairline) solid var(--hairline);padding:var(--space-huge) var(--space-xl)">
+<div style="max-width:var(--container-max);margin:0 auto">
+<h2 style="font-family:var(--font-display);font-size:var(--display-lg-size);font-weight:var(--display-lg-weight);line-height:var(--display-lg-lh);letter-spacing:var(--display-lg-ls);margin:0 0 var(--space-xl)">More stories</h2>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-lg)">
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Card" variant="feature" eyebrow="Northwind" title="Streaks that survive refunds" hint-size="100%,220px"><p style="margin:0;font-size:var(--body-md-size);line-height:var(--body-md-lh);color:var(--ink-secondary)">Tying streak state to the ledger meant a refund rolled the streak back automatically, and support stopped filing tickets about it.</p></x-import>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Card" variant="feature" eyebrow="Loomly" title="One cap, four surfaces" hint-size="100%,220px"><p style="margin:0;font-size:var(--body-md-size);line-height:var(--body-md-lh);color:var(--ink-secondary)">Web, mobile, extension, and API all pay from the same monthly ceiling, so growth experiments cannot quietly compound.</p></x-import>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Card" variant="feature" eyebrow="Havenote" title="Win-back without discounts" hint-size="100%,220px"><p style="margin:0;font-size:var(--body-md-size);line-height:var(--body-md-lh);color:var(--ink-secondary)">Metered credit top-ups brought back 8.4% of idle accounts without touching list price.</p></x-import>
+</div>
+</div>
+</section>
+<x-import component-from-global-scope="ActiveKitDesignSystem_5626a0.Footer" tagline="Growth loops that pay out, metered against your own credit ledger." columns="{{ footerColumns }}" legal-links="{{ legalLinks }}" hint-size="100%,320px"></x-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      navItems: ['Outcomes', 'Campaigns', 'Developers', 'Pricing'],
+      footerColumns: [
+        { title: 'Product', links: ['Campaigns', 'Outcomes', 'Pricing', 'Changelog'] },
+        { title: 'Developers', links: ['SDK', 'API reference', 'Webhooks', 'Status'] },
+        { title: 'Company', links: ['About', 'Customers', 'Careers'] },
+        { title: 'Resources', links: ['Guides', 'Ledger primer', 'Support'] }
+      ],
+      legalLinks: ['Privacy', 'Terms', 'DPA']
+    };
+  }
+}
+
+</script>
+</body>
+</html>

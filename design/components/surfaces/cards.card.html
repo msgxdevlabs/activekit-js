@@ -1,0 +1,51 @@
+<!-- @dsCard group="Components" viewport="700x620" name="Cards" subtitle="Feature, violet band, dashboard mockup, and both pricing tiers" -->
+<!doctype html><html><head><meta charset="utf-8"><title>Cards</title><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:var(--space-xl);background:var(--canvas-soft);font-family:var(--font-sans)}
+.stack{display:flex;flex-direction:column;gap:var(--space-lg)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-lg)}
+.mk-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-md)}
+.mk-title{font-size:var(--heading-sm-size);font-weight:var(--heading-sm-weight);letter-spacing:var(--heading-sm-ls);color:var(--ink)}
+.mk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-md)}
+.metric{background:var(--canvas-soft);border:var(--border-width-hairline) solid var(--hairline);border-radius:var(--radius-md);padding:var(--space-md)}
+.metric b{display:block;font-family:var(--font-display);font-size:var(--display-md-size);font-weight:700;letter-spacing:var(--display-md-ls);color:var(--ink);font-feature-settings:var(--font-feature-numeric)}
+.metric span{font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase;color:var(--ink-mute)}
+.tag{background:var(--surface-tag);color:var(--text-tag);border-radius:var(--radius-tag);padding:var(--pad-tag);font-size:var(--micro-cap-size);letter-spacing:var(--micro-cap-ls);text-transform:uppercase}
+.p{font-size:var(--body-md-size);line-height:var(--body-md-lh);color:var(--ink-secondary)}
+</style></head><body><div id="root"></div>
+<script type="text/babel">
+const { Card, PricingCard } = window.ActiveKitDesignSystem_5626a0;
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <div className="stack">
+    <div className="two">
+      <Card variant="feature" eyebrow="Campaigns" title="Loops, not blasts">
+        <p className="p">Every campaign is a small program: a trigger, a reward, and a payout ledger you can audit.</p>
+      </Card>
+      <Card variant="violet" eyebrow="Developers" title="Two calls to live">
+        <p className="p">Drop the SDK in, point it at a credit balance, and ActiveKit handles enrolment and payout.</p>
+      </Card>
+    </div>
+    <Card variant="mockup">
+      <div className="mk-head"><span className="mk-title">Referral loop</span><span className="tag">Live</span></div>
+      <div className="mk-grid">
+        <div className="metric"><span>Enrolled</span><b>10,480</b></div>
+        <div className="metric"><span>Completion</span><b>61.0%</b></div>
+        <div className="metric"><span>Credits paid</span><b>1,009,200</b></div>
+      </div>
+    </Card>
+    <div className="two">
+      <PricingCard tierName="Growth" price="$249" priceSuffix="/mo"
+        description="For teams running always-on acquisition loops."
+        features={['25,000 credits / mo', '10 live campaigns', 'Webhook + SDK access']}
+        ctaLabel="Start free" />
+      <PricingCard featured tierName="Scale" price="$899" priceSuffix="/mo"
+        description="Metered payouts across every surface you ship."
+        features={['150,000 credits / mo', 'Unlimited campaigns', 'Priority support']}
+        ctaLabel="Talk to sales" footnote="Billed monthly, cancel anytime." />
+    </div>
+  </div>
+);
+</script></body></html>

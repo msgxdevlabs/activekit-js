@@ -1,0 +1,48 @@
+:root{
+--space-xxs:2px;
+--space-xs:4px;
+--space-sm:8px;
+--space-md:12px;
+--space-lg:16px;
+--space-xl:24px;
+--space-xxl:32px;
+--space-huge:64px;
+
+/* Semantic composites — drawn only from the scale above. */
+--pad-button:var(--space-sm) var(--space-lg); /* @kind spacing */
+--pad-input:var(--space-sm) var(--space-md); /* @kind spacing */
+--pad-tag:var(--space-xs) var(--space-sm); /* @kind spacing */
+/* Tighter than --pad-tag, for a count badge sitting on the fixed
+   --line-box-pill height rather than on its own text. */
+--pad-count:1px var(--space-sm); /* @kind spacing */
+--pad-card:var(--space-xxl); /* @kind spacing */
+--pad-card-mockup:var(--space-xl); /* @kind spacing */
+--pad-nav:var(--space-lg) var(--space-xl); /* @kind spacing */
+--pad-footer:var(--space-huge) var(--space-xl); /* @kind spacing */
+--section-gap:96px; /* @kind spacing */
+--container-max:1200px; /* @kind spacing */
+/* Three fixed layout widths the product surfaces need and the page container
+   above does not express: the slate sidebar column that every app template
+   shares, the single-column card measure the auth template centers, and the
+   column of full-width panels the settings template stacks. Named for what
+   fills them rather than for their size, so the next screen that stacks panels
+   is not choosing between a number and a screen name. The wizard in
+   app-create-campaign runs a narrower single-form column, which is a different
+   width for a different job and takes its own token when that screen ships. */
+--sidebar-width:248px; /* @kind spacing */
+--container-card:420px; /* @kind spacing */
+--container-panel:920px; /* @kind spacing */
+
+/* Reading measure for long-form prose, in characters rather than pixels, so it
+   tracks the type role it wraps. The container above is a layout width and sets
+   no measure; the marketing templates cap a lead paragraph at 62ch, and a page
+   that is prose from top to bottom runs wider than a lead, so this sits at the
+   top of the 45-75ch band instead. */
+--measure-prose:74ch; /* @kind spacing */
+
+/* The short measure, for the one or two sentences an empty state, a notice or a
+   caption runs to. Bottom of the same 45-75ch band the line above sits at the
+   top of, because centered text loses the reader at a long line far faster than
+   a left-aligned column does. It was a bare 46ch inside EmptyState. */
+--measure-blurb:46ch; /* @kind spacing */
+}

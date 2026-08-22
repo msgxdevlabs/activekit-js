@@ -1,0 +1,10 @@
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{margin:0;background:var(--surface-page);color:var(--text-body);font-family:var(--font-sans);font-size:var(--body-md-size);font-weight:var(--body-md-weight);line-height:var(--body-md-lh);letter-spacing:var(--body-md-ls)}
+*,*::before,*::after{box-sizing:border-box}
+a{color:var(--text-link);text-decoration:none}
+/* One rung down each, following --text-link's move to --primary-deep: a link
+   that hovers to its own rest color is not a hover. 7.41:1 and 10.57:1. */
+a:hover{color:var(--primary-deeper);text-decoration:none}
+a:active{color:var(--primary-deepest)}
+h1,h2,h3,h4,p{margin:0}
+::selection{background:var(--cta-fill-subdued);color:var(--ink)}
