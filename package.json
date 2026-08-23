@@ -16,7 +16,7 @@
 		"demo": "pnpm build && node examples/customer-demo/server.mjs",
 		"changeset": "changeset",
 		"version": "changeset version && pnpm install --lockfile-only",
-		"release": "pnpm publish -r --no-git-checks --access public"
+		"release": "pnpm publish -r --no-git-checks --access public --tag next"
 	},
 	"devDependencies": {
 		"@changesets/cli": "2.31.1",

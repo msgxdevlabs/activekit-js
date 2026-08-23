@@ -255,6 +255,26 @@ Publishing is manual, from `main`: **Actions → Release → Run workflow**, typ
 `RELEASE` into the confirmation box. That workflow versions the packages, pushes
 the version commit and tags, and publishes.
 
+### The prerelease channel
+
+Until `api.activekit.app/v1` is live, these packages ship as prereleases and
+`latest` does not move. Two things enforce that: the repo is in changesets
+**pre mode** (`.changeset/pre.json`, tag `alpha`), so `changeset version`
+produces `0.2.0-alpha.0` rather than `0.2.0`; and `pnpm release` publishes
+with `--tag next`, so `npm install @activekit/js` keeps resolving to the last
+stable version instead of a moving target. A prerelease version is also
+excluded from `^` and `~` ranges, so nobody picks one up by accident.
+
+Everything published before the API exists is deprecated on npm, pointing at
+this state. Neither the deprecation nor the tag is permanent — `npm deprecate
+<pkg>@<range> ""` clears a message, and a stable release is three steps:
+
+```bash
+pnpm changeset pre exit   # commit this; versions go back to 0.2.0
+# drop --tag next from the root `release` script
+# release, then move the tag: npm dist-tag add @activekit/js@0.2.0 latest
+```
+
 There is no npm token anywhere in it. Publishing uses OIDC trusted publishing —
 GitHub mints a short-lived identity token, npm verifies it came from this repo,
 this workflow and the `npm` environment, and issues a credential good for that
