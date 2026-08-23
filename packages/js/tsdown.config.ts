@@ -34,10 +34,10 @@ export default defineConfig([
 		...cdn,
 	},
 	{
-		// The CDN build for the floating launcher. A separate file because a
-		// script tag has no tree-shaking: a page that wants the inline widget
-		// would otherwise download the expanded view it never opens.
-		entry: { "activekit-launcher.global": "src/global-launcher.ts" },
+		// The CDN build for the shell. A separate file because a script tag has
+		// no tree-shaking: a page that wants the inline widget would otherwise
+		// download an iframe host and a message protocol it never uses.
+		entry: { "activekit-shell.global": "src/global-shell.ts" },
 		...cdn,
 	},
 ]);

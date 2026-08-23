@@ -176,27 +176,29 @@ Pin the exact version and its hash. A floating `/v1/` path is also planned, and
 updating it pushes code to every customer's page without them deploying — which
 is exactly why it will be gated like a production deploy.
 
-The floating launcher is a second file, `activekit-launcher.js`, loaded the
-same way and needing no container. Two builds rather than one with a switch:
-a script tag has no bundler to shake out the half you did not ask for, so the
-inline widget stays 2.9 kB brotli instead of carrying the launcher's 7.1 kB.
+The shell is a second file, `activekit-shell.js`, loaded the same way and
+needing no container. Two builds rather than one with a switch: a script tag
+has no bundler to shake out the half you did not ask for, so the inline widget
+stays 2.9 kB brotli instead of carrying the shell's 5.8 kB.
 </details>
 
 ## See it running
 
 [`examples/customer-demo`](examples/customer-demo) is a complete fake customer
-— an "Acme Learn" page with the floating launcher widget in its corner, a
-backend that mints subject tokens and records events with the server SDK, and
-an in-memory stand-in for the not-yet-live API, so the whole loop runs
-locally:
+— an "Acme Learn" page with the shell docked in its corner, a backend that
+mints subject tokens and records events with the server SDK, an in-memory
+stand-in for the not-yet-live API, and a stand-in ActiveKit app served from a
+second port, so the whole loop and the origin boundary both run locally:
 
 ```bash
 pnpm install
-pnpm demo   # builds, then serves → http://localhost:4173
+pnpm demo   # builds, then serves → http://localhost:4173 (app on :4174)
 ```
 
-Buttons on the page simulate the user doing things; you watch progress move,
-a streak complete, and the reward land in the widget's dashboard.
+Buttons on the page simulate the user doing things; you watch progress move, a
+streak complete, and the reward land in the app. The app is on its own port on
+purpose — a same-origin iframe would make the boundary imaginary and leave the
+message protocol untested.
 
 ## Develop
 
@@ -212,9 +214,9 @@ build, including the size budgets:
 
 | Entry point | Who pays it | Budget (brotli) |
 | --- | --- | --- |
-| `@activekit/js` | bundler — ceiling on the library | 10 kB |
+| `@activekit/js` | bundler — ceiling on the library | 7 kB |
 | `@activekit/js` CDN, inline widget | every script-tag page | 3.5 kB |
-| `@activekit/js` CDN, launcher | every script-tag page | 10 kB |
+| `@activekit/js` CDN, shell | every script-tag page | 6.5 kB |
 | `@activekit/react` | bundler | 4 kB |
 | `@activekit/vue` | bundler | 4 kB |
 | `@activekit/svelte` | bundler | 4 kB |
@@ -227,20 +229,17 @@ decision about someone else's page load — say why in the PR.
 
 Budgets are per entry point, because that is the unit a customer downloads.
 The package entries are ceilings: `sideEffects: false` means a bundler ships
-only the subset that was imported, so `@activekit/js` at 7.2 kB is what the
-whole library weighs, not what any one page pays — importing the client and
-inline widget costs 2.6 kB of it. The script-tag builds get the tight budgets
-because they have no bundler to shake anything out: whatever is in the file
-is on the page.
+only the subset that was imported, so `@activekit/js` at 5.7 kB is what the
+whole library weighs, not what any one page pays. The script-tag builds get the
+tight budgets because they have no bundler to shake anything out: whatever is
+in the file is on the page.
 
-The inline widget's 3.5 kB is the one held tight, deliberately: it is what
-most script-tag pages load and the reason the CDN build was split at all. The
-launcher's is not, and that was measured rather than assumed — renaming every
-class to two characters saves 102 bytes, the CSS is already minified to within
-2 bytes of optimal, and the expanded view's markup and styles are 43% of the
-bundle. There is no fat in it; a smaller launcher means a smaller launcher,
-not a tidier one. If those bytes are ever worth reclaiming, the lever is
-deferring the expanded view behind its first open, not shaving the source.
+Both are held tight on purpose, and the shell's number is the one that should
+stay flat forever. It is a button, a frame, a skeleton and a message protocol —
+nothing in it scales with how large the product gets, because every screen with
+content in it is served from the app's own origin. A shell that grows is a
+shell that has started reimplementing the app, which is the drift this
+architecture exists to prevent.
 
 Tests cover the two packages where logic actually lives: transport and retry in
 `@activekit/js`, HMAC verification in `activekit`. The bindings are covered by

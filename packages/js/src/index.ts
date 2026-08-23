@@ -4,8 +4,8 @@ export type { ActiveKitOptions } from "./client.js";
 export { mountWidget } from "./widget.js";
 export type { MountOptions, WidgetHandle } from "./widget.js";
 
-export { mountLauncher } from "./launcher.js";
-export type { LauncherOptions, LauncherHandle } from "./launcher.js";
+export { mountShell } from "./shell.js";
+export type { ShellColors, ShellHandle, ShellOptions } from "./shell.js";
 
 export type { WidgetColors, WidgetColorTokens } from "./colors.js";
 

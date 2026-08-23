@@ -1,10 +1,8 @@
 /**
- * The `data-*` contract the two CDN builds share.
+ * The `data-*` contract for the inline widget's CDN build.
  *
- * Both script-tag builds read the same attributes off their own `<script>`;
- * only what they mount differs. Parsing lives here so the two entries cannot
- * drift apart — an attribute honored by one build and ignored by the other is
- * the kind of bug a customer reports as "the docs are wrong".
+ * The shell build reads its own, shorter set: it mounts an app rather than a
+ * campaign card, so almost none of these apply to it.
  */
 import { createClient } from "./client.js";
 import type { ActiveKitClient } from "./client.js";
@@ -13,7 +11,7 @@ import type { WidgetColors } from "./colors.js";
 export interface ScriptConfig {
 	/** The client, already built from `data-token` and `data-api-url`. */
 	client: ActiveKitClient;
-	/** Options both `mountWidget` and `mountLauncher` accept. */
+	/** Options `mountWidget` accepts. */
 	common: {
 		campaignKey?: string;
 		theme?: "light" | "dark" | "auto";

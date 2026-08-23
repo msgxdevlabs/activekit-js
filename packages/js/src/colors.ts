@@ -1,5 +1,5 @@
 /**
- * Brand color overrides for the widget and the launcher.
+ * Brand color overrides for the inline widget.
  *
  * The shadow root seals the embed off from the host page's CSS on purpose, so
  * theming crosses the boundary the same way everything else does: as an

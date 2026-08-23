@@ -11,14 +11,27 @@
  *
  *   <script type="module" src="…/@activekit/elements"></script>
  *   <activekit-widget token="SUBJECT_JWT" campaign="daily-login"></activekit-widget>
- *   <activekit-launcher token="SUBJECT_JWT" campaign="daily-login"></activekit-launcher>
+ *   <activekit-shell token="SUBJECT_JWT"></activekit-shell>
  */
-import { createClient, mountLauncher, mountWidget } from "@activekit/js";
-import type { ActiveKitClient, LauncherHandle, WidgetColors, WidgetHandle } from "@activekit/js";
+import { createClient, mountShell, mountWidget } from "@activekit/js";
+import type { ActiveKitClient, ShellHandle, WidgetColors, WidgetHandle } from "@activekit/js";
 
 const OBSERVED = ["token", "campaign", "theme", "api-url", "brand-color", "accent-color"] as const;
 
-const LAUNCHER_OBSERVED = [...OBSERVED, "position", "panel-title", "subject-label"] as const;
+/**
+ * The shell's own set. It mounts an app rather than a campaign card, so it
+ * shares only the four attributes that identify the tenant and the look.
+ */
+const SHELL_OBSERVED = [
+	"token",
+	"api-url",
+	"app-url",
+	"theme",
+	"position",
+	"label",
+	"prefetch",
+	"brand-color",
+] as const;
 
 /**
  * `brand-color` / `accent-color` cover an attribute-driven page's share of the
@@ -94,22 +107,21 @@ export class ActiveKitWidgetElement extends HTMLElement {
 }
 
 /**
- * The floating launcher.
+ * The shell: a bubble in the corner that opens the ActiveKit app.
  *
- *   <activekit-launcher token="SUBJECT_JWT" campaign="daily-login"></activekit-launcher>
+ *   <activekit-shell token="SUBJECT_JWT" label="Rewards"></activekit-shell>
  *
- * The element itself renders nothing and takes no space: the launcher appends
- * itself to `document.body` and floats over the page, so this tag is just the
+ * The element itself renders nothing and takes no space: the shell appends
+ * itself to `document.body` and floats over the page, so this tag is only the
  * place you configure it from. Put it anywhere.
  *
- * The panel heading is `panel-title`, not `title` — `title` is a global HTML
- * attribute and would give the element a browser tooltip as a side effect.
+ * `label` rather than `title`: `title` is a global HTML attribute and would
+ * give the element a browser tooltip as a side effect.
  */
-export class ActiveKitLauncherElement extends HTMLElement {
-	static readonly observedAttributes = LAUNCHER_OBSERVED;
+export class ActiveKitShellElement extends HTMLElement {
+	static readonly observedAttributes = SHELL_OBSERVED;
 
-	#client: ActiveKitClient | null = null;
-	#handle: LauncherHandle | null = null;
+	#handle: ShellHandle | null = null;
 	#connected = false;
 
 	connectedCallback(): void {
@@ -133,8 +145,6 @@ export class ActiveKitLauncherElement extends HTMLElement {
 	#teardown(): void {
 		this.#handle?.destroy();
 		this.#handle = null;
-		this.#client?.destroy();
-		this.#client = null;
 	}
 
 	#render(): void {
@@ -148,43 +158,47 @@ export class ActiveKitLauncherElement extends HTMLElement {
 		}
 
 		const apiUrl = this.getAttribute("api-url");
-		const campaignKey = this.getAttribute("campaign");
+		const appUrl = this.getAttribute("app-url");
 		const theme = this.getAttribute("theme") as "light" | "dark" | "auto" | null;
 		const position = this.getAttribute("position") as "bottom-right" | "bottom-left" | null;
-		const title = this.getAttribute("panel-title");
-		const subjectLabel = this.getAttribute("subject-label");
-		const colors = readColors(this);
+		const label = this.getAttribute("label");
+		const prefetch = this.getAttribute("prefetch") as "idle" | "hover" | "none" | null;
+		const brand = this.getAttribute("brand-color");
 
-		this.#client = createClient({ token, ...(apiUrl ? { apiUrl } : {}) });
-		this.#handle = mountLauncher(this.#client, {
-			...(campaignKey ? { campaignKey } : {}),
+		// No client here: the shell needs a token and an API root, not a
+		// transport. Building one would ship the retry machinery to a page that
+		// makes exactly one request.
+		this.#handle = mountShell({
+			token,
+			...(apiUrl ? { apiUrl } : {}),
+			...(appUrl ? { appUrl } : {}),
 			...(theme ? { theme } : {}),
 			...(position ? { position } : {}),
-			...(title ? { title } : {}),
-			...(subjectLabel ? { subjectLabel } : {}),
-			...(colors ? { colors } : {}),
+			...(label ? { label } : {}),
+			...(prefetch ? { prefetch } : {}),
+			...(brand ? { colors: { brand } } : {}),
 		});
 	}
 
-	/** Show the compact panel. */
-	open(): void {
-		this.#handle?.open();
+	/** Open the app. */
+	async open(): Promise<void> {
+		await this.#handle?.open();
 	}
-	/** Collapse everything back to the bubble. */
+	/** Dismiss it. */
 	close(): void {
 		this.#handle?.close();
 	}
-	/** Open the expanded view. */
-	expand(): void {
-		this.#handle?.expand();
+	/** Open if closed, close if open. */
+	toggle(): void {
+		this.#handle?.toggle();
 	}
-	/** Shrink the expanded view back to the compact panel. */
-	collapse(): void {
-		this.#handle?.collapse();
-	}
-	/** Re-fetch and repaint. */
+	/** Re-check the unseen dot, and tell the app to re-fetch. */
 	async refresh(): Promise<void> {
 		await this.#handle?.refresh();
+	}
+	/** Swap in a rotated subject token, without reloading the app. */
+	setToken(next: string): void {
+		this.#handle?.setToken(next);
 	}
 }
 
@@ -195,11 +209,11 @@ export class ActiveKitLauncherElement extends HTMLElement {
  */
 export function defineActiveKitElements(
 	tagName = "activekit-widget",
-	launcherTagName = "activekit-launcher",
+	shellTagName = "activekit-shell",
 ): void {
 	if (typeof customElements === "undefined") return;
 	if (!customElements.get(tagName)) customElements.define(tagName, ActiveKitWidgetElement);
-	if (!customElements.get(launcherTagName)) {
-		customElements.define(launcherTagName, ActiveKitLauncherElement);
+	if (!customElements.get(shellTagName)) {
+		customElements.define(shellTagName, ActiveKitShellElement);
 	}
 }

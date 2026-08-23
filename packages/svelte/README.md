@@ -29,24 +29,24 @@ Svelte 5 only. Svelte 4 users can use
 <ActiveKitWidget {client} campaignKey="daily-login" />
 ```
 
-## Launcher
+## Shell
 
-The floating corner launcher. It renders nothing and appends itself to
-`document.body`, so put it anywhere:
+The floating corner embed. It renders nothing and appends itself to
+`document.body`, so put it anywhere.
 
 ```svelte
 <script lang="ts">
-  import { ActiveKitLauncher } from "@activekit/svelte";
-  let rewards: ActiveKitLauncher;
+  import { ActiveKitShell } from "@activekit/svelte";
+  let rewards: ActiveKitShell;
 </script>
 
-<ActiveKitLauncher bind:this={rewards} {client} campaignKey="daily-login" subjectLabel="Pat" />
-<button onclick={() => rewards.expand()}>Rewards</button>
+<ActiveKitShell bind:this={rewards} {client} label="Rewards" />
+<button onclick={() => rewards.open()}>Rewards</button>
 ```
 
-`open`, `close`, `expand`, `collapse` and `refresh` are instance methods, so
-`bind:this` is how you reach them. Mount one per page — two launchers means
-two bubbles in the same corner.
+`open`, `close`, `toggle`, `refresh` and `setToken` are instance exports;
+`bind:this` is how you reach them. Mount one per page — two shells means two
+bubbles in the same corner.
 
 ## Action
 

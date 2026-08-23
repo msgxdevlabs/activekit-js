@@ -24,12 +24,13 @@ import {
 } from "react";
 import type { ReactElement, ReactNode } from "react";
 
-import { mountLauncher, mountWidget } from "@activekit/js";
+import { mountShell, mountWidget } from "@activekit/js";
 import type {
 	ActiveKitClient,
-	LauncherHandle,
-	LauncherOptions,
 	MountOptions,
+	ShellColors,
+	ShellHandle,
+	ShellOptions,
 	SubjectSnapshot,
 	WidgetColors,
 } from "@activekit/js";
@@ -161,83 +162,102 @@ export function ActiveKitWidget({
 	return createElement("div", { ref: hostRef, ...(className ? { className } : {}) });
 }
 
-export interface ActiveKitLauncherProps extends LauncherOptions {}
+/**
+ * `token` and `apiUrl` come from the provider's client; everything else is
+ * yours. Omit `appUrl` in production and it points at app.activekit.app.
+ */
+export interface ActiveKitShellProps extends Omit<ShellOptions, "token" | "apiUrl"> {}
 
 /**
- * The floating launcher.
+ * The shell: a bubble in the corner that opens the ActiveKit app.
  *
- * Renders nothing. The launcher appends itself to `document.body` and floats
- * over the page, so there is no host element for React to place — put this
- * component anywhere inside the provider and it will be in the corner.
+ * Renders nothing. The shell appends itself to `document.body` and floats over
+ * the page, so there is no host element for React to place — put this anywhere
+ * inside the provider and it will be in the corner.
  *
  * Pass a ref to drive it from your own UI:
  *
  * ```tsx
- * const launcher = useRef<LauncherHandle>(null);
- * <ActiveKitLauncher ref={launcher} campaignKey="daily-login" />
- * <button onClick={() => launcher.current?.expand()}>Rewards</button>
+ * const shell = useRef<ShellHandle>(null);
+ * <ActiveKitShell ref={shell} label="Rewards" />
+ * <button onClick={() => shell.current?.open()}>Rewards</button>
  * ```
  *
- * Read-only, like everything else here: the expanded view reports grants, it
- * cannot claim them.
+ * Two states, not three: the bubble is pressed and the app opens. Everything
+ * with content in it is served from the app's own origin, which is why this
+ * component stays a few dozen lines no matter how large the product gets.
  */
-export const ActiveKitLauncher = forwardRef<LauncherHandle, ActiveKitLauncherProps>(
-	function ActiveKitLauncher(
-		{ campaignKey, theme, position, title, subjectLabel, defaultOpen, colors, zIndex },
+export const ActiveKitShell = forwardRef<ShellHandle, ActiveKitShellProps>(function ActiveKitShell(
+	{ appUrl, position, theme, label, prefetch, pollInterval, colors, zIndex, onOpen, onClose, onError },
+	ref,
+) {
+	const client = useActiveKit();
+	const handleRef = useRef<ShellHandle | null>(null);
+	const colorsId = colorsKey(colors);
+
+	// Callbacks are held in a ref so that an inline `onOpen={() => …}` — a new
+	// function on every render — does not tear down and rebuild the frame.
+	const callbacks = useRef({ onOpen, onClose, onError });
+	callbacks.current = { onOpen, onClose, onError };
+
+	useEffect(() => {
+		const handle = mountShell({
+			token: client.token,
+			apiUrl: client.apiUrl,
+			...(appUrl ? { appUrl } : {}),
+			...(position ? { position } : {}),
+			...(theme ? { theme } : {}),
+			...(label ? { label } : {}),
+			...(prefetch ? { prefetch } : {}),
+			...(pollInterval !== undefined ? { pollInterval } : {}),
+			...(colors ? { colors } : {}),
+			...(zIndex !== undefined ? { zIndex } : {}),
+			onOpen: () => callbacks.current.onOpen?.(),
+			onClose: () => callbacks.current.onClose?.(),
+			onError: (error) => callbacks.current.onError?.(error),
+		});
+		handleRef.current = handle;
+
+		return () => {
+			handle.destroy();
+			handleRef.current = null;
+		};
+		// `colorsId` stands in for `colors` — see the note on colorsKey.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [client, appUrl, position, theme, label, prefetch, pollInterval, colorsId, zIndex]);
+
+	// Forwarded through a ref cell rather than the handle itself: the handle is
+	// replaced on every remount, and a caller holding the old one would be
+	// driving a shell that no longer exists.
+	useImperativeHandle(
 		ref,
-	) {
-		const client = useActiveKit();
-		const handleRef = useRef<LauncherHandle | null>(null);
-		const colorsId = colorsKey(colors);
+		(): ShellHandle => ({
+			open: async () => {
+				await handleRef.current?.open();
+			},
+			close: () => handleRef.current?.close(),
+			toggle: () => handleRef.current?.toggle(),
+			refresh: async () => {
+				await handleRef.current?.refresh();
+			},
+			setToken: (next: string) => handleRef.current?.setToken(next),
+			get isOpen() {
+				return handleRef.current?.isOpen ?? false;
+			},
+			destroy: () => handleRef.current?.destroy(),
+		}),
+		[],
+	);
 
-		useEffect(() => {
-			const handle = mountLauncher(client, {
-				...(campaignKey ? { campaignKey } : {}),
-				...(theme ? { theme } : {}),
-				...(position ? { position } : {}),
-				...(title ? { title } : {}),
-				...(subjectLabel ? { subjectLabel } : {}),
-				...(defaultOpen ? { defaultOpen } : {}),
-				...(colors ? { colors } : {}),
-				...(zIndex !== undefined ? { zIndex } : {}),
-			});
-			handleRef.current = handle;
-
-			return () => {
-				handle.destroy();
-				handleRef.current = null;
-			};
-			// `colorsId` stands in for `colors` — see the note on colorsKey.
-			// eslint-disable-next-line react-hooks/exhaustive-deps
-		}, [client, campaignKey, theme, position, title, subjectLabel, defaultOpen, colorsId, zIndex]);
-
-		// Forwarded through a ref cell rather than the handle itself: the handle
-		// is replaced on every remount, and a caller holding the old one would be
-		// driving a launcher that no longer exists.
-		useImperativeHandle(
-			ref,
-			(): LauncherHandle => ({
-				open: () => handleRef.current?.open(),
-				close: () => handleRef.current?.close(),
-				expand: () => handleRef.current?.expand(),
-				collapse: () => handleRef.current?.collapse(),
-				refresh: async () => {
-					await handleRef.current?.refresh();
-				},
-				destroy: () => handleRef.current?.destroy(),
-			}),
-			[],
-		);
-
-		return null;
-	},
-);
+	return null;
+});
 
 export type {
 	ActiveKitClient,
-	LauncherHandle,
-	LauncherOptions,
 	MountOptions,
+	ShellColors,
+	ShellHandle,
+	ShellOptions,
 	SubjectSnapshot,
 	WidgetColors,
 };

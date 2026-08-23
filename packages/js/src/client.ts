@@ -92,6 +92,23 @@ export class ActiveKitClient {
 		this.#token = token;
 	}
 
+	/**
+	 * The current subject token.
+	 *
+	 * Exposed because `mountShell` needs a token and an API root, and a page
+	 * that already built a client has both. Without this every binding would
+	 * make callers pass the same token twice, and the two copies would drift
+	 * apart the first time one of them was rotated.
+	 */
+	get token(): string {
+		return this.#token;
+	}
+
+	/** The API root this client was built against, without a trailing slash. */
+	get apiUrl(): string {
+		return this.#apiUrl;
+	}
+
 	on<K extends keyof ActiveKitEvents>(event: K, handler: Handler<K>): () => void {
 		let set = this.#handlers.get(event);
 		if (!set) {
