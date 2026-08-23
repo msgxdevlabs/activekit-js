@@ -59,6 +59,29 @@ function Streak() {
 SWR? Call `client.progress()` inside your own query instead — reimplementing
 invalidation here would only get it subtly wrong.
 
+## Launcher
+
+The floating corner launcher. It renders nothing and appends itself to
+`document.body`, so put it anywhere inside the provider:
+
+```tsx
+import { ActiveKitLauncher } from "@activekit/react";
+
+<ActiveKitLauncher campaignKey="daily-login" subjectLabel={user.firstName} />
+```
+
+Pass a ref to drive it from your own UI:
+
+```tsx
+const rewards = useRef<LauncherHandle>(null);
+
+<ActiveKitLauncher ref={rewards} />
+<button onClick={() => rewards.current?.expand()}>Rewards</button>
+```
+
+`open`, `close`, `expand`, `collapse` and `refresh` are all on the handle.
+Mount one per page — two launchers means two bubbles in the same corner.
+
 ## Next.js
 
 Every export is a client component; the package carries `"use client"`. Import

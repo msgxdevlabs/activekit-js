@@ -22,15 +22,27 @@ import {
 } from "vue";
 import type { App, InjectionKey, Plugin, PropType, Ref } from "vue";
 
-import { mountWidget } from "@activekit/js";
+import { mountLauncher, mountWidget } from "@activekit/js";
 import type {
 	ActiveKitClient,
 	Grant,
+	LauncherHandle,
+	LauncherOptions,
 	MountOptions,
 	CampaignProgress,
 	SubjectSnapshot,
+	WidgetColors,
 	WidgetHandle,
 } from "@activekit/js";
+
+/**
+ * Object-valued props are compared by identity, so a template writing
+ * `:colors="{ brand: '#...' }"` inline would produce a new object on every
+ * patch and remount the embed each time — a visible flicker and a refetch.
+ * Watching the value instead makes the inline form behave as meant.
+ */
+const colorsKey = (colors: WidgetColors | undefined): string =>
+	colors ? JSON.stringify(colors) : "";
 
 const ActiveKitKey: InjectionKey<ActiveKitClient> = Symbol("activekit");
 
@@ -143,6 +155,8 @@ export const ActiveKitWidget = defineComponent({
 			required: false,
 			default: undefined,
 		},
+		/** Brand color overrides. See `WidgetColors` in `@activekit/js`. */
+		colors: { type: Object as PropType<WidgetColors>, required: false, default: undefined },
 	},
 	setup(props) {
 		const client = useActiveKit();
@@ -156,6 +170,7 @@ export const ActiveKitWidget = defineComponent({
 			handle = mountWidget(host.value, client, {
 				...(props.campaignKey ? { campaignKey: props.campaignKey } : {}),
 				...(props.theme ? { theme: props.theme } : {}),
+				...(props.colors ? { colors: props.colors } : {}),
 			});
 		};
 
@@ -164,7 +179,7 @@ export const ActiveKitWidget = defineComponent({
 		// ref going null → element is itself the trigger. Rebuilding on any
 		// change is cheap and correct for every parameter; diffing the params
 		// would be the optimisation that introduces the bug.
-		watch([host, () => props.campaignKey, () => props.theme], remount, {
+		watch([host, () => props.campaignKey, () => props.theme, () => colorsKey(props.colors)], remount, {
 			flush: "post",
 		});
 
@@ -177,4 +192,121 @@ export const ActiveKitWidget = defineComponent({
 	},
 });
 
-export type { ActiveKitClient, Grant, MountOptions, CampaignProgress, SubjectSnapshot };
+/**
+ * The floating launcher.
+ *
+ * Renders nothing. The launcher appends itself to `document.body` and floats
+ * over the page, so there is no host element for Vue to place — put this
+ * component anywhere under the provider and it will be in the corner.
+ *
+ * Drive it from your own UI with a template ref:
+ *
+ * ```vue
+ * <ActiveKitLauncher ref="rewards" campaign-key="daily-login" />
+ * <button @click="rewards.expand()">Rewards</button>
+ * ```
+ *
+ * Read-only, like everything else here: the expanded view reports grants, it
+ * cannot claim them.
+ */
+export const ActiveKitLauncher = defineComponent({
+	name: "ActiveKitLauncher",
+	props: {
+		/** Which campaign the bubble ring and compact panel highlight. */
+		campaignKey: { type: String, required: false, default: undefined },
+		/** `auto` follows the host page's `prefers-color-scheme`. */
+		theme: {
+			type: String as PropType<"light" | "dark" | "auto">,
+			required: false,
+			default: undefined,
+		},
+		/** Which corner to dock in. Default `bottom-right`. */
+		position: {
+			type: String as PropType<"bottom-right" | "bottom-left">,
+			required: false,
+			default: undefined,
+		},
+		/** Panel header title and the bubble's accessible name. */
+		title: { type: String, required: false, default: undefined },
+		/** Display name beside the avatar in the expanded view. */
+		subjectLabel: { type: String, required: false, default: undefined },
+		/** Mount with the compact panel already open. */
+		defaultOpen: { type: Boolean, required: false, default: undefined },
+		/** Brand color overrides. See `WidgetColors` in `@activekit/js`. */
+		colors: { type: Object as PropType<WidgetColors>, required: false, default: undefined },
+		/** Stacking order for the floating UI. */
+		zIndex: { type: Number, required: false, default: undefined },
+	},
+	setup(_props, { expose }) {
+		const client = useActiveKit();
+		const props = _props;
+		let handle: LauncherHandle | null = null;
+
+		const remount = (): void => {
+			handle?.destroy();
+			handle = mountLauncher(client, {
+				...(props.campaignKey ? { campaignKey: props.campaignKey } : {}),
+				...(props.theme ? { theme: props.theme } : {}),
+				...(props.position ? { position: props.position } : {}),
+				...(props.title ? { title: props.title } : {}),
+				...(props.subjectLabel ? { subjectLabel: props.subjectLabel } : {}),
+				...(props.defaultOpen ? { defaultOpen: props.defaultOpen } : {}),
+				...(props.colors ? { colors: props.colors } : {}),
+				...(props.zIndex !== undefined ? { zIndex: props.zIndex } : {}),
+			});
+		};
+
+		// Mounted rather than during setup, so SSR never touches `document`.
+		onMounted(remount);
+
+		// Rebuilding on any change is cheap and correct for every parameter;
+		// diffing them would be the optimisation that introduces the bug.
+		watch(
+			[
+				() => props.campaignKey,
+				() => props.theme,
+				() => props.position,
+				() => props.title,
+				() => props.subjectLabel,
+				() => props.defaultOpen,
+				() => colorsKey(props.colors),
+				() => props.zIndex,
+			],
+			() => {
+				if (handle) remount();
+			},
+			{ flush: "post" },
+		);
+
+		onUnmounted(() => {
+			handle?.destroy();
+			handle = null;
+		});
+
+		// Proxied rather than exposing the handle itself: it is replaced on every
+		// remount, and a caller holding the old one would be driving a launcher
+		// that no longer exists.
+		expose({
+			open: () => handle?.open(),
+			close: () => handle?.close(),
+			expand: () => handle?.expand(),
+			collapse: () => handle?.collapse(),
+			refresh: async () => {
+				await handle?.refresh();
+			},
+		});
+
+		return () => null;
+	},
+});
+
+export type {
+	ActiveKitClient,
+	Grant,
+	LauncherHandle,
+	LauncherOptions,
+	MountOptions,
+	CampaignProgress,
+	SubjectSnapshot,
+	WidgetColors,
+};
