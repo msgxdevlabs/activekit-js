@@ -64,8 +64,8 @@ export interface LauncherHandle {
  * without it the launcher is an invisible click-shield over the host page.
  * Interactive pieces opt back in.
  *
- * Every value is the ActiveKit design system's, copied not imported: the
- * embed inlines its CSS under a byte budget and must never bundle `design/`.
+ * Every value is the ActiveKit design system's, transcribed not imported: the
+ * embed inlines its CSS under a byte budget and carries only what it uses.
  * The mapping, so the next edit keeps faith with the tokens:
  *
  * - Light: ink #102033 and ink-mute #607087 on canvas #ffffff (16.45:1,
