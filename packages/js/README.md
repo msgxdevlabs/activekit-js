@@ -1,7 +1,9 @@
 # @activekit/js
 
 Browser client and embeddable widget for [ActiveKit](https://activekit.app).
-Vanilla TypeScript, zero dependencies, ~6 kB brotli.
+Vanilla TypeScript, zero dependencies. 2.9 kB brotli for the client and
+inline widget, 7.1 kB with the floating launcher — you pay for the embed
+you mount, not the package.
 
 **Read-only.** This package retrieves a subject's own campaign progress and
 grants. It cannot record events, issue grants, or change anything — see
@@ -193,10 +195,32 @@ Pin the exact version and its hash. A floating `/v1/` path is planned for teams
 who want automatic updates; understand that it lets us change code on your page
 without you deploying.
 
-Add `data-mode="launcher"` to self-mount the floating launcher instead of the
-inline widget, with no container element needed. `data-position`,
-`data-title` and `data-subject-label` pass through, and `data-brand-color` /
-`data-accent-color` cover the script tag's share of the `colors` option.
+For the floating launcher, load `activekit-launcher.js` instead — a separate
+file, and no container element needed:
+
+```html
+<script
+  src="https://cdn.activekit.app/v<version>/activekit-launcher.js"
+  integrity="sha384-…"
+  crossorigin="anonymous"
+  data-token="SUBJECT_JWT"
+  data-campaign="daily-login"
+  data-subject-label="Pat"
+  defer
+></script>
+```
+
+Two files rather than one with a mode switch, because a script tag has no
+bundler to shake out what you did not ask for: the launcher carries the
+expanded view's markup and CSS, and a page that only wants the inline card
+should not download it. The split is most of the widget build's weight —
+2.9 kB brotli against the launcher's 7.1 kB.
+
+`data-campaign`, `data-theme`, `data-brand-color` and `data-accent-color` work
+on both. `data-target` is the widget's; `data-position`, `data-title` and
+`data-subject-label` are the launcher's. Want both embeds on one page? Install
+the package and let a bundler share the client between them, rather than
+loading two tags.
 
 ## Support
 

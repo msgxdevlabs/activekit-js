@@ -28,6 +28,9 @@
 		"./package.json": "./package.json",
 		"./global": {
 			"default": "./dist/activekit.global.iife.js"
+		},
+		"./global/launcher": {
+			"default": "./dist/activekit-launcher.global.iife.js"
 		}
 	},
 	"types": "./dist/index.d.ts",
@@ -42,8 +45,18 @@
 	},
 	"activekit": {
 		"sizeLimit": {
-			"dist/index.js": "8 kB",
-			"dist/activekit.global.iife.js": "8 kB"
+			"dist/index.js": {
+				"limit": "8 kB",
+				"pays": "bundler — ceiling; tree-shaken per import"
+			},
+			"dist/activekit.global.iife.js": {
+				"limit": "3.5 kB",
+				"pays": "script tag — inline widget"
+			},
+			"dist/activekit-launcher.global.iife.js": {
+				"limit": "7.5 kB",
+				"pays": "script tag — launcher"
+			}
 		}
 	},
 	"scripts": {

@@ -1,5 +1,5 @@
 /**
- * CDN entry point — the `<script>` tag build.
+ * CDN entry point — the inline widget's `<script>` tag build.
  *
  * Served from `cdn.activekit.app`, not a public mirror: customers put this on
  * pages we do not deploy, so it has to be a host we control, on a version they
@@ -19,46 +19,31 @@
  * the page calls `ActiveKit.createClient(...)` — which is the path to take when
  * the token is fetched asynchronously.
  *
- * `data-mode="launcher"` mounts the floating corner launcher instead of the
- * inline widget; it needs no target because it floats over the page.
+ * This file carries the inline widget and nothing else. The floating launcher
+ * is a separate build, `activekit-launcher.js`, because a page that only wants
+ * the inline card should not download the expanded view's markup and CSS: over
+ * a script tag there is no bundler to shake it out, so whatever ships here is
+ * what every customer pays.
  */
 import { createClient } from "./client.js";
 import { mountWidget } from "./widget.js";
-import { mountLauncher } from "./launcher.js";
 import { ActiveKitError } from "./types.js";
+import { readScript } from "./self-mount.js";
 
-export { createClient, mountWidget, mountLauncher, ActiveKitError };
+export { createClient, mountWidget, ActiveKitError };
 
-const script = document.currentScript as HTMLScriptElement | null;
-const token = script?.dataset["token"];
+const config = readScript();
 
-if (token) {
-	const apiUrl = script?.dataset["apiUrl"];
-	const campaignKey = script?.dataset["campaign"];
-	const theme = script?.dataset["theme"] as "light" | "dark" | "auto" | undefined;
-
-	// `data-brand-color` / `data-accent-color` cover the script tag's needs;
-	// the full per-theme `colors` shape is for callers with code.
-	const brand = script?.dataset["brandColor"];
-	const accent = script?.dataset["accentColor"];
-	const colors =
-		brand || accent ? { ...(brand ? { brand } : {}), ...(accent ? { accent } : {}) } : undefined;
-
-	if (script?.dataset["mode"] === "launcher") {
-		const position = script.dataset["position"] as "bottom-right" | "bottom-left" | undefined;
-		const title = script.dataset["title"];
-		const subjectLabel = script.dataset["subjectLabel"];
-
-		mountLauncher(createClient({ token, ...(apiUrl ? { apiUrl } : {}) }), {
-			...(campaignKey ? { campaignKey } : {}),
-			...(theme ? { theme } : {}),
-			...(position ? { position } : {}),
-			...(title ? { title } : {}),
-			...(subjectLabel ? { subjectLabel } : {}),
-			...(colors ? { colors } : {}),
-		});
+if (config) {
+	if (config.script.dataset["mode"] === "launcher") {
+		// Loud rather than silent: this attribute did mount a launcher when both
+		// builds were one file, so the failure has to name its own fix.
+		console.error(
+			'[ActiveKit] data-mode="launcher" belongs to the launcher build — ' +
+				"load activekit-launcher.js instead of activekit.js.",
+		);
 	} else {
-		const selector = script?.dataset["target"] ?? "#activekit";
+		const selector = config.script.dataset["target"] ?? "#activekit";
 		const target = document.querySelector(selector);
 
 		if (!target) {
@@ -66,11 +51,7 @@ if (token) {
 			// always a missing container in the host page.
 			console.error(`[ActiveKit] No element matches "${selector}" — widget not mounted.`);
 		} else {
-			mountWidget(target, createClient({ token, ...(apiUrl ? { apiUrl } : {}) }), {
-				...(campaignKey ? { campaignKey } : {}),
-				...(theme ? { theme } : {}),
-				...(colors ? { colors } : {}),
-			});
+			mountWidget(target, config.client, config.common);
 		}
 	}
 }

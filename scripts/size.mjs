@@ -3,8 +3,23 @@
 //
 // The embed drops into a customer's page and competes with their LCP, so a
 // size regression is a failing build rather than a follow-up ticket. Budgets
-// live in each package.json under `activekit.sizeLimit`, as
-// { "<path relative to the package>": "<n> kB" }.
+// live in each package.json under `activekit.sizeLimit`, keyed by the built
+// artifact and written either as a bare limit:
+//
+//   { "dist/index.js": "8 kB" }
+//
+// or, better, with the entry point's audience spelled out:
+//
+//   { "dist/index.js": { "limit": "8 kB", "pays": "bundler — ceiling" } }
+//
+// Budget per entry point, not per package. One number for a package that
+// ships several entries measures a bundle nobody downloads: `dist/index.js`
+// is the union of every export, and `sideEffects: false` means a bundler
+// hands the customer only the subset they imported. So its budget is a
+// ceiling on the library, while the script-tag builds — which have no
+// bundler to shake anything out — are billed for every byte, and get the
+// tight budgets. `pays` is what the table prints, so the person who trips a
+// budget can see whose page load they were about to spend.
 //
 // Deliberately dependency-free: node's own brotli is the same algorithm a CDN
 // serves with, and a size check that pulls in a dependency tree to measure a
@@ -98,6 +113,15 @@ const parseLimit = (text) => {
 	return Number(match[1]) * 1000;
 };
 
+/** Accepts `"8 kB"` and `{ limit: "8 kB", pays: "…" }` alike. */
+const parseBudget = (value) => {
+	const text = typeof value === "string" ? value : value?.limit;
+	if (text === undefined) {
+		throw new Error(`Size budget needs a limit: got ${JSON.stringify(value)}`);
+	}
+	return { bytes: parseLimit(text), text: String(text).trim(), pays: value?.pays ?? "" };
+};
+
 let failed = false;
 const rows = [];
 
@@ -113,8 +137,9 @@ for (const dir of readdirSync(packagesDir)) {
 	const limits = pkg.activekit?.sizeLimit;
 	if (!limits) continue;
 
-	for (const [file, limitText] of Object.entries(limits)) {
+	for (const [file, budgetValue] of Object.entries(limits)) {
 		const target = join(packagesDir, dir, file);
+		const budget = parseBudget(budgetValue);
 		let bytes;
 		try {
 			bytes = brotli(readFileSync(target));
@@ -123,15 +148,15 @@ for (const dir of readdirSync(packagesDir)) {
 			failed = true;
 			continue;
 		}
-		const limit = parseLimit(limitText);
-		const over = bytes > limit;
+		const over = bytes > budget.bytes;
 		if (over) failed = true;
 		rows.push({
 			package: pkg.name,
 			file: relative(root, target),
+			"who pays": budget.pays,
 			brotli: `${(bytes / 1000).toFixed(2)} kB`,
-			budget: limitText,
-			used: `${Math.round((bytes / limit) * 100)}%`,
+			budget: budget.text,
+			used: `${Math.round((bytes / budget.bytes) * 100)}%`,
 			ok: over ? "✗" : "✓",
 		});
 	}
