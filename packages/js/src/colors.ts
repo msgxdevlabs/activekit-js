@@ -6,9 +6,10 @@
  * option. Values land as inline custom properties on the embed's root
  * element, which beat the stylesheet's defaults and nothing else.
  *
- * The built-in defaults are the ActiveKit design system's values (see
- * `design/tokens/colors.css` in this repo — values are copied, never
- * imported, because the embed inlines all CSS and pays for every byte).
+ * The built-in defaults are the ActiveKit design system's values, transcribed
+ * rather than imported: the embed inlines all its CSS and pays for every byte,
+ * so it carries the handful of tokens it needs and nothing else. The design
+ * system itself lives with the app that uses it, not in this repo.
  * Every default pair below is measured against WCAG 4.5:1 for text and 3:1
  * for graphics; the ratios are noted where a value was chosen for one.
  */
