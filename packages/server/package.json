@@ -54,5 +54,13 @@
 	},
 	"engines": {
 		"node": ">=20"
+	},
+	"activekit": {
+		"sizeLimit": {
+			"dist/index.js": {
+				"limit": "5 kB",
+				"pays": "server — guards dependency creep, not page load"
+			}
+		}
 	}
 }

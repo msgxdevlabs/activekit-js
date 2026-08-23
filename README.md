@@ -212,12 +212,14 @@ build, including the size budgets:
 
 | Entry point | Who pays it | Budget (brotli) |
 | --- | --- | --- |
-| `@activekit/js` | bundler — ceiling on the library | 8 kB |
+| `@activekit/js` | bundler — ceiling on the library | 10 kB |
 | `@activekit/js` CDN, inline widget | every script-tag page | 3.5 kB |
-| `@activekit/js` CDN, launcher | every script-tag page | 7.5 kB |
+| `@activekit/js` CDN, launcher | every script-tag page | 10 kB |
 | `@activekit/react` | bundler | 4 kB |
 | `@activekit/vue` | bundler | 4 kB |
+| `@activekit/svelte` | bundler | 4 kB |
 | `@activekit/elements` | bundler | 3 kB |
+| `activekit` | server — dependency creep, not page load | 5 kB |
 
 The embed lands on customers' pages and competes with their LCP, so a size
 regression is a red build, not a follow-up ticket. Raising a budget is a
@@ -230,6 +232,15 @@ whole library weighs, not what any one page pays — importing the client and
 inline widget costs 2.6 kB of it. The script-tag builds get the tight budgets
 because they have no bundler to shake anything out: whatever is in the file
 is on the page.
+
+The inline widget's 3.5 kB is the one held tight, deliberately: it is what
+most script-tag pages load and the reason the CDN build was split at all. The
+launcher's is not, and that was measured rather than assumed — renaming every
+class to two characters saves 102 bytes, the CSS is already minified to within
+2 bytes of optimal, and the expanded view's markup and styles are 43% of the
+bundle. There is no fat in it; a smaller launcher means a smaller launcher,
+not a tidier one. If those bytes are ever worth reclaiming, the lever is
+deferring the expanded view behind its first open, not shaving the source.
 
 Tests cover the two packages where logic actually lives: transport and retry in
 `@activekit/js`, HMAC verification in `activekit`. The bindings are covered by

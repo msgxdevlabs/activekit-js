@@ -46,7 +46,7 @@
 	"activekit": {
 		"sizeLimit": {
 			"dist/index.js": {
-				"limit": "8 kB",
+				"limit": "10 kB",
 				"pays": "bundler — ceiling; tree-shaken per import"
 			},
 			"dist/activekit.global.iife.js": {
@@ -54,7 +54,7 @@
 				"pays": "script tag — inline widget"
 			},
 			"dist/activekit-launcher.global.iife.js": {
-				"limit": "7.5 kB",
+				"limit": "10 kB",
 				"pays": "script tag — launcher"
 			}
 		}

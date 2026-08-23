@@ -55,5 +55,13 @@
 	},
 	"engines": {
 		"node": ">=20"
+	},
+	"activekit": {
+		"sizeLimit": {
+			"dist/index.js": {
+				"limit": "4 kB",
+				"pays": "bundler — matches the other bindings"
+			}
+		}
 	}
 }
