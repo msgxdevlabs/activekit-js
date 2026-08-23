@@ -122,7 +122,7 @@ const shell = mountShell({
   label: "Rewards",            // the bubble's accessible name and the frame's title
   position: "bottom-right",    // or "bottom-left"
   theme: "auto",
-  prefetch: "idle",            // "idle" | "hover" | "none"
+  prefetch: "hover",           // "hover" (default) | "idle" | "none"
 });
 
 await shell.open();   // resolves once the app signals ready
@@ -152,13 +152,28 @@ Three details worth knowing:
 - **The subject token never appears in the frame's URL.** It crosses by
   `postMessage`, after the app's handshake. A URL reaches the referrer header,
   browser history and every proxy log on the way.
-- **The frame is prefetched on idle by default**, so a click opens into content
-  rather than a spinner. `prefetch: "hover"` waits for intent; `"none"` waits
-  for the click. A cold open shows a native skeleton, and a host that cannot be
-  reached degrades to a quiet offline state rather than a blank rectangle.
+- **The frame is built on first pointer contact with the bubble** — mouse enter,
+  or pointer down on a touch screen. That is a few hundred milliseconds of lead
+  time, and nothing at all for the visitors who never go near it. `prefetch:
+  "idle"` builds it once the page settles instead, at the cost of an app
+  document on every page view; `"none"` waits for the click. A cold open shows a
+  native skeleton, and an unreachable host degrades to a quiet offline state
+  rather than a blank rectangle.
 - **The bubble shows a dot, not a count.** One boolean from
   `GET /v1/me/badge`, polled every 60 seconds by default. It means
   *unacknowledged*, and opening the app clears it.
+
+### Content-security policy
+
+```
+frame-src   https://app.activekit.app;
+connect-src https://api.activekit.app;
+```
+
+`frame-src` is permission to *embed* the app, not to run our code in your page —
+which is the whole reason the rich surface lives behind an origin boundary.
+`connect-src` covers the one boolean the bubble reads to decide whether to show
+its dot, on the same subject token the inline widget already uses.
 
 ### Colors
 

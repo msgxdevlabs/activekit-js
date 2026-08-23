@@ -32,9 +32,11 @@ What the shell does:
   browser history and every proxy log on the way.
 - Verifies both `event.origin` and `event.source` on every inbound message,
   and names the app's origin on every outbound one — never `*`.
-- Prefetches the frame on idle by default (`hover` and `none` also available),
-  so a click opens into content rather than a spinner, with a native skeleton
-  for a cold open and a quiet offline state when the host cannot be reached.
+- Builds the frame on first pointer contact with the bubble by default —
+  mouse enter, or pointer down on a touch screen. `idle` builds it once the
+  page settles instead, at the cost of an app document on every page view;
+  `none` waits for the click. A cold open shows a native skeleton, and an
+  unreachable host degrades to a quiet offline state.
 - Shows a dot rather than a count on the bubble, from `GET /v1/me/badge`. It
   means unacknowledged, and opening the app clears it.
 

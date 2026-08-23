@@ -49,11 +49,20 @@ export interface ShellOptions {
 	/** The bubble's accessible name, and the frame's title. Default `Rewards`. */
 	label?: string;
 	/**
-	 * When to create the frame. `idle` builds it once the page settles, `hover`
-	 * waits for intent, `none` waits for the click. Default `idle`.
+	 * When to create the frame. Default `hover`.
 	 *
-	 * This matters more than it looks: with no compact panel there is no cheap
-	 * intermediate state, so a cold click goes straight to loading an app.
+	 * - `hover` builds it on the first pointer contact with the bubble — mouse
+	 *   enter on a desktop, pointer down on a touch screen. A few hundred
+	 *   milliseconds of lead time, and nothing at all for the majority of
+	 *   visitors who never go near it.
+	 * - `idle` builds it once the page settles. The click is instant, and every
+	 *   page view loads an app document whether or not anyone opens it.
+	 * - `none` waits for the click. The skeleton carries the wait.
+	 *
+	 * `hover` is the default because the alternative asks the customer's users
+	 * to download a whole second document, on every page, for a panel most of
+	 * them will not open. Switch to `idle` when a customer's own data says the
+	 * open rate justifies it.
 	 */
 	prefetch?: "idle" | "hover" | "none";
 	/** How often to re-check the unseen dot, in ms. Default 60000. `0` disables it. */
@@ -203,7 +212,7 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 	const appOrigin = originOf(appUrl);
 	const apiUrl = (options.apiUrl ?? DEFAULT_API).replace(/\/$/, "");
 	const label = options.label ?? "Rewards";
-	const prefetch = options.prefetch ?? "idle";
+	const prefetch = options.prefetch ?? "hover";
 	const pollInterval = options.pollInterval ?? 60000;
 
 	if (!appOrigin) throw new Error(`[ActiveKit] appUrl is not a valid URL: ${appUrl}`);
@@ -421,6 +430,19 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 	};
 
 	// --- unseen dot --------------------------------------------------------
+	//
+	// The one request the shell makes on its own, and the obvious question is
+	// why a hollow shell talks to the API at all.
+	//
+	// The dot has to be right *before* the app has loaded, or it cannot do its
+	// job of earning the click. The alternatives are worse: prefetching the app
+	// on every page view to learn one boolean means downloading a whole second
+	// document for a panel most visitors never open, and dropping the dot
+	// entirely costs the only re-engagement signal the bubble has.
+	//
+	// So: one cacheable boolean, on the same subject token the inline widget
+	// already reads with. Customers need `connect-src https://api.activekit.app`
+	// alongside `frame-src` — the same grant `@activekit/js` has always needed.
 	const check = async (): Promise<void> => {
 		if (destroyed || open) return;
 		try {
@@ -506,10 +528,14 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 	sentinelStart.addEventListener("focus", () => close.focus({ preventScroll: true }));
 	sentinelEnd.addEventListener("focus", () => close.focus({ preventScroll: true }));
 
-	const onHover = (): void => {
+	// `pointerenter` covers a mouse; `pointerdown` is the touch equivalent and
+	// fires before `click`, so a tap still starts the load a beat early. Both
+	// are once-only, and `build` is idempotent, so whichever lands first wins.
+	const onIntent = (): void => {
 		if (prefetch === "hover") build();
 	};
-	button.addEventListener("pointerenter", onHover, { once: true });
+	button.addEventListener("pointerenter", onIntent, { once: true });
+	button.addEventListener("pointerdown", onIntent, { once: true });
 
 	const onKey = (event: KeyboardEvent): void => {
 		// Only ours to handle, and only if nobody else claimed it first. A host

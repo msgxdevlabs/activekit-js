@@ -56,7 +56,8 @@ const mountAcmeShell = (mode) =>
 		apiUrl: `${location.origin}/v1`,
 		label: "Your rewards",
 		theme: mode,
-		prefetch: "idle",
+		// prefetch defaults to "hover": the frame is built on first pointer
+		// contact with the bubble, so visitors who never open it pay nothing.
 		// Only the bubble and the frame chrome. What the *app* looks like is
 		// Acme's theme selection in the ActiveKit dashboard, not a mount option.
 		colors: { brand: "#5b5bd6" },
