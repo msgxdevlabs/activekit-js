@@ -1,9 +1,9 @@
 # @activekit/js
 
 Browser client and embeddable widget for [ActiveKit](https://activekit.app).
-Vanilla TypeScript, zero dependencies. 2.9 kB brotli for the client and
-inline widget, 7.1 kB with the floating launcher — you pay for the embed
-you mount, not the package.
+Vanilla TypeScript, zero dependencies. 2.9 kB brotli for the client and inline
+widget, 5.8 kB for the shell — you pay for the embed you mount, not the
+package.
 
 **Read-only.** This package retrieves a subject's own campaign progress and
 grants. It cannot record events, issue grants, or change anything — see
@@ -108,55 +108,106 @@ It reports and does not act: when a subject becomes eligible it shows a
 "Reward ready" marker and stops there. There is no claim button, for the reason
 above.
 
-## Launcher
+## Shell
 
-The widget's floating sibling: a bubble docked in a corner of the page that
-opens into a compact progress panel, and expands into a centered modal over
-the dimmed page: a slate sidebar with three sections. Overview holds stat
-values, the nearest goal, and the active-campaign grid; Campaigns lists every
-campaign with its progress and what completing it earns; Rewards is the full
-grant history. Escape and a click on the scrim close it, and focus stays
-inside while it is open.
+The floating embed: a bubble docked in a corner of the page that opens the
+ActiveKit app over the dimmed page. Two states — the bubble is pressed and the
+app opens. There is no compact panel in between.
 
 ```ts
-import { createClient, mountLauncher } from "@activekit/js";
+import { mountShell } from "@activekit/js";
 
-const launcher = mountLauncher(client, {
-  campaignKey: "daily-login",  // highlighted by the bubble's ring and the compact panel
-  position: "bottom-right",   // or "bottom-left"
-  title: "Your rewards",
-  subjectLabel: "Pat",        // sidebar display name; the API only knows subject IDs
+const shell = mountShell({
+  token,                       // subject token, minted on your server
+  label: "Rewards",            // the bubble's accessible name and the frame's title
+  position: "bottom-right",    // or "bottom-left"
   theme: "auto",
+  prefetch: "hover",           // "hover" (default) | "idle" | "none"
 });
 
-launcher.open();     // compact panel
-launcher.expand();   // expanded view
-launcher.close();    // back to the bubble — Esc does the same
-await launcher.refresh();
-launcher.destroy();
+await shell.open();   // resolves once the app signals ready
+shell.close();        // Escape and a scrim click do the same
+shell.toggle();
+await shell.refresh();
+shell.setToken(next);
+shell.destroy();
 ```
 
 It appends itself to `document.body`; there is no target element because your
-layout gives up nothing for it. The bubble wears a progress ring for the
-highlighted campaign and a dot when a reward is ready. Same shadow root, same
-read-only surface as the widget: the expanded view shows grants, it cannot
-claim them.
+layout gives up nothing for it.
 
-One habit worth knowing: the launcher repaints on every successful
-`client.progress()`, whoever triggered it. After your backend records an
-event, a single `client.progress()` call brings the launcher up to date.
+### What runs on your page, and what doesn't
 
-### Brand colors
+Almost nothing runs here. The shell is a button, a frame, a loading skeleton
+and a versioned message protocol — 5.8 kB brotli, and it does not grow when the
+product does, because every screen with content in it is served from
+`app.activekit.app` on ActiveKit's own origin.
+
+That means your content-security policy needs `frame-src`, not permission to
+execute our code. We cannot read your page, and you can say so in a security
+review.
+
+Three details worth knowing:
+
+- **The subject token never appears in the frame's URL.** It crosses by
+  `postMessage`, after the app's handshake. A URL reaches the referrer header,
+  browser history and every proxy log on the way.
+- **The frame is built on first pointer contact with the bubble** — mouse enter,
+  or pointer down on a touch screen. That is a few hundred milliseconds of lead
+  time, and nothing at all for the visitors who never go near it. `prefetch:
+  "idle"` builds it once the page settles instead, at the cost of an app
+  document on every page view; `"none"` waits for the click. A cold open shows a
+  native skeleton, and an unreachable host degrades to a quiet offline state
+  rather than a blank rectangle.
+- **The bubble shows a dot, not a count.** One boolean from
+  `GET /v1/me/badge`, polled every 60 seconds by default. It means
+  *unacknowledged*, and opening the app clears it.
+
+### Content-security policy
+
+```
+frame-src   https://app.activekit.app;
+connect-src https://api.activekit.app;
+```
+
+`frame-src` is permission to *embed* the app, not to run our code in your page —
+which is the whole reason the rich surface lives behind an origin boundary.
+`connect-src` covers the one boolean the bubble reads to decide whether to show
+its dot, on the same subject token the inline widget already uses.
+
+### Colors
+
+The shell paints five tokens; the app themes itself from your ActiveKit
+dashboard settings rather than from a mount option.
+
+```ts
+mountShell({
+  token,
+  colors: {
+    brand: "#5b5bd6",      // bubble fill
+    onBrand: "#ffffff",    // icon on the bubble
+    ring: "#ffffff",       // the unseen dot's border
+    background: "#ffffff", // frame and skeleton ground
+    foreground: "#102033", // close button
+  },
+});
+```
+
+Five, not eight, and deliberately: a mount call on someone else's page is the
+wrong place to decide what our product looks like, and an option in this API
+can never be removed.
+
+### Widget brand colors
 
 The built-in look is the ActiveKit design system, light and dark: teal fills
 that white text can be read on, ink on canvas in the light theme, the slate
-ladder in the dark one, and tabular figures on every number. Both
-`mountWidget` and `mountLauncher` take a `colors` option to re-brand it. The
+ladder in the dark one, and tabular figures on every number. `mountWidget`
+takes a `colors` option to re-brand it. The
 shadow root seals the embed off from your CSS on purpose, so theming crosses
 the boundary as an option, not a stylesheet:
 
 ```ts
-mountLauncher(client, {
+mountWidget(target, client, {
   colors: {
     brand: "#5b5bd6",          // bubble + progress fills
     accent: "#b45309",         // "Reward ready" pill, fulfilled chips
@@ -195,32 +246,30 @@ Pin the exact version and its hash. A floating `/v1/` path is planned for teams
 who want automatic updates; understand that it lets us change code on your page
 without you deploying.
 
-For the floating launcher, load `activekit-launcher.js` instead — a separate
-file, and no container element needed:
+For the shell, load `activekit-shell.js` instead — a separate file, and no
+container element needed:
 
 ```html
 <script
-  src="https://cdn.activekit.app/v<version>/activekit-launcher.js"
+  src="https://cdn.activekit.app/v<version>/activekit-shell.js"
   integrity="sha384-…"
   crossorigin="anonymous"
   data-token="SUBJECT_JWT"
-  data-campaign="daily-login"
-  data-subject-label="Pat"
+  data-label="Rewards"
   defer
 ></script>
 ```
 
 Two files rather than one with a mode switch, because a script tag has no
-bundler to shake out what you did not ask for: the launcher carries the
-expanded view's markup and CSS, and a page that only wants the inline card
-should not download it. The split is most of the widget build's weight —
-2.9 kB brotli against the launcher's 7.1 kB.
+bundler to shake out what you did not ask for: the shell carries an iframe host
+and a message protocol, and a page that only wants the inline card should not
+download them. 2.9 kB brotli against the shell's 5.8 kB.
 
-`data-campaign`, `data-theme`, `data-brand-color` and `data-accent-color` work
-on both. `data-target` is the widget's; `data-position`, `data-title` and
-`data-subject-label` are the launcher's. Want both embeds on one page? Install
-the package and let a bundler share the client between them, rather than
-loading two tags.
+`data-token`, `data-api-url` and `data-theme` work on both. `data-campaign` and
+`data-target` are the widget's; `data-app-url`, `data-position`, `data-label`,
+`data-prefetch` and `data-brand-color` are the shell's. Want both embeds on one
+page? Install the package and let a bundler share them, rather than loading two
+tags.
 
 ## Support
 

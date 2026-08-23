@@ -1,4 +1,4 @@
-/** Shared DOM factories for the widget and the launcher. Internal. */
+/** Shared DOM factories for the widget and the shell. Internal. */
 
 export const el = <K extends keyof HTMLElementTagNameMap>(
 	tag: K,

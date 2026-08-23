@@ -2,7 +2,7 @@
 
 A complete, runnable picture of what integrating ActiveKit looks like from a
 customer's side: a fictional language-learning app ("Acme Learn") with the
-floating launcher widget in the corner of its page, a backend that mints
+ActiveKit shell docked in the corner of its page, a backend that mints
 subject tokens and records events, and buttons that simulate the user doing
 things so you can watch progress move and rewards land.
 
@@ -30,7 +30,7 @@ the page; the demo server itself needs no restart for SDK-only changes).
 ┌───────────────────────┐        ┌───────────────────────────┐        ┌───────────────────┐
 │ @activekit/js         │        │ activekit (server SDK)    │        │ /v1/… (in-memory) │
 │  createClient(token) ─┼─GET──▶ │                           │        │                   │
-│  mountLauncher(...)   │        │ subjects.createToken ─────┼─POST─▶ │ mints token       │
+│  mountShell(...)      │        │ subjects.createToken ─────┼─POST─▶ │ mints token       │
 │                       │        │ events.record ────────────┼─POST─▶ │ advances campaigns,│
 │ "do thing" buttons ───┼─POST─▶ │  (holds the API key)      │        │ issues grants     │
 └───────────────────────┘        └───────────────────────────┘        └───────────────────┘
@@ -41,26 +41,32 @@ the page; the demo server itself needs no restart for SDK-only changes).
 - Progress only ever moves because **Acme's backend** records an event with
   the API key. The demo buttons go through it; nothing writes from the page.
 
-## The launcher's three states
+## Two states, and a real origin boundary
 
-- **Bubble** (closed): a small circular button docked bottom-right, wearing a
-  progress ring for the highlighted campaign and a dot when a reward is
-  ready. Click to open.
-- **Compact panel**: one campaign's progress — the same content as the inline
-  widget, in a card above the bubble.
-- **Expanded view**: the panel's maximize button opens a centered modal over
-  the dimmed page, a slate sidebar beside Overview (stat values, the nearest
-  goal, the active-campaign grid), Campaigns (every campaign, its progress,
-  and what completing it earns), and Rewards (the grant history).
+The shell has two: a bubble, and the app. Pressing the bubble opens
+`http://localhost:4174` in a frame over the dimmed page — a genuinely different
+origin from the customer page on `:4173`.
 
-`Esc` and the scrim close it. The theme toggle in the demo nav remounts it in
-dark mode.
+That second port is the point. A same-origin iframe can reach into `parent`
+directly, which would make the boundary imaginary and leave the message
+protocol untested. Here the only way across is `postMessage`, exactly as in
+production, where the app is on `app.activekit.app` and the customer is on
+theirs.
+
+Worth watching in the network tab: the frame's URL carries `theme` and a
+protocol version, and no token. The subject token crosses by `postMessage`
+after the app posts `ready`, because a URL reaches the referrer header, browser
+history and every proxy log on the way.
+
+`examples/dummy-app` is a stand-in for the real ActiveKit app — fake data, real
+handshake. Every message the shell can send is answered there, and every
+message the shell expects is sent.
 
 ## Which files are "the integration"
 
 | File | Role | Copy into a real app? |
 | --- | --- | --- |
-| `public/app.js` | Frontend: token fetch → `createClient` → `mountLauncher` | **Yes** — this is the whole frontend integration. |
+| `public/app.js` | Frontend: token fetch → `createClient` → `mountShell` | **Yes** — this is the whole frontend integration. |
 | `server.mjs`, ⭐ routes | Backend: `subjects.createToken`, `events.record` | **Yes** — swap the demo user for your session user and drop `apiUrl`. |
 | `server.mjs`, the rest | Static file serving, demo reset | No — your framework already does this. |
 | `mock-activekit.mjs` | Stand-in for api.activekit.app | **Never** — this side is ActiveKit's job. |

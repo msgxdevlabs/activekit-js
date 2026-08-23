@@ -10,10 +10,14 @@ export interface MountOptions {
 	/** `auto` follows the host page's `prefers-color-scheme`. */
 	theme?: "light" | "dark" | "auto";
 	/**
-	 * Brand color overrides — same shape and same contrast caveat as the
-	 * launcher's. The inline widget uses `brand`, `accent`, `background`,
-	 * `foreground`, `muted` and `track`; `ring` and `onBrand` only paint
-	 * launcher surfaces.
+	 * Brand color overrides. The inline widget uses `brand`, `accent`,
+	 * `background`, `foreground`, `muted` and `track`. The built-ins are
+	 * WCAG-tuned; overriding moves that responsibility to you, and hex pairs
+	 * that measurably fail log a console warning.
+	 *
+	 * This is the one embed that keeps colors as a mount option, because a card
+	 * sitting inside someone's layout genuinely has to match it. The shell's
+	 * app themes itself from the tenant's saved preset instead.
 	 */
 	colors?: WidgetColors;
 }

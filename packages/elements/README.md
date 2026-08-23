@@ -47,38 +47,39 @@ render.
 | `brand-color` | no | Primary brand color. The full per-theme `colors` option needs code. |
 | `accent-color` | no | Reward color: the "Reward ready" pill and fulfilled chips |
 
-`<activekit-launcher>` takes all of those plus `position`
-(`bottom-right`/`bottom-left`), `panel-title` and `subject-label`.
-
-The heading attribute is `panel-title`, not `title`: `title` is a global HTML
-attribute and would hang a browser tooltip off the element as a side effect.
+`<activekit-shell>` has its own, shorter set — see below. It mounts an app
+rather than a campaign card, so almost none of the above applies to it.
 
 Every attribute is live: change one and the embed rebuilds.
 
 Rendering the element before your auth resolves is expected — it waits quietly
 for `token` rather than warning.
 
-## Launcher
+## Shell
 
-The floating corner launcher, as a second element:
+The floating corner embed, as a second element:
 
 ```html
-<activekit-launcher
+<activekit-shell
   token="SUBJECT_JWT"
-  campaign="daily-login"
-  subject-label="Pat"
-></activekit-launcher>
+  label="Rewards"
+></activekit-shell>
 ```
 
-It renders nothing and takes no space — the launcher floats over the page, so
-the tag is only where you configure it. Put it anywhere. `open()`, `close()`,
-`expand()`, `collapse()` and `refresh()` are methods on the element:
+It renders nothing and takes no space — the shell floats over the page, so the
+tag is only where you configure it. `token`, `api-url`, `app-url`, `theme`,
+`position`, `label`, `prefetch` and `brand-color` are observed; changing any of
+them remounts it.
 
 ```js
-document.querySelector("activekit-launcher").expand();
+document.querySelector("activekit-shell").open();
 ```
 
-Mount one per page — two launchers means two bubbles in the same corner.
+`open`, `close`, `toggle`, `refresh` and `setToken` are methods on the element.
+`label` rather than `title`: `title` is a global HTML attribute and would give
+the element a browser tooltip as a side effect.
+
+Mount one per page — two shells means two bubbles in the same corner.
 
 ## Reacting to eligibility
 

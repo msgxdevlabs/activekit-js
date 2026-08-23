@@ -59,28 +59,31 @@ function Streak() {
 SWR? Call `client.progress()` inside your own query instead — reimplementing
 invalidation here would only get it subtly wrong.
 
-## Launcher
+## Shell
 
-The floating corner launcher. It renders nothing and appends itself to
-`document.body`, so put it anywhere inside the provider:
-
-```tsx
-import { ActiveKitLauncher } from "@activekit/react";
-
-<ActiveKitLauncher campaignKey="daily-login" subjectLabel={user.firstName} />
-```
-
-Pass a ref to drive it from your own UI:
+The floating corner embed. It renders nothing and appends itself to
+`document.body`, so put it anywhere inside the provider.
 
 ```tsx
-const rewards = useRef<LauncherHandle>(null);
+import { ActiveKitShell } from "@activekit/react";
 
-<ActiveKitLauncher ref={rewards} />
-<button onClick={() => rewards.current?.expand()}>Rewards</button>
+<ActiveKitShell label="Rewards" />
 ```
 
-`open`, `close`, `expand`, `collapse` and `refresh` are all on the handle.
-Mount one per page — two launchers means two bubbles in the same corner.
+Drive it from your own UI with a ref:
+
+```tsx
+const rewards = useRef<ShellHandle>(null);
+
+<ActiveKitShell ref={rewards} />
+<button onClick={() => rewards.current?.open()}>Rewards</button>
+```
+
+The token and API root come from the provider's client. `onOpen`, `onClose` and
+`onError` can be inline arrow functions — they are held in a ref so a new
+function on each render does not rebuild the frame.
+
+Mount one per page — two shells means two bubbles in the same corner.
 
 ## Next.js
 

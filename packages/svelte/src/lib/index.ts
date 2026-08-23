@@ -9,7 +9,7 @@
  * Svelte 5 only. Runes are the reason the component is eight lines.
  */
 export { default as ActiveKitWidget } from "./ActiveKitWidget.svelte";
-export { default as ActiveKitLauncher } from "./ActiveKitLauncher.svelte";
+export { default as ActiveKitShell } from "./ActiveKitShell.svelte";
 export { activekit } from "./action.js";
 export type { ActiveKitActionParams } from "./action.js";
 export { createProgressStore } from "./progress.js";
@@ -18,10 +18,11 @@ export type { ProgressState, ProgressStore } from "./progress.js";
 export type {
 	ActiveKitClient,
 	Grant,
-	LauncherHandle,
-	LauncherOptions,
 	MountOptions,
 	CampaignProgress,
+	ShellColors,
+	ShellHandle,
+	ShellOptions,
 	SubjectSnapshot,
 	WidgetColors,
 } from "@activekit/js";

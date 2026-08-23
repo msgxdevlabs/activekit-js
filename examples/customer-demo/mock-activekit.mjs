@@ -6,6 +6,8 @@
 //   POST /v1/events            (API key)       record an event, advance campaigns
 //   GET  /v1/me/progress       (subject token) the subject's snapshot
 //   GET  /v1/me/grants         (subject token) what the subject earned
+//   GET  /v1/me/badge          (subject token) the shell's dot: { unseen }
+//   POST /v1/me/badge/seen     (subject token) acknowledge, clearing the dot
 //
 // Nothing in here is customer integration code — a real integration never
 // implements this side. See README.md for which files you would actually copy.
@@ -256,6 +258,39 @@ export const handleMockApi = (req, res, url, body) => {
 			return true;
 		}
 		json(res, 200, { data: subjectState(payload.sub).grants });
+		return true;
+	}
+
+	// The shell's one read. A boolean, not a count: the shell draws a dot, and
+	// a dot cannot be wrong the way "3" can when there are two. Cheap enough to
+	// poll, which is the other half of the reason it is shaped this way.
+	if (url.pathname === "/v1/me/badge" && req.method === "GET") {
+		const payload = parseToken(bearer(req));
+		if (!payload) {
+			json(res, 401, { code: "unauthorized", message: "invalid or expired subject token" });
+			return true;
+		}
+		const state = subjectState(payload.sub);
+		const unseen =
+			state.grants.some((grant) => !state.seen?.has(grant.id)) ||
+			snapshotOf(payload.sub).campaigns.some((campaign) => campaign.eligible);
+		json(res, 200, { unseen });
+		return true;
+	}
+
+	// Opening the app is the acknowledgement — this is what turns the dot off.
+	// Without it the dot is a standing condition rather than an event, and a
+	// dot that is always lit is one nobody sees.
+	if (url.pathname === "/v1/me/badge/seen" && req.method === "POST") {
+		const payload = parseToken(bearer(req));
+		if (!payload) {
+			json(res, 401, { code: "unauthorized", message: "invalid or expired subject token" });
+			return true;
+		}
+		const state = subjectState(payload.sub);
+		state.seen ??= new Set();
+		for (const grant of state.grants) state.seen.add(grant.id);
+		json(res, 200, { unseen: false });
 		return true;
 	}
 

@@ -22,13 +22,14 @@ import {
 } from "vue";
 import type { App, InjectionKey, Plugin, PropType, Ref } from "vue";
 
-import { mountLauncher, mountWidget } from "@activekit/js";
+import { mountShell, mountWidget } from "@activekit/js";
 import type {
 	ActiveKitClient,
 	Grant,
-	LauncherHandle,
-	LauncherOptions,
 	MountOptions,
+	ShellColors,
+	ShellHandle,
+	ShellOptions,
 	CampaignProgress,
 	SubjectSnapshot,
 	WidgetColors,
@@ -41,7 +42,7 @@ import type {
  * patch and remount the embed each time — a visible flicker and a refetch.
  * Watching the value instead makes the inline form behave as meant.
  */
-const colorsKey = (colors: WidgetColors | undefined): string =>
+const colorsKey = (colors: WidgetColors | ShellColors | undefined): string =>
 	colors ? JSON.stringify(colors) : "";
 
 const ActiveKitKey: InjectionKey<ActiveKitClient> = Symbol("activekit");
@@ -193,27 +194,27 @@ export const ActiveKitWidget = defineComponent({
 });
 
 /**
- * The floating launcher.
+ * The shell: a bubble in the corner that opens the ActiveKit app.
  *
- * Renders nothing. The launcher appends itself to `document.body` and floats
- * over the page, so there is no host element for Vue to place — put this
- * component anywhere under the provider and it will be in the corner.
+ * Renders nothing. The shell appends itself to `document.body` and floats over
+ * the page, so there is no host element for Vue to place — put this anywhere
+ * under the provider and it will be in the corner.
  *
  * Drive it from your own UI with a template ref:
  *
  * ```vue
- * <ActiveKitLauncher ref="rewards" campaign-key="daily-login" />
- * <button @click="rewards.expand()">Rewards</button>
+ * <ActiveKitShell ref="rewards" label="Rewards" />
+ * <button @click="rewards.open()">Rewards</button>
  * ```
  *
- * Read-only, like everything else here: the expanded view reports grants, it
- * cannot claim them.
+ * The token and API root come from the provider's client. Everything with
+ * content in it is served from the app's own origin.
  */
-export const ActiveKitLauncher = defineComponent({
-	name: "ActiveKitLauncher",
+export const ActiveKitShell = defineComponent({
+	name: "ActiveKitShell",
 	props: {
-		/** Which campaign the bubble ring and compact panel highlight. */
-		campaignKey: { type: String, required: false, default: undefined },
+		/** Origin serving the app. Omit in production. */
+		appUrl: { type: String, required: false, default: undefined },
 		/** `auto` follows the host page's `prefers-color-scheme`. */
 		theme: {
 			type: String as PropType<"light" | "dark" | "auto">,
@@ -226,33 +227,43 @@ export const ActiveKitLauncher = defineComponent({
 			required: false,
 			default: undefined,
 		},
-		/** Panel header title and the bubble's accessible name. */
-		title: { type: String, required: false, default: undefined },
-		/** Display name beside the avatar in the expanded view. */
-		subjectLabel: { type: String, required: false, default: undefined },
-		/** Mount with the compact panel already open. */
-		defaultOpen: { type: Boolean, required: false, default: undefined },
-		/** Brand color overrides. See `WidgetColors` in `@activekit/js`. */
-		colors: { type: Object as PropType<WidgetColors>, required: false, default: undefined },
+		/** The bubble's accessible name, and the frame's title. */
+		label: { type: String, required: false, default: undefined },
+		/** When to create the frame. Default `idle`. */
+		prefetch: {
+			type: String as PropType<"idle" | "hover" | "none">,
+			required: false,
+			default: undefined,
+		},
+		/** How often to re-check the unseen dot, in ms. `0` disables it. */
+		pollInterval: { type: Number, required: false, default: undefined },
+		/** Bubble and frame colors. See `ShellColors` in `@activekit/js`. */
+		colors: { type: Object as PropType<ShellColors>, required: false, default: undefined },
 		/** Stacking order for the floating UI. */
 		zIndex: { type: Number, required: false, default: undefined },
 	},
-	setup(_props, { expose }) {
+	emits: ["open", "close", "error"],
+	setup(_props, { expose, emit }) {
 		const client = useActiveKit();
 		const props = _props;
-		let handle: LauncherHandle | null = null;
+		let handle: ShellHandle | null = null;
 
 		const remount = (): void => {
 			handle?.destroy();
-			handle = mountLauncher(client, {
-				...(props.campaignKey ? { campaignKey: props.campaignKey } : {}),
+			handle = mountShell({
+				token: client.token,
+				apiUrl: client.apiUrl,
+				...(props.appUrl ? { appUrl: props.appUrl } : {}),
 				...(props.theme ? { theme: props.theme } : {}),
 				...(props.position ? { position: props.position } : {}),
-				...(props.title ? { title: props.title } : {}),
-				...(props.subjectLabel ? { subjectLabel: props.subjectLabel } : {}),
-				...(props.defaultOpen ? { defaultOpen: props.defaultOpen } : {}),
+				...(props.label ? { label: props.label } : {}),
+				...(props.prefetch ? { prefetch: props.prefetch } : {}),
+				...(props.pollInterval !== undefined ? { pollInterval: props.pollInterval } : {}),
 				...(props.colors ? { colors: props.colors } : {}),
 				...(props.zIndex !== undefined ? { zIndex: props.zIndex } : {}),
+				onOpen: () => emit("open"),
+				onClose: () => emit("close"),
+				onError: (error) => emit("error", error),
 			});
 		};
 
@@ -263,12 +274,12 @@ export const ActiveKitLauncher = defineComponent({
 		// diffing them would be the optimisation that introduces the bug.
 		watch(
 			[
-				() => props.campaignKey,
+				() => props.appUrl,
 				() => props.theme,
 				() => props.position,
-				() => props.title,
-				() => props.subjectLabel,
-				() => props.defaultOpen,
+				() => props.label,
+				() => props.prefetch,
+				() => props.pollInterval,
 				() => colorsKey(props.colors),
 				() => props.zIndex,
 			],
@@ -284,16 +295,18 @@ export const ActiveKitLauncher = defineComponent({
 		});
 
 		// Proxied rather than exposing the handle itself: it is replaced on every
-		// remount, and a caller holding the old one would be driving a launcher
-		// that no longer exists.
+		// remount, and a caller holding the old one would be driving a shell that
+		// no longer exists.
 		expose({
-			open: () => handle?.open(),
+			open: async () => {
+				await handle?.open();
+			},
 			close: () => handle?.close(),
-			expand: () => handle?.expand(),
-			collapse: () => handle?.collapse(),
+			toggle: () => handle?.toggle(),
 			refresh: async () => {
 				await handle?.refresh();
 			},
+			setToken: (next: string) => handle?.setToken(next),
 		});
 
 		return () => null;
@@ -303,10 +316,11 @@ export const ActiveKitLauncher = defineComponent({
 export type {
 	ActiveKitClient,
 	Grant,
-	LauncherHandle,
-	LauncherOptions,
 	MountOptions,
 	CampaignProgress,
+	ShellColors,
+	ShellHandle,
+	ShellOptions,
 	SubjectSnapshot,
 	WidgetColors,
 };

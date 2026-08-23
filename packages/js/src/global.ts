@@ -19,9 +19,9 @@
  * the page calls `ActiveKit.createClient(...)` — which is the path to take when
  * the token is fetched asynchronously.
  *
- * This file carries the inline widget and nothing else. The floating launcher
- * is a separate build, `activekit-launcher.js`, because a page that only wants
- * the inline card should not download the expanded view's markup and CSS: over
+ * This file carries the inline widget and nothing else. The floating embed is
+ * a separate build, `activekit-shell.js`, because a page that only wants the
+ * inline card should not download an iframe host and a message protocol: over
  * a script tag there is no bundler to shake it out, so whatever ships here is
  * what every customer pays.
  */
@@ -36,11 +36,11 @@ const config = readScript();
 
 if (config) {
 	if (config.script.dataset["mode"] === "launcher") {
-		// Loud rather than silent: this attribute did mount a launcher when both
-		// builds were one file, so the failure has to name its own fix.
+		// Loud rather than silent: this attribute mounted a launcher back when
+		// both embeds were one file, so the failure has to name its own fix.
 		console.error(
-			'[ActiveKit] data-mode="launcher" belongs to the launcher build — ' +
-				"load activekit-launcher.js instead of activekit.js.",
+			'[ActiveKit] data-mode="launcher" is gone — the floating embed is now ' +
+				"the shell. Load activekit-shell.js instead of activekit.js.",
 		);
 	} else {
 		const selector = config.script.dataset["target"] ?? "#activekit";
