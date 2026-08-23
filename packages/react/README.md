@@ -28,7 +28,7 @@ const client = createClient({ token });
 export function Rewards() {
   return (
     <ActiveKitProvider client={client}>
-      <ActiveKitWidget programKey="daily-login" />
+      <ActiveKitWidget campaignKey="daily-login" />
     </ActiveKitProvider>
   );
 }
@@ -51,7 +51,7 @@ function Streak() {
   if (loading) return <Skeleton />;
   if (error) return <Retry onClick={refresh} />;
 
-  return <ul>{data?.programs.map((p) => <li key={p.program.id}>{p.current}/{p.target}</li>)}</ul>;
+  return <ul>{data?.campaigns.map((p) => <li key={p.campaign.id}>{p.current}/{p.target}</li>)}</ul>;
 }
 ```
 

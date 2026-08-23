@@ -1,0 +1,13 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@activekit/elements": "0.1.0",
+    "@activekit/js": "0.1.1",
+    "@activekit/react": "0.1.0",
+    "activekit": "0.1.0",
+    "@activekit/svelte": "0.1.0",
+    "@activekit/vue": "0.1.0"
+  },
+  "changesets": []
+}

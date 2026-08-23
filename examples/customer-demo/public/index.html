@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Acme Learn — Spanish 101</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
+<style>
+	/* Acme Learn's own page styles. Nothing in here touches the ActiveKit
+	   launcher — it renders in a shadow root and brings its own styles. */
+	:root {
+		--bg: #f7f7fb; --card: #ffffff; --ink: #17171c; --muted: #6b6b76;
+		--line: #e7e7ee; --brand: #5b5bd6; --brand-ink: #ffffff; --soft: #eeeefc;
+	}
+	html[data-theme="dark"] {
+		--bg: #101014; --card: #17171d; --ink: #f2f2f5; --muted: #9b9ba6;
+		--line: #26262e; --brand: #7b7bec; --brand-ink: #ffffff; --soft: #20203a;
+	}
+	* { box-sizing: border-box; }
+	body {
+		margin: 0; background: var(--bg); color: var(--ink);
+		font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+		transition: background .2s ease, color .2s ease;
+	}
+	.nav {
+		display: flex; align-items: center; gap: 24px; padding: 14px 28px;
+		background: var(--card); border-bottom: 1px solid var(--line);
+		position: sticky; top: 0; z-index: 10;
+	}
+	.logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 17px; }
+	.logo-mark {
+		width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+		background: linear-gradient(135deg, var(--brand), #9b6bdf); color: #fff; font-size: 15px;
+	}
+	.nav a { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 600; }
+	.nav a.active { color: var(--ink); }
+	.nav-spacer { flex: 1; }
+	.streak-chip {
+		font-size: 13px; font-weight: 700; background: var(--soft); color: var(--brand);
+		border-radius: 999px; padding: 6px 12px;
+	}
+	.avatar {
+		width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+		background: var(--brand); color: var(--brand-ink); font-size: 13px; font-weight: 700;
+	}
+	.icon-btn {
+		border: 1px solid var(--line); background: var(--card); color: var(--ink);
+		border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px;
+	}
+	main { max-width: 980px; margin: 0 auto; padding: 36px 24px 120px; }
+	.hero h1 { font-size: 28px; margin: 0 0 6px; }
+	.hero p { color: var(--muted); margin: 0 0 28px; font-size: 15px; }
+	.grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: start; }
+	@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+	.card {
+		background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px;
+	}
+	.card h2 { font-size: 16px; margin: 0 0 4px; }
+	.card .sub { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+	.lesson { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+	.lesson:first-of-type { border-top: 0; }
+	.lesson-dot {
+		width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+		background: var(--soft); font-size: 15px; flex: none;
+	}
+	.lesson b { font-size: 14px; display: block; }
+	.lesson span { font-size: 12px; color: var(--muted); }
+	.lesson .go {
+		margin-left: auto; border: 0; background: var(--brand); color: var(--brand-ink);
+		font-weight: 700; font-size: 12px; border-radius: 8px; padding: 8px 14px; cursor: pointer;
+	}
+	.course-bar { height: 8px; border-radius: 999px; background: var(--soft); overflow: hidden; margin: 6px 0 2px; }
+	.course-bar i { display: block; height: 100%; width: 46%; background: var(--brand); border-radius: 999px; }
+	.demo-note { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin: 0 0 14px; }
+	.demo-note code { background: var(--soft); border-radius: 5px; padding: 1px 5px; font-size: 11.5px; }
+	.actions { display: grid; gap: 8px; }
+	.actions button {
+		border: 1px solid var(--line); background: var(--bg); color: var(--ink); text-align: left;
+		font-size: 13.5px; font-weight: 600; border-radius: 10px; padding: 11px 14px; cursor: pointer;
+	}
+	.actions button:hover { border-color: var(--brand); }
+	.actions button.reset { color: var(--muted); font-weight: 500; }
+	.toast-stack { position: fixed; left: 20px; bottom: 20px; display: grid; gap: 8px; z-index: 50; }
+	.toast {
+		background: var(--ink); color: var(--bg); font-size: 13px; border-radius: 10px;
+		padding: 10px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.25); max-width: 340px;
+	}
+	footer { color: var(--muted); font-size: 12px; text-align: center; padding: 40px 0 24px; }
+</style>
+</head>
+<body>
+	<nav class="nav">
+		<div class="logo"><span class="logo-mark">A</span> Acme Learn</div>
+		<a href="#" class="active">Learn</a>
+		<a href="#">Practice</a>
+		<a href="#">Leaderboard</a>
+		<span class="nav-spacer"></span>
+		<span class="streak-chip">🔥 Day 4</span>
+		<button class="icon-btn" id="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+		<span class="avatar">PB</span>
+	</nav>
+
+	<main>
+		<div class="hero">
+			<h1>¡Hola, Pat! 👋</h1>
+			<p>You're 4 days into your practice streak. Three more and there's a reward waiting.</p>
+		</div>
+
+		<div class="grid">
+			<section class="card">
+				<h2>Spanish 101 · Unit 3</h2>
+				<p class="sub">The past tenses</p>
+				<div class="course-bar"><i></i></div>
+				<p class="sub" style="margin:4px 0 14px">6 of 13 lessons complete</p>
+
+				<div class="lesson">
+					<span class="lesson-dot">📖</span>
+					<div><b>Lesson 7 · Preterite vs. imperfect</b><span>12 min · new grammar</span></div>
+					<button class="go" data-action="lesson">Start</button>
+				</div>
+				<div class="lesson">
+					<span class="lesson-dot">🎧</span>
+					<div><b>Listening · At the market</b><span>8 min · comprehension</span></div>
+					<button class="go" data-action="lesson">Start</button>
+				</div>
+				<div class="lesson">
+					<span class="lesson-dot">🗣️</span>
+					<div><b>Speaking drill · Ser vs. estar</b><span>10 min · review</span></div>
+					<button class="go" data-action="lesson">Start</button>
+				</div>
+			</section>
+
+			<aside class="card">
+				<h2>Demo controls</h2>
+				<p class="sub">Simulate things the user does</p>
+				<p class="demo-note">
+					Each button calls <strong>Acme's backend</strong> (<code>POST /api/actions/…</code>),
+					which records an event with the <code>activekit</code> server SDK. The floating
+					widget (bottom-right) then repaints from a single <code>client.progress()</code> call —
+					the browser itself can never write.
+				</p>
+				<div class="actions">
+					<button data-action="practice">✅ Complete today's practice</button>
+					<button data-action="lesson">📘 Finish a lesson</button>
+					<button data-action="refer">🤝 A referred friend signs up</button>
+					<button data-action="reset" class="reset">↺ Reset demo state</button>
+				</div>
+			</aside>
+		</div>
+
+		<footer>Acme Learn is a fictional product — this page exists to demo the ActiveKit widget.</footer>
+	</main>
+
+	<div class="toast-stack" id="toasts"></div>
+
+	<script type="module" src="/app.js"></script>
+</body>
+</html>

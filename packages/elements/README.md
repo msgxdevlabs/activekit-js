@@ -20,7 +20,7 @@ pnpm add @activekit/elements
   import "@activekit/elements/auto";
 </script>
 
-<activekit-widget token="SUBJECT_JWT" program="daily-login"></activekit-widget>
+<activekit-widget token="SUBJECT_JWT" campaign="daily-login"></activekit-widget>
 ```
 
 Or register it yourself, under whatever tag name you like:
@@ -41,7 +41,7 @@ render.
 | Attribute | Required | Notes |
 | --- | --- | --- |
 | `token` | yes | Subject JWT, minted server-side. Set it late and the widget mounts then. |
-| `program` | no | Program key. Omit to render the first active program. |
+| `campaign` | no | Campaign key. Omit to render the first active campaign. |
 | `theme` | no | `light`, `dark`, or `auto` (default) |
 | `api-url` | no | Override the API host |
 
@@ -58,8 +58,8 @@ off a subject's state, read it directly and render whatever you like:
 ```js
 import { createClient } from "@activekit/js";
 
-const { programs } = await createClient({ token }).progress();
-if (programs.some((p) => p.eligible)) showYourOwnClaimButton();
+const { campaigns } = await createClient({ token }).progress();
+if (campaigns.some((p) => p.eligible)) showYourOwnClaimButton();
 ```
 
 That button posts to your backend, which calls the server SDK. It is the only

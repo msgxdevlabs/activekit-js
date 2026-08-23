@@ -18,6 +18,6 @@ export type {
 	ActiveKitClient,
 	Grant,
 	MountOptions,
-	ProgramProgress,
+	CampaignProgress,
 	SubjectSnapshot,
 } from "@activekit/js";

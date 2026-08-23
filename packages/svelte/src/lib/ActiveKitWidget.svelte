@@ -19,7 +19,7 @@
 		class?: string;
 	}
 
-	let { client, programKey, theme, class: className = "" }: Props = $props();
+	let { client, campaignKey, theme, class: className = "" }: Props = $props();
 
 	let host = $state<HTMLDivElement | undefined>();
 
@@ -27,7 +27,7 @@
 		if (!host) return;
 
 		const handle = mountWidget(host, client, {
-			...(programKey ? { programKey } : {}),
+			...(campaignKey ? { campaignKey } : {}),
 			...(theme ? { theme } : {}),
 		});
 

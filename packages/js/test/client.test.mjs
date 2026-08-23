@@ -24,9 +24,9 @@ const stubFetch = (responses) => {
 
 const SNAPSHOT = {
 	subjectId: "sub_1",
-	programs: [
+	campaigns: [
 		{
-			program: { id: "prg_1", key: "daily-login", name: "Daily login", status: "active" },
+			campaign: { id: "cmp_1", key: "daily-login", name: "Daily login", status: "active" },
 			current: 3,
 			target: 7,
 			eligible: false,
@@ -46,14 +46,14 @@ test("sends the subject JWT and parses the response", async () => {
 	const snapshot = await client.progress();
 
 	assert.equal(snapshot.subjectId, "sub_1");
-	assert.equal(snapshot.programs[0].current, 3);
+	assert.equal(snapshot.campaigns[0].current, 3);
 	assert.equal(calls.length, 1);
 	assert.equal(calls[0].url, "https://api.test/v1/me/progress");
 	assert.equal(calls[0].init.headers.authorization, "Bearer jwt_abc");
 });
 
 test("reads grants", async () => {
-	const grant = { id: "grn_1", programId: "prg_1", subjectId: "sub_1", status: "recorded" };
+	const grant = { id: "grant_1", campaignId: "cmp_1", subjectId: "sub_1", status: "recorded" };
 	const { fetch, calls } = stubFetch([{ body: { data: [grant] } }]);
 	const client = createClient({ token: "jwt", fetch, apiUrl: "https://api.test/v1" });
 
@@ -122,7 +122,7 @@ test("does not retry a 400 — a bad request stays bad", async () => {
 	const { fetch, calls } = stubFetch([
 		{
 			status: 400,
-			body: { code: "invalid_program", message: "unknown program key" },
+			body: { code: "invalid_campaign", message: "unknown campaign key" },
 			headers: { "content-type": "application/json", "x-request-id": "req_9" },
 		},
 	]);
@@ -132,9 +132,9 @@ test("does not retry a 400 — a bad request stays bad", async () => {
 
 	assert.ok(error instanceof ActiveKitError);
 	assert.equal(error.status, 400);
-	assert.equal(error.code, "invalid_program");
+	assert.equal(error.code, "invalid_campaign");
 	assert.equal(error.requestId, "req_9");
-	assert.match(error.message, /unknown program key/);
+	assert.match(error.message, /unknown campaign key/);
 	assert.equal(calls.length, 1);
 });
 

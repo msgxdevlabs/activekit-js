@@ -45,7 +45,7 @@ export interface RecordEventInput {
 
 export interface Grant {
 	id: string;
-	programId: string;
+	campaignId: string;
 	subjectId: string;
 	reward: { kind: string; amount: number; unit: string; label: string };
 	status: "pending" | "recorded" | "fulfilled" | "revoked";
@@ -111,7 +111,7 @@ export class ActiveKit {
 		 * Read what subjects earned. This is the ledger you reconcile against —
 		 * ActiveKit records grants, your billing system fulfils them.
 		 */
-		list: (params: { subjectId?: string; programKey?: string; cursor?: string; limit?: number } = {}) => {
+		list: (params: { subjectId?: string; campaignKey?: string; cursor?: string; limit?: number } = {}) => {
 			const query = new URLSearchParams();
 			for (const [key, value] of Object.entries(params)) {
 				if (value !== undefined) query.set(key, String(value));

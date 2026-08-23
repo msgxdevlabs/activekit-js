@@ -1,10 +1,24 @@
 import { defineConfig } from "tsdown";
+import type { UserConfig } from "tsdown";
+
+/** Shared by both script-tag builds. Each is one self-contained file. */
+const cdn: UserConfig = {
+	format: ["iife"],
+	globalName: "ActiveKit",
+	platform: "browser",
+	target: "es2022",
+	dts: false,
+	minify: true,
+	sourcemap: true,
+	clean: false,
+};
 
 export default defineConfig([
 	{
 		// The package entry. Minified on purpose: this is the thing a customer's
 		// bundler pulls in, and the size budget only means something if what we
-		// measure is what they ship.
+		// measure is what they ship. Bundlers tree-shake it — `sideEffects: false`
+		// says so — which is why the whole-file number is a ceiling, not a bill.
 		entry: ["src/index.ts"],
 		format: ["esm"],
 		platform: "browser",
@@ -15,15 +29,15 @@ export default defineConfig([
 		clean: false,
 	},
 	{
-		// The CDN build. Self-mounting, global-scoped, one file.
+		// The CDN build for the inline widget. Self-mounting, global-scoped.
 		entry: { "activekit.global": "src/global.ts" },
-		format: ["iife"],
-		globalName: "ActiveKit",
-		platform: "browser",
-		target: "es2022",
-		dts: false,
-		minify: true,
-		sourcemap: true,
-		clean: false,
+		...cdn,
+	},
+	{
+		// The CDN build for the floating launcher. A separate file because a
+		// script tag has no tree-shaking: a page that wants the inline widget
+		// would otherwise download the expanded view it never opens.
+		entry: { "activekit-launcher.global": "src/global-launcher.ts" },
+		...cdn,
 	},
 ]);

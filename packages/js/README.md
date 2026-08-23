@@ -1,7 +1,9 @@
 # @activekit/js
 
 Browser client and embeddable widget for [ActiveKit](https://activekit.app).
-Vanilla TypeScript, zero dependencies, ~2 kB brotli.
+Vanilla TypeScript, zero dependencies. 2.9 kB brotli for the client and
+inline widget, 7.1 kB with the floating launcher — you pay for the embed
+you mount, not the package.
 
 **Read-only.** This package retrieves a subject's own campaign progress and
 grants. It cannot record events, issue grants, or change anything — see
@@ -37,8 +39,8 @@ import { createClient } from "@activekit/js";
 
 const client = createClient({ token });
 
-// Progress across every program the subject is enrolled in.
-const { programs } = await client.progress();
+// Progress across every campaign the subject is enrolled in.
+const { campaigns } = await client.progress();
 
 // Everything they have earned, newest first.
 const grants = await client.grants();
@@ -78,7 +80,7 @@ So the split is:
 | **Reading** progress and grants | browser, this package | subject token, scoped to one subject |
 | **Recording** events, issuing grants | your server, [`activekit`](https://www.npmjs.com/package/activekit) | API key, never leaves your backend |
 
-`ProgramProgress.eligible` tells you the server would honour a grant right now.
+`CampaignProgress.eligible` tells you the server would honor a grant right now.
 Render a button on it if you like — but that button posts to *your* backend,
 which calls the server SDK. Nothing in this package can complete that action,
 and the test suite asserts as much: it walks the client's prototype chain for
@@ -90,7 +92,7 @@ write-shaped methods and asserts every captured request is a `GET` with no body.
 import { createClient, mountWidget } from "@activekit/js";
 
 const handle = mountWidget(document.querySelector("#rewards")!, client, {
-  programKey: "daily-login",
+  campaignKey: "daily-login",
   theme: "auto",
 });
 
@@ -106,6 +108,72 @@ It reports and does not act: when a subject becomes eligible it shows a
 "Reward ready" marker and stops there. There is no claim button, for the reason
 above.
 
+## Launcher
+
+The widget's floating sibling: a bubble docked in a corner of the page that
+opens into a compact progress panel, and expands into a centered modal over
+the dimmed page: a slate sidebar with three sections. Overview holds stat
+values, the nearest goal, and the active-campaign grid; Campaigns lists every
+campaign with its progress and what completing it earns; Rewards is the full
+grant history. Escape and a click on the scrim close it, and focus stays
+inside while it is open.
+
+```ts
+import { createClient, mountLauncher } from "@activekit/js";
+
+const launcher = mountLauncher(client, {
+  campaignKey: "daily-login",  // highlighted by the bubble's ring and the compact panel
+  position: "bottom-right",   // or "bottom-left"
+  title: "Your rewards",
+  subjectLabel: "Pat",        // sidebar display name; the API only knows subject IDs
+  theme: "auto",
+});
+
+launcher.open();     // compact panel
+launcher.expand();   // expanded view
+launcher.close();    // back to the bubble — Esc does the same
+await launcher.refresh();
+launcher.destroy();
+```
+
+It appends itself to `document.body`; there is no target element because your
+layout gives up nothing for it. The bubble wears a progress ring for the
+highlighted campaign and a dot when a reward is ready. Same shadow root, same
+read-only surface as the widget: the expanded view shows grants, it cannot
+claim them.
+
+One habit worth knowing: the launcher repaints on every successful
+`client.progress()`, whoever triggered it. After your backend records an
+event, a single `client.progress()` call brings the launcher up to date.
+
+### Brand colors
+
+The built-in look is the ActiveKit design system, light and dark: teal fills
+that white text can be read on, ink on canvas in the light theme, the slate
+ladder in the dark one, and tabular figures on every number. Both
+`mountWidget` and `mountLauncher` take a `colors` option to re-brand it. The
+shadow root seals the embed off from your CSS on purpose, so theming crosses
+the boundary as an option, not a stylesheet:
+
+```ts
+mountLauncher(client, {
+  colors: {
+    brand: "#5b5bd6",          // bubble + progress fills
+    accent: "#b45309",         // "Reward ready" pill, fulfilled chips
+    ring: "#ffffff",           // ring + dot, drawn on the (brand-colored) bubble
+    dark: { brand: "#7b7bec" } // per-theme refinements, merged over the base
+  },
+});
+```
+
+`onBrand` (the icon color on the bubble), `background`, `foreground`,
+`muted` and `track` are also accepted. `accent` seeds `ring` unless you set
+`ring` yourself, because they sit on opposite grounds (panel vs. bubble) and
+one color rarely passes contrast on both. Which is
+the caveat: the built-in palette is WCAG-tuned, and overriding moves that
+responsibility to you. Hex pairs that measurably fail AA log a console
+warning; invalid values are ignored, loudly.
+
 ## Script tag
 
 For pages with no build step. **Not live yet** — `cdn.activekit.app` is the
@@ -118,7 +186,7 @@ planned host for this build; until it exists, install through a bundler.
   integrity="sha384-…"
   crossorigin="anonymous"
   data-token="SUBJECT_JWT"
-  data-program="daily-login"
+  data-campaign="daily-login"
   defer
 ></script>
 ```
@@ -126,6 +194,33 @@ planned host for this build; until it exists, install through a bundler.
 Pin the exact version and its hash. A floating `/v1/` path is planned for teams
 who want automatic updates; understand that it lets us change code on your page
 without you deploying.
+
+For the floating launcher, load `activekit-launcher.js` instead — a separate
+file, and no container element needed:
+
+```html
+<script
+  src="https://cdn.activekit.app/v<version>/activekit-launcher.js"
+  integrity="sha384-…"
+  crossorigin="anonymous"
+  data-token="SUBJECT_JWT"
+  data-campaign="daily-login"
+  data-subject-label="Pat"
+  defer
+></script>
+```
+
+Two files rather than one with a mode switch, because a script tag has no
+bundler to shake out what you did not ask for: the launcher carries the
+expanded view's markup and CSS, and a page that only wants the inline card
+should not download it. The split is most of the widget build's weight —
+2.9 kB brotli against the launcher's 7.1 kB.
+
+`data-campaign`, `data-theme`, `data-brand-color` and `data-accent-color` work
+on both. `data-target` is the widget's; `data-position`, `data-title` and
+`data-subject-label` are the launcher's. Want both embeds on one page? Install
+the package and let a bundler share the client between them, rather than
+loading two tags.
 
 ## Support
 

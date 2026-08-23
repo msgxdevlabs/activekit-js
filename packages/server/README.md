@@ -25,7 +25,7 @@ const activekit = new ActiveKit({ apiKey: process.env.ACTIVEKIT_API_KEY! });
 
 ### Record an event
 
-Events are the only input to program criteria. Pass an `idempotencyKey` for
+Events are the only input to campaign criteria. Pass an `idempotencyKey` for
 anything a retry could double-count — for a streak or a referral, a duplicate
 is a double grant against a real budget.
 

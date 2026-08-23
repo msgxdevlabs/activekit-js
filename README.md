@@ -97,7 +97,7 @@ const client = createClient({ token });
 export function Rewards() {
   return (
     <ActiveKitProvider client={client}>
-      <ActiveKitWidget programKey="daily-login" />
+      <ActiveKitWidget campaignKey="daily-login" />
     </ActiveKitProvider>
   );
 }
@@ -122,7 +122,7 @@ import { ActiveKitWidget } from "@activekit/vue";
 </script>
 
 <template>
-  <ActiveKitWidget program-key="daily-login" />
+  <ActiveKitWidget campaign-key="daily-login" />
 </template>
 ```
 </details>
@@ -138,7 +138,7 @@ import { ActiveKitWidget } from "@activekit/vue";
   const client = createClient({ token });
 </script>
 
-<ActiveKitWidget {client} programKey="daily-login" />
+<ActiveKitWidget {client} campaignKey="daily-login" />
 ```
 </details>
 
@@ -150,7 +150,7 @@ import { ActiveKitWidget } from "@activekit/vue";
   import "@activekit/elements/auto";
 </script>
 
-<activekit-widget token="SUBJECT_JWT" program="daily-login"></activekit-widget>
+<activekit-widget token="SUBJECT_JWT" campaign="daily-login"></activekit-widget>
 ```
 </details>
 
@@ -167,7 +167,7 @@ import { ActiveKitWidget } from "@activekit/vue";
   integrity="sha384-…"
   crossorigin="anonymous"
   data-token="SUBJECT_JWT"
-  data-program="daily-login"
+  data-campaign="daily-login"
   defer
 ></script>
 ```
@@ -175,7 +175,28 @@ import { ActiveKitWidget } from "@activekit/vue";
 Pin the exact version and its hash. A floating `/v1/` path is also planned, and
 updating it pushes code to every customer's page without them deploying — which
 is exactly why it will be gated like a production deploy.
+
+The floating launcher is a second file, `activekit-launcher.js`, loaded the
+same way and needing no container. Two builds rather than one with a switch:
+a script tag has no bundler to shake out the half you did not ask for, so the
+inline widget stays 2.9 kB brotli instead of carrying the launcher's 7.1 kB.
 </details>
+
+## See it running
+
+[`examples/customer-demo`](examples/customer-demo) is a complete fake customer
+— an "Acme Learn" page with the floating launcher widget in its corner, a
+backend that mints subject tokens and records events with the server SDK, and
+an in-memory stand-in for the not-yet-live API, so the whole loop runs
+locally:
+
+```bash
+pnpm install
+pnpm demo   # builds, then serves → http://localhost:4173
+```
+
+Buttons on the page simulate the user doing things; you watch progress move,
+a streak complete, and the reward land in the widget's dashboard.
 
 ## Develop
 
@@ -189,17 +210,26 @@ pnpm check      # build → typecheck → test → publint → size budgets
 downstream of it typechecks until it has been built. Everything in it fails the
 build, including the size budgets:
 
-| Bundle | Budget (brotli) |
-| --- | --- |
-| `@activekit/js` | 8 kB |
-| `@activekit/js` CDN build | 8 kB |
-| `@activekit/react` | 4 kB |
-| `@activekit/vue` | 4 kB |
-| `@activekit/elements` | 3 kB |
+| Entry point | Who pays it | Budget (brotli) |
+| --- | --- | --- |
+| `@activekit/js` | bundler — ceiling on the library | 8 kB |
+| `@activekit/js` CDN, inline widget | every script-tag page | 3.5 kB |
+| `@activekit/js` CDN, launcher | every script-tag page | 7.5 kB |
+| `@activekit/react` | bundler | 4 kB |
+| `@activekit/vue` | bundler | 4 kB |
+| `@activekit/elements` | bundler | 3 kB |
 
 The embed lands on customers' pages and competes with their LCP, so a size
 regression is a red build, not a follow-up ticket. Raising a budget is a
 decision about someone else's page load — say why in the PR.
+
+Budgets are per entry point, because that is the unit a customer downloads.
+The package entries are ceilings: `sideEffects: false` means a bundler ships
+only the subset that was imported, so `@activekit/js` at 7.2 kB is what the
+whole library weighs, not what any one page pays — importing the client and
+inline widget costs 2.6 kB of it. The script-tag builds get the tight budgets
+because they have no bundler to shake anything out: whatever is in the file
+is on the page.
 
 Tests cover the two packages where logic actually lives: transport and retry in
 `@activekit/js`, HMAC verification in `activekit`. The bindings are covered by
@@ -224,6 +254,26 @@ ships as a patch.
 Publishing is manual, from `main`: **Actions → Release → Run workflow**, type
 `RELEASE` into the confirmation box. That workflow versions the packages, pushes
 the version commit and tags, and publishes.
+
+### The prerelease channel
+
+Until `api.activekit.app/v1` is live, these packages ship as prereleases and
+`latest` does not move. Two things enforce that: the repo is in changesets
+**pre mode** (`.changeset/pre.json`, tag `alpha`), so `changeset version`
+produces `0.2.0-alpha.0` rather than `0.2.0`; and `pnpm release` publishes
+with `--tag next`, so `npm install @activekit/js` keeps resolving to the last
+stable version instead of a moving target. A prerelease version is also
+excluded from `^` and `~` ranges, so nobody picks one up by accident.
+
+Everything published before the API exists is deprecated on npm, pointing at
+this state. Neither the deprecation nor the tag is permanent — `npm deprecate
+<pkg>@<range> ""` clears a message, and a stable release is three steps:
+
+```bash
+pnpm changeset pre exit   # commit this; versions go back to 0.2.0
+# drop --tag next from the root `release` script
+# release, then move the tag: npm dist-tag add @activekit/js@0.2.0 latest
+```
 
 There is no npm token anywhere in it. Publishing uses OIDC trusted publishing —
 GitHub mints a short-lived identity token, npm verifies it came from this repo,

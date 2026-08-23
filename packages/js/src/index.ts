@@ -4,11 +4,17 @@ export type { ActiveKitOptions } from "./client.js";
 export { mountWidget } from "./widget.js";
 export type { MountOptions, WidgetHandle } from "./widget.js";
 
+export { mountLauncher } from "./launcher.js";
+export type { LauncherOptions, LauncherHandle } from "./launcher.js";
+
+export type { WidgetColors, WidgetColorTokens } from "./colors.js";
+
 export { ActiveKitError } from "./types.js";
 export type {
 	ActiveKitEvents,
+	Campaign,
+	CampaignProgress,
 	Grant,
-	Program,
-	ProgramProgress,
+	Reward,
 	SubjectSnapshot,
 } from "./types.js";

@@ -1,0 +1,100 @@
+:root{
+/* Families — Space Grotesk 700 is for the four display-* tiers ONLY. */
+--font-display:'Space Grotesk', Inter, system-ui, -apple-system, sans-serif; /* @kind font */
+--font-sans:Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; /* @kind font */
+/* DESIGN.md specs no mono face but describes faux IDE and terminal panels, so this is a system stack, not a brand choice. See readme "Gaps filled". */
+--font-mono:ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace; /* @kind font */
+
+/* display-xxl */
+--display-xxl-size:56px; /* @kind font */
+--display-xxl-weight:700; /* @kind font */
+--display-xxl-lh:1.03; /* @kind font */
+--display-xxl-ls:-3.08px; /* @kind font */
+
+/* display-xl */
+--display-xl-size:48px; /* @kind font */
+--display-xl-weight:700; /* @kind font */
+--display-xl-lh:1.15; /* @kind font */
+--display-xl-ls:-2.16px; /* @kind font */
+
+/* display-lg */
+--display-lg-size:32px; /* @kind font */
+--display-lg-weight:700; /* @kind font */
+--display-lg-lh:1.1; /* @kind font */
+--display-lg-ls:-0.8px; /* @kind font */
+
+/* display-md */
+--display-md-size:26px; /* @kind font */
+--display-md-weight:700; /* @kind font */
+--display-md-lh:1.12; /* @kind font */
+--display-md-ls:-0.52px; /* @kind font */
+
+/* heading-lg */
+--heading-lg-size:22px; /* @kind font */
+--heading-lg-weight:600; /* @kind font */
+--heading-lg-lh:1.1; /* @kind font */
+--heading-lg-ls:-0.22px; /* @kind font */
+
+/* heading-md */
+--heading-md-size:20px; /* @kind font */
+--heading-md-weight:600; /* @kind font */
+--heading-md-lh:1.4; /* @kind font */
+--heading-md-ls:-0.2px; /* @kind font */
+
+/* heading-sm */
+--heading-sm-size:18px; /* @kind font */
+--heading-sm-weight:600; /* @kind font */
+--heading-sm-lh:1.4; /* @kind font */
+--heading-sm-ls:0; /* @kind font */
+
+/* body-lg */
+--body-lg-size:16px; /* @kind font */
+--body-lg-weight:400; /* @kind font */
+--body-lg-lh:1.4; /* @kind font */
+--body-lg-ls:0; /* @kind font */
+
+/* body-md */
+--body-md-size:15px; /* @kind font */
+--body-md-weight:400; /* @kind font */
+--body-md-lh:1.4; /* @kind font */
+--body-md-ls:0; /* @kind font */
+
+/* body-tabular */
+--body-tabular-size:14px; /* @kind font */
+--body-tabular-weight:400; /* @kind font */
+--body-tabular-lh:1.4; /* @kind font */
+--body-tabular-ls:-0.42px; /* @kind font */
+
+/* button-md */
+--button-md-size:16px; /* @kind font */
+--button-md-weight:400; /* @kind font */
+--button-md-lh:1.0; /* @kind font */
+--button-md-ls:0; /* @kind font */
+
+/* button-sm */
+--button-sm-size:14px; /* @kind font */
+--button-sm-weight:400; /* @kind font */
+--button-sm-lh:1.0; /* @kind font */
+--button-sm-ls:0; /* @kind font */
+
+/* caption */
+--caption-size:13px; /* @kind font */
+--caption-weight:400; /* @kind font */
+--caption-lh:1.4; /* @kind font */
+--caption-ls:-0.39px; /* @kind font */
+
+/* micro */
+--micro-size:11px; /* @kind font */
+--micro-weight:400; /* @kind font */
+--micro-lh:1.4; /* @kind font */
+--micro-ls:0; /* @kind font */
+
+/* micro-cap */
+--micro-cap-size:10px; /* @kind font */
+--micro-cap-weight:400; /* @kind font */
+--micro-cap-lh:1.15; /* @kind font */
+--micro-cap-ls:0.1px; /* @kind font */
+
+/* Font features are per-role, never global — numeric tiers only. */
+--font-feature-numeric:"tnum","zero"; /* @kind font */
+}

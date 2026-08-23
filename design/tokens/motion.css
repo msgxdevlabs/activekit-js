@@ -1,0 +1,21 @@
+/* Motion. DESIGN.md specs only a 120ms colour transition, so everything here is either that
+   value or a loading-state duration, and nothing moves that is not reporting progress. */
+:root{
+--dur-fast:120ms; /* @kind other */
+--dur-base:200ms; /* @kind other */
+--dur-slow:320ms; /* @kind other */
+--dur-spin:720ms; /* @kind other */
+--dur-shimmer:1500ms; /* @kind other */
+--dur-progress:1400ms; /* @kind other */
+--ease-standard:cubic-bezier(0.2,0,0,1); /* @kind other */
+--ease-out:cubic-bezier(0.16,1,0.3,1); /* @kind other */
+--transition-interactive:background var(--dur-fast) ease, border-color var(--dur-fast) ease, color var(--dur-fast) ease, box-shadow var(--dur-fast) ease; /* @kind other */
+}
+@keyframes ak-spin{to{transform:rotate(360deg)}}
+@keyframes ak-shimmer{0%{background-position:-140% 0}100%{background-position:240% 0}}
+@keyframes ak-indeterminate{0%{transform:translateX(-105%) scaleX(0.35)}55%{transform:translateX(35%) scaleX(0.68)}100%{transform:translateX(215%) scaleX(0.35)}}
+@keyframes ak-scrim-in{from{opacity:0}to{opacity:1}}
+@keyframes ak-modal-in{from{opacity:0;transform:translateY(12px) scale(0.985)}to{opacity:1;transform:none}}
+/* Decorative motion only. Spinners and progress bars keep moving, because a frozen progress
+   indicator reads as a hung interface. */
+@media (prefers-reduced-motion:reduce){[data-ak-decorative-motion]{animation:none!important}}

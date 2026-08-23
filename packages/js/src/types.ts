@@ -10,7 +10,7 @@
  */
 
 /** A campaign an organization is running: streak, daily login, referral. */
-export interface Program {
+export interface Campaign {
 	id: string;
 	key: string;
 	name: string;
@@ -18,9 +18,20 @@ export interface Program {
 	status: "draft" | "active" | "paused" | "ended";
 }
 
-/** How far the current subject has got in one program. */
-export interface ProgramProgress {
-	program: Program;
+/**
+ * A reward, as the API describes it: what a completion earns. Grants carry a
+ * frozen copy of this shape; campaign progress carries the live preview.
+ */
+export interface Reward {
+	kind: string;
+	amount: number;
+	unit: string;
+	label: string;
+}
+
+/** How far the current subject has got in one campaign. */
+export interface CampaignProgress {
+	campaign: Campaign;
 	/** Server-computed. Never derived in the browser — the client cannot be trusted to count. */
 	current: number;
 	target: number;
@@ -34,6 +45,12 @@ export interface ProgramProgress {
 	 */
 	eligible: boolean;
 	completedAt: string | null;
+	/**
+	 * What completing the campaign currently earns, when the API includes it.
+	 * A preview for display, not a promise: the grant snapshots its own copy at
+	 * issuance, so an edited reward never rewrites history.
+	 */
+	reward?: Reward | null;
 }
 
 /**
@@ -43,22 +60,17 @@ export interface ProgramProgress {
  */
 export interface Grant {
 	id: string;
-	programId: string;
+	campaignId: string;
 	subjectId: string;
 	/** Frozen copy of the reward at the moment it was granted. */
-	reward: {
-		kind: string;
-		amount: number;
-		unit: string;
-		label: string;
-	};
+	reward: Reward;
 	status: "pending" | "recorded" | "fulfilled" | "revoked";
 	createdAt: string;
 }
 
 export interface SubjectSnapshot {
 	subjectId: string;
-	programs: ProgramProgress[];
+	campaigns: CampaignProgress[];
 }
 
 /** Events the client emits. Subscribe with `client.on(...)`. */
