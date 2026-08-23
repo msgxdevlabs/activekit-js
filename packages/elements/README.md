@@ -44,11 +44,41 @@ render.
 | `campaign` | no | Campaign key. Omit to render the first active campaign. |
 | `theme` | no | `light`, `dark`, or `auto` (default) |
 | `api-url` | no | Override the API host |
+| `brand-color` | no | Primary brand color. The full per-theme `colors` option needs code. |
+| `accent-color` | no | Reward color: the "Reward ready" pill and fulfilled chips |
 
-All four are live: change one and the widget rebuilds.
+`<activekit-launcher>` takes all of those plus `position`
+(`bottom-right`/`bottom-left`), `panel-title` and `subject-label`.
+
+The heading attribute is `panel-title`, not `title`: `title` is a global HTML
+attribute and would hang a browser tooltip off the element as a side effect.
+
+Every attribute is live: change one and the embed rebuilds.
 
 Rendering the element before your auth resolves is expected — it waits quietly
 for `token` rather than warning.
+
+## Launcher
+
+The floating corner launcher, as a second element:
+
+```html
+<activekit-launcher
+  token="SUBJECT_JWT"
+  campaign="daily-login"
+  subject-label="Pat"
+></activekit-launcher>
+```
+
+It renders nothing and takes no space — the launcher floats over the page, so
+the tag is only where you configure it. Put it anywhere. `open()`, `close()`,
+`expand()`, `collapse()` and `refresh()` are methods on the element:
+
+```js
+document.querySelector("activekit-launcher").expand();
+```
+
+Mount one per page — two launchers means two bubbles in the same corner.
 
 ## Reacting to eligibility
 

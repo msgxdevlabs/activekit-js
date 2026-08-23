@@ -74,6 +74,29 @@ const client = useActiveKit();
 Pinia Colada? Call `client.progress()` inside your own query instead —
 reimplementing invalidation here would only get it subtly wrong.
 
+## Launcher
+
+The floating corner launcher. It renders nothing and appends itself to
+`document.body`, so put it anywhere under the plugin:
+
+```vue
+<script setup lang="ts">
+import { ActiveKitLauncher } from "@activekit/vue";
+import { useTemplateRef } from "vue";
+
+const rewards = useTemplateRef("rewards");
+</script>
+
+<template>
+  <ActiveKitLauncher ref="rewards" campaign-key="daily-login" subject-label="Pat" />
+  <button @click="rewards?.expand()">Rewards</button>
+</template>
+```
+
+`open`, `close`, `expand`, `collapse` and `refresh` are exposed on the
+instance. Mount one per page — two launchers means two bubbles in the same
+corner.
+
 ## Nuxt
 
 The widget touches the DOM and can never render on the server. `useProgress`

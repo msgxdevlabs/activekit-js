@@ -1,5 +1,6 @@
 /**
- * Side-effecting entry: importing it registers `<activekit-widget>`.
+ * Side-effecting entry: importing it registers `<activekit-widget>` and
+ * `<activekit-launcher>`.
  *
  * Separate from the main entry so that importing the class does not silently
  * define a global tag — a library that mutates the custom element registry on

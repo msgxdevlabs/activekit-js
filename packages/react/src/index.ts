@@ -14,16 +14,35 @@
 import {
 	createContext,
 	createElement,
+	forwardRef,
 	useCallback,
 	useContext,
 	useEffect,
+	useImperativeHandle,
 	useRef,
 	useState,
 } from "react";
 import type { ReactElement, ReactNode } from "react";
 
-import { mountWidget } from "@activekit/js";
-import type { ActiveKitClient, MountOptions, SubjectSnapshot } from "@activekit/js";
+import { mountLauncher, mountWidget } from "@activekit/js";
+import type {
+	ActiveKitClient,
+	LauncherHandle,
+	LauncherOptions,
+	MountOptions,
+	SubjectSnapshot,
+	WidgetColors,
+} from "@activekit/js";
+
+/**
+ * Object-valued options are compared by identity, so a caller writing
+ * `colors={{ brand: "#..." }}` inline would hand us a new object every render
+ * and remount the embed each time — a visible flicker and a refetch. Keying on
+ * the value instead costs one small `JSON.stringify` per render and makes the
+ * inline form behave the way the caller obviously meant.
+ */
+const colorsKey = (colors: WidgetColors | undefined): string =>
+	colors ? JSON.stringify(colors) : "";
 
 const ActiveKitContext = createContext<ActiveKitClient | null>(null);
 
@@ -118,9 +137,11 @@ export function ActiveKitWidget({
 	className,
 	campaignKey,
 	theme,
+	colors,
 }: ActiveKitWidgetProps): ReactElement {
 	const client = useActiveKit();
 	const hostRef = useRef<HTMLDivElement>(null);
+	const colorsId = colorsKey(colors);
 
 	useEffect(() => {
 		const host = hostRef.current;
@@ -129,12 +150,94 @@ export function ActiveKitWidget({
 		const handle = mountWidget(host, client, {
 			...(campaignKey ? { campaignKey } : {}),
 			...(theme ? { theme } : {}),
+			...(colors ? { colors } : {}),
 		});
 
 		return () => handle.destroy();
-	}, [client, campaignKey, theme]);
+		// `colorsId` stands in for `colors` — see the note on colorsKey.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [client, campaignKey, theme, colorsId]);
 
 	return createElement("div", { ref: hostRef, ...(className ? { className } : {}) });
 }
 
-export type { ActiveKitClient, MountOptions, SubjectSnapshot };
+export interface ActiveKitLauncherProps extends LauncherOptions {}
+
+/**
+ * The floating launcher.
+ *
+ * Renders nothing. The launcher appends itself to `document.body` and floats
+ * over the page, so there is no host element for React to place — put this
+ * component anywhere inside the provider and it will be in the corner.
+ *
+ * Pass a ref to drive it from your own UI:
+ *
+ * ```tsx
+ * const launcher = useRef<LauncherHandle>(null);
+ * <ActiveKitLauncher ref={launcher} campaignKey="daily-login" />
+ * <button onClick={() => launcher.current?.expand()}>Rewards</button>
+ * ```
+ *
+ * Read-only, like everything else here: the expanded view reports grants, it
+ * cannot claim them.
+ */
+export const ActiveKitLauncher = forwardRef<LauncherHandle, ActiveKitLauncherProps>(
+	function ActiveKitLauncher(
+		{ campaignKey, theme, position, title, subjectLabel, defaultOpen, colors, zIndex },
+		ref,
+	) {
+		const client = useActiveKit();
+		const handleRef = useRef<LauncherHandle | null>(null);
+		const colorsId = colorsKey(colors);
+
+		useEffect(() => {
+			const handle = mountLauncher(client, {
+				...(campaignKey ? { campaignKey } : {}),
+				...(theme ? { theme } : {}),
+				...(position ? { position } : {}),
+				...(title ? { title } : {}),
+				...(subjectLabel ? { subjectLabel } : {}),
+				...(defaultOpen ? { defaultOpen } : {}),
+				...(colors ? { colors } : {}),
+				...(zIndex !== undefined ? { zIndex } : {}),
+			});
+			handleRef.current = handle;
+
+			return () => {
+				handle.destroy();
+				handleRef.current = null;
+			};
+			// `colorsId` stands in for `colors` — see the note on colorsKey.
+			// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, [client, campaignKey, theme, position, title, subjectLabel, defaultOpen, colorsId, zIndex]);
+
+		// Forwarded through a ref cell rather than the handle itself: the handle
+		// is replaced on every remount, and a caller holding the old one would be
+		// driving a launcher that no longer exists.
+		useImperativeHandle(
+			ref,
+			(): LauncherHandle => ({
+				open: () => handleRef.current?.open(),
+				close: () => handleRef.current?.close(),
+				expand: () => handleRef.current?.expand(),
+				collapse: () => handleRef.current?.collapse(),
+				refresh: async () => {
+					await handleRef.current?.refresh();
+				},
+				destroy: () => handleRef.current?.destroy(),
+			}),
+			[],
+		);
+
+		return null;
+	},
+);
+
+export type {
+	ActiveKitClient,
+	LauncherHandle,
+	LauncherOptions,
+	MountOptions,
+	SubjectSnapshot,
+	WidgetColors,
+};
