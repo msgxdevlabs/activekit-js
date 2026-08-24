@@ -69,6 +69,20 @@ So events are recorded by the organization's server, holding an API key, through
 enforces it: the suite walks the client's prototype chain for write-shaped
 methods and asserts every request it makes is a `GET` with no body.
 
+### The shell answers to a contract in another repo
+
+The shell draws a frame; the app inside it is built in
+`msgxdevlabs/activekit-play`. Neither side can see the other's code, and CI
+here runs on this repo alone, so nothing mechanical catches a mismatch between
+the frame we paint and the app that renders in it.
+
+`docs/contracts/shell.md` in `activekit-play` is what does. It pins the frame
+geometry, the entry URL, the token handshake and the theme parameter, and it
+carries a **pending adjustments** section naming what this repo has to change
+next. **Read it before touching `packages/js/src/shell.ts`'s frame, URL or
+message protocol,** and add the entry there in the same change when this side
+moves first.
+
 ## Quick start
 
 Mint a subject token on your server. Never put an API key in a browser — it
@@ -313,5 +327,8 @@ Bug reports and PRs welcome. Two things to know before opening one:
   every other binding still needs.
 - **No client package may write.** A PR adding a non-`GET` request to any
   browser package will fail CI, and should — see above.
+- **The shell's boundary is under contract.** Frame, URL, handshake and
+  protocol changes are agreed in `docs/contracts/shell.md` in `activekit-play`
+  first — see above.
 
 MIT © MSGX Dev Labs
