@@ -9,5 +9,16 @@
     "@activekit/svelte": "0.1.0",
     "@activekit/vue": "0.1.0"
   },
-  "changesets": []
+  "changesets": [
+    "chilly-clouds-win",
+    "launcher-bindings",
+    "lucky-pandas-cheer",
+    "plain-moons-point",
+    "shell-two-states",
+    "split-cdn-entries",
+    "teal-widget-campaigns",
+    "tidy-panthers-launch",
+    "tiny-rats-serve",
+    "wide-budgets-breathe"
+  ]
 }
