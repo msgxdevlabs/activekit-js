@@ -12,6 +12,12 @@
  * and a versioned message protocol. Every screen with content in it lives in
  * the app, which means this file never grows a dashboard and the customer's
  * page never downloads one.
+ *
+ * The other side of that boundary is built in `msgxdevlabs/activekit-play`,
+ * where `docs/contracts/shell.md` pins the frame geometry, the entry URL, the
+ * handshake and the theme parameter, and lists what this file owes it next.
+ * Read that contract before changing any of them; nothing in this repo's CI
+ * can see the app, so a mismatch ships silently.
  */
 import { el, svg } from "./dom.js";
 
