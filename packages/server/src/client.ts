@@ -171,7 +171,12 @@ export class ActiveKit {
 		 * @see {@link SubjectSessionInput} for why there is no lifetime argument
 		 * and no refresh helper.
 		 */
-		createSession: (input: SubjectSessionInput): Promise<SubjectSession> =>
+		// `async`, deliberately, for a method whose body can refuse before it ever
+		// reaches the network. A function typed `Promise` that throws
+		// synchronously walks straight past the caller's `.catch`, and in a
+		// request handler that is the difference between a 500 and a dead
+		// process. Every refusal below arrives as a rejection.
+		createSession: async (input: SubjectSessionInput): Promise<SubjectSession> =>
 			this.#request<SubjectSession>("POST", "/subject-sessions", {
 				// Validated here, not left to the 400, because the failure that
 				// matters is the one the API accepts: subjects are created on first
