@@ -2,7 +2,7 @@
 // not live yet. It implements just enough of the contract for the SDKs to run
 // against unmodified:
 //
-//   POST /v1/subjects/tokens   (API key)       mint a subject token
+//   POST /v1/subject-sessions  (API key)       mint a subject session
 //   POST /v1/events            (API key)       record an event, advance campaigns
 //   GET  /v1/me/progress       (subject token) the subject's snapshot
 //   GET  /v1/me/grants         (subject token) what the subject earned
@@ -113,6 +113,9 @@ const subjectState = (subjectId) => {
 // Looks like a JWT so the demo reads like production. It is not one — do not
 // copy this format anywhere; real tokens are minted and signed by ActiveKit.
 
+/** Fifteen minutes, the platform's fixed number. Not a caller's choice. */
+const SUBJECT_SESSION_LIFETIME_SECONDS = 15 * 60;
+
 const b64url = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
 
 const mintToken = (subjectId, ttlSeconds) => {
@@ -212,18 +215,30 @@ export const handleMockApi = (req, res, url, body) => {
 	if (!url.pathname.startsWith("/v1/")) return false;
 
 	// Organization endpoints: authenticated by the API key.
-	if (url.pathname === "/v1/subjects/tokens" && req.method === "POST") {
+	if (url.pathname === "/v1/subject-sessions" && req.method === "POST") {
 		if (bearer(req) !== API_KEY) {
 			json(res, 401, { code: "unauthorized", message: "invalid API key" });
 			return true;
 		}
-		if (typeof body?.subjectId !== "string" || body.subjectId.length === 0) {
-			json(res, 400, { code: "invalid_request", message: "subjectId is required" });
+		// Strict, like the real route: the body names the subject and nothing
+		// else. The lifetime is the platform's, so a caller asking for one is a
+		// 400 here too rather than a field that is quietly ignored.
+		const extra = Object.keys(body ?? {}).filter((key) => key !== "subject");
+		if (typeof body?.subject !== "string" || body.subject.length === 0 || extra.length > 0) {
+			json(res, 400, {
+				code: "invalid_request",
+				message: extra.length > 0 ? `unknown field: ${extra[0]}` : "subject is required",
+			});
 			return true;
 		}
-		const ttl = typeof body.ttlSeconds === "number" ? body.ttlSeconds : 900;
-		const { token, exp } = mintToken(body.subjectId, ttl);
-		json(res, 200, { token, expiresAt: new Date(exp * 1000).toISOString() });
+		const { token, exp } = mintToken(body.subject, SUBJECT_SESSION_LIFETIME_SECONDS);
+		json(res, 200, {
+			token,
+			expiresAt: new Date(exp * 1000).toISOString(),
+			subject: { externalId: body.subject },
+			// The demo's key is a production key, so its sessions read production.
+			environment: "production",
+		});
 		return true;
 	}
 

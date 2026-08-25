@@ -8,17 +8,27 @@
 //    Here the built file is served by the demo server instead of a bundler.
 import { createClient, mountShell } from "/sdk/index.js";
 
-// ⭐ 2. Ask *your own backend* for a subject token. The browser never sees an
+// ⭐ 2. Ask *your own backend* for a subject session. The browser never sees an
 //    API key — the token is short-lived and scoped to the logged-in user.
+//    It could not see one by accident either: `new ActiveKit(...)` throws
+//    where a DOM exists, so the server SDK cannot be moved onto this page.
 const { token, expiresAt } = await (await fetch("/api/activekit/token")).json();
 
 // ⭐ 3. One client per page. `apiUrl` points at the demo's mock API; a real
 //    integration omits it and gets api.activekit.app/v1.
 const client = createClient({ token, apiUrl: `${location.origin}/v1` });
 
-// ⭐ 3½. Tokens expire. Rotate a fresh one in before that happens — otherwise
-//    every read starts failing with 401 after `expiresAt` and the widget
-//    sticks at "Unavailable". `setToken` exists for exactly this.
+// ⭐ 3½. Sessions expire, after fifteen minutes. Rotate a fresh one in before
+//    that happens — otherwise every read starts failing with 401 after
+//    `expiresAt` and the widget sticks at "Unavailable". `setToken` exists for
+//    exactly this.
+//
+//    These twelve lines are the whole refresh story, and the `activekit`
+//    package deliberately ships nothing to replace them. Renewing happens here,
+//    in the page; minting happens on the server, because it needs the API key.
+//    A refresh helper in the server SDK would need that key at the moment of
+//    renewal, which means it would either be useless in a page or catastrophic
+//    in one. So the loop lives where the token is spent and asks the backend.
 const rotateBefore = (expiresAt) => {
 	const ms = Math.max(new Date(expiresAt).getTime() - Date.now() - 60_000, 30_000);
 	setTimeout(async () => {

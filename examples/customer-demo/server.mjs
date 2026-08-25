@@ -3,7 +3,7 @@
 // One process plays three roles, so the whole demo is `node server.mjs`:
 //
 //   1. Acme's backend        — the part a real customer writes. It holds the
-//      API key, mints subject tokens for its logged-in user, and records
+//      API key, mints subject sessions for its logged-in user, and records
 //      events through the `activekit` server SDK. Marked ⭐ below.
 //   2. Acme's static site    — serves public/ and the built @activekit/js.
 //   3. A mock ActiveKit API  — stands in for api.activekit.app, which is not
@@ -134,11 +134,10 @@ const server = createServer(async (req, res) => {
 	// ever sees a short-lived token scoped to this one user.
 	if (url.pathname === "/api/activekit/token" && req.method === "GET") {
 		try {
-			const { token, expiresAt } = await activekit.subjects.createToken({
-				subjectId: DEMO_USER,
-				ttlSeconds: 3600,
-			});
-			json(res, 200, { token, expiresAt });
+			// The whole answer, forwarded unchanged. Every field is either the
+			// credential being delivered or a fact about it, so there is nothing to
+			// pick out and nothing here that could leak the key.
+			json(res, 200, await activekit.subjects.createSession({ subject: DEMO_USER }));
 		} catch (error) {
 			json(res, 502, { error: String(error?.message ?? error) });
 		}

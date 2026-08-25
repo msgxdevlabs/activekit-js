@@ -11,7 +11,7 @@ widget, and one thin binding per framework.
 
 | Package | Install | Source | What it is |
 | --- | --- | --- | --- |
-| [`activekit`](https://www.npmjs.com/package/activekit) | `pnpm add activekit` | [`packages/server`](packages/server) | Server SDK. Record events, read grants, mint subject tokens, verify webhooks. |
+| [`activekit`](https://www.npmjs.com/package/activekit) | `pnpm add activekit` | [`packages/server`](packages/server) | Server SDK. Record events, read grants, mint subject sessions, verify webhooks. |
 | [`@activekit/js`](https://www.npmjs.com/package/@activekit/js) | `pnpm add @activekit/js` | [`packages/js`](packages/js) | Browser client and widget. Read-only, zero dependencies. |
 | [`@activekit/react`](https://www.npmjs.com/package/@activekit/react) | `pnpm add @activekit/react` | [`packages/react`](packages/react) | Provider, hooks, widget component. |
 | [`@activekit/vue`](https://www.npmjs.com/package/@activekit/vue) | `pnpm add @activekit/vue` | [`packages/vue`](packages/vue) | Plugin, composables, widget component. Vue 3. |
@@ -93,8 +93,13 @@ grants organization-wide access, and there is no scoping that makes that safe.
 import { ActiveKit } from "activekit";
 
 const activekit = new ActiveKit({ apiKey: process.env.ACTIVEKIT_API_KEY! });
-const { token } = await activekit.subjects.createToken({ subjectId: user.id });
+const { token } = await activekit.subjects.createSession({ subject: user.id });
 ```
+
+The token reads that one subject's own progress for fifteen minutes and cannot
+write anything. Mint a fresh one per session rather than storing it — and note
+that `new ActiveKit(...)` throws where a DOM exists, so the first line above
+cannot be moved into the browser to save the round trip.
 
 Then, in the browser:
 

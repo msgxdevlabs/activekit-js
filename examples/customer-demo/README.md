@@ -30,7 +30,7 @@ the page; the demo server itself needs no restart for SDK-only changes).
 ┌───────────────────────┐        ┌───────────────────────────┐        ┌───────────────────┐
 │ @activekit/js         │        │ activekit (server SDK)    │        │ /v1/… (in-memory) │
 │  createClient(token) ─┼─GET──▶ │                           │        │                   │
-│  mountShell(...)      │        │ subjects.createToken ─────┼─POST─▶ │ mints token       │
+│  mountShell(...)      │        │ subjects.createSession ───┼─POST─▶ │ mints session     │
 │                       │        │ events.record ────────────┼─POST─▶ │ advances campaigns,│
 │ "do thing" buttons ───┼─POST─▶ │  (holds the API key)      │        │ issues grants     │
 └───────────────────────┘        └───────────────────────────┘        └───────────────────┘
@@ -67,7 +67,7 @@ message the shell expects is sent.
 | File | Role | Copy into a real app? |
 | --- | --- | --- |
 | `public/app.js` | Frontend: token fetch → `createClient` → `mountShell` | **Yes** — this is the whole frontend integration. |
-| `server.mjs`, ⭐ routes | Backend: `subjects.createToken`, `events.record` | **Yes** — swap the demo user for your session user and drop `apiUrl`. |
+| `server.mjs`, ⭐ routes | Backend: `subjects.createSession`, `events.record` | **Yes** — swap the demo user for your session user and drop `apiUrl`. |
 | `server.mjs`, the rest | Static file serving, demo reset | No — your framework already does this. |
 | `mock-activekit.mjs` | Stand-in for api.activekit.app | **Never** — this side is ActiveKit's job. |
 

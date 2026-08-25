@@ -91,7 +91,7 @@ The widget touches the DOM. The component and the action handle that themselves
 — both mount in an effect, which never runs on the server — so no `browser`
 guard is needed.
 
-Mint subject tokens in a server load function or form action with the
+Mint subject sessions in a server load function or form action with the
 [`activekit`](https://www.npmjs.com/package/activekit) package. It takes an API
 key, which must never reach a browser.
 
