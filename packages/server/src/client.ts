@@ -1,3 +1,5 @@
+import { assertApiKeyShape, assertServerRuntime, assertSubjectId } from "./credentials.js";
+import type { SubjectSession, SubjectSessionInput } from "./credentials.js";
 import { signWebhook, verifyWebhook } from "./webhooks.js";
 import type { VerifyOptions } from "./webhooks.js";
 
@@ -21,7 +23,15 @@ export class ActiveKitError extends Error {
 }
 
 export interface ActiveKitOptions {
-	/** Organization API key. Server-side only — never ship this to a browser. */
+	/**
+	 * Organization API key, `ak_…`. Server-side only.
+	 *
+	 * Never ship this to a browser. It grants organization-wide read and write,
+	 * there is no scoping that makes that safe in a page, and the constructor
+	 * refuses to build at all where a DOM exists rather than leaving that to a
+	 * code review. What a browser gets is a subject session token from
+	 * {@link ActiveKit.subjects}, which reads one subject and expires in minutes.
+	 */
 	apiKey: string;
 	apiUrl?: string;
 	fetch?: FetchLike;
@@ -75,6 +85,18 @@ const backoff = (attempt: number, retryAfter: string | null): number => {
  *
  * `fetch`-based and dependency-free so the same build runs on Node 20+,
  * Cloudflare Workers, Bun and Deno. Nothing here imports a Node builtin.
+ *
+ * **It does not run in a browser, by construction.** This is the one ActiveKit
+ * package that can write, and the credential that lets it is organization-wide,
+ * so the constructor refuses a DOM outright (`src/credentials.ts`). The token a
+ * page needs comes from {@link ActiveKit.subjects}, minted here and sent there.
+ *
+ * There is no free function that takes an API key anywhere in this package.
+ * `webhooks.verify` takes a secret and is exported standalone because verifying
+ * is something a page could never usefully do; minting is the opposite, so the
+ * only path to a session runs through an instance that already holds the key
+ * privately. A `createSubjectSession(apiKey, subject)` would be the shape that
+ * gets copy-pasted into a component, so it does not exist to copy.
  */
 export class ActiveKit {
 	readonly #apiKey: string;
@@ -83,7 +105,12 @@ export class ActiveKit {
 	readonly #maxRetries: number;
 
 	constructor(options: ActiveKitOptions) {
+		// Before the key is read, let alone stored: a bundle that reaches a page
+		// fails on this line in development rather than shipping.
+		assertServerRuntime();
+
 		if (!options?.apiKey) throw new TypeError("ActiveKit: `apiKey` is required.");
+		assertApiKeyShape(options.apiKey);
 		this.#apiKey = options.apiKey;
 		this.#apiUrl = (options.apiUrl ?? DEFAULT_API_URL).replace(/\/+$/, "");
 		this.#maxRetries = options.maxRetries ?? 2;
@@ -123,15 +150,34 @@ export class ActiveKit {
 
 	readonly subjects = {
 		/**
-		 * Mint a short-lived JWT for one subject, for `@activekit/js` in the browser.
+		 * Exchange this API key for a short-lived, read-only session scoped to one
+		 * subject: the only supported way to authenticate a browser.
 		 *
-		 * This is the only supported way to authenticate a browser. The API key
-		 * grants organization-wide access; a subject token grants one subject's
-		 * own view and nothing else.
+		 * ```ts
+		 * const session = await activekit.subjects.createSession({ subject: user.id });
+		 * return Response.json(session); // safe whole — see `SubjectSession`
+		 * ```
+		 *
+		 * The app and environment are the presented key's own, off its row, and
+		 * the body cannot name either. So a session can never read wider than the
+		 * key that minted it, and nothing a caller sends can widen it.
+		 *
+		 * The token opens `GET /v1/me/*` and nothing else. It can never open
+		 * `POST /v1/events`, from either end: the read surface refuses every
+		 * method but `GET`, `HEAD` and `OPTIONS` before it looks at a credential
+		 * at all, and event ingest refuses every credential that does not open
+		 * `ak_`, which a JWT never does.
+		 *
+		 * @see {@link SubjectSessionInput} for why there is no lifetime argument
+		 * and no refresh helper.
 		 */
-		createToken: (input: { subjectId: string; ttlSeconds?: number }) =>
-			this.#request<{ token: string; expiresAt: string }>("POST", "/subjects/tokens", {
-				body: input,
+		createSession: (input: SubjectSessionInput): Promise<SubjectSession> =>
+			this.#request<SubjectSession>("POST", "/subject-sessions", {
+				// Validated here, not left to the 400, because the failure that
+				// matters is the one the API accepts: subjects are created on first
+				// sight, so a coerced `undefined` mints a working session for a
+				// subject nobody meant to exist.
+				body: { subject: assertSubjectId(input?.subject) },
 			}),
 	};
 
