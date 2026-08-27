@@ -127,12 +127,24 @@ export class ActiveKit {
 		 *
 		 * This is the only supported way to authenticate a browser. The API key
 		 * grants organization-wide access; a subject token grants one subject's
-		 * own view and nothing else.
+		 * own view and nothing else, read only, scoped to `/v1/me/*`.
+		 *
+		 * `subjectId` is whatever your own system knows this person by, exactly
+		 * as your events carry it. A subject the platform has not seen before is
+		 * created on first sight rather than refused.
+		 *
+		 * The lifetime is the platform's to set and is not a parameter: a caller
+		 * choosing it could choose badly, and a token that outlives its purpose
+		 * is the one thing this whole mechanism exists to avoid.
 		 */
-		createToken: (input: { subjectId: string; ttlSeconds?: number }) =>
-			this.#request<{ token: string; expiresAt: string }>("POST", "/subjects/tokens", {
-				body: input,
-			}),
+		createToken: (input: { subjectId: string }) =>
+			this.#request<{ token: string; expiresAt: string; subject: { externalId: string } }>(
+				"POST",
+				"/subject-sessions",
+				// The platform names this field `subject`, and its body is strict,
+				// so an unexpected key is a 400 rather than something ignored.
+				{ body: { subject: input.subjectId } },
+			),
 	};
 
 	readonly webhooks = {
