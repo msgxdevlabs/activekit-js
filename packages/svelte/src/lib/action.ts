@@ -8,7 +8,7 @@ export interface ActiveKitActionParams extends MountOptions {
 /**
  * Mount the widget into an element you already have.
  *
- *   <div use:activekit={{ client, campaignKey: "daily-login" }}></div>
+ *   <div use:activekit={{ client, campaignId: "campaign_123" }}></div>
  *
  * The idiomatic Svelte answer to "attach a third-party thing to this node" —
  * useful when the surrounding markup is yours and only the widget is ours.

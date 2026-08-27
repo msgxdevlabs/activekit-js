@@ -136,7 +136,8 @@ export interface ActiveKitWidgetProps extends MountOptions {
  */
 export function ActiveKitWidget({
 	className,
-	campaignKey,
+	campaignId,
+	label,
 	theme,
 	colors,
 }: ActiveKitWidgetProps): ReactElement {
@@ -149,7 +150,8 @@ export function ActiveKitWidget({
 		if (!host) return;
 
 		const handle = mountWidget(host, client, {
-			...(campaignKey ? { campaignKey } : {}),
+			...(campaignId ? { campaignId } : {}),
+			...(label ? { label } : {}),
 			...(theme ? { theme } : {}),
 			...(colors ? { colors } : {}),
 		});
@@ -157,7 +159,7 @@ export function ActiveKitWidget({
 		return () => handle.destroy();
 		// `colorsId` stands in for `colors` — see the note on colorsKey.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [client, campaignKey, theme, colorsId]);
+	}, [client, campaignId, label, theme, colorsId]);
 
 	return createElement("div", { ref: hostRef, ...(className ? { className } : {}) });
 }
