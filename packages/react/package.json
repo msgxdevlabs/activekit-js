@@ -1,6 +1,6 @@
 {
 	"name": "@activekit/react",
-	"version": "0.2.0-alpha.0",
+	"version": "0.2.0-alpha.1",
 	"description": "React bindings for ActiveKit — provider, hooks and the embeddable progress widget.",
 	"license": "MIT",
 	"homepage": "https://activekit.app",

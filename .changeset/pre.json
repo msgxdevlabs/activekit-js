@@ -10,15 +10,20 @@
     "@activekit/vue": "0.1.0"
   },
   "changesets": [
+    "brown-otters-repeat",
     "chilly-clouds-win",
     "launcher-bindings",
     "lucky-pandas-cheer",
+    "olive-pugs-argue",
     "plain-moons-point",
     "shell-two-states",
     "split-cdn-entries",
     "teal-widget-campaigns",
+    "tidy-lions-agree",
     "tidy-panthers-launch",
     "tiny-rats-serve",
-    "wide-budgets-breathe"
+    "wide-budgets-breathe",
+    "widget-platform-shapes",
+    "wild-pandas-shave"
   ]
 }

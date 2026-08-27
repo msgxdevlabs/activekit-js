@@ -1,5 +1,19 @@
 # @activekit/react
 
+## 0.2.0-alpha.1
+
+### Patch Changes
+
+- 01e8b7e: The inline widget now reads the platform's real progress shape: the goal's `achieved` and `target`, `status: "live"` for the default pick, and the reward union for the earned pill. `campaignKey` is now `campaignId`, since the wire carries ids, and a new `label` option names the card — the platform never sends a campaign name to a subject, so the card no longer pretends it did.
+- 01f0afb: Point the default app origin at `play.activekit.app`, where the app is
+  actually served. It defaulted to `app.activekit.app`, a hostname nothing
+  listens on, so every integration that did not pass `appUrl` opened a frame
+  that could never load. Caught the day the app first deployed.
+- Updated dependencies [01e8b7e]
+- Updated dependencies [01e8b7e]
+- Updated dependencies [01f0afb]
+  - @activekit/js@1.0.0-alpha.1
+
 ## 0.2.0-alpha.0
 
 ### Minor Changes

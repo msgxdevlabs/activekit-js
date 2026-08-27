@@ -1,6 +1,6 @@
 {
 	"name": "@activekit/vue",
-	"version": "0.2.0-alpha.0",
+	"version": "0.2.0-alpha.1",
 	"description": "Vue 3 bindings for ActiveKit — plugin, composables and the embeddable progress widget.",
 	"license": "MIT",
 	"homepage": "https://activekit.app",

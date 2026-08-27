@@ -1,6 +1,6 @@
 {
 	"name": "@activekit/svelte",
-	"version": "0.2.0-alpha.0",
+	"version": "0.2.0-alpha.1",
 	"description": "Svelte 5 bindings for ActiveKit — widget component, action and progress store.",
 	"license": "MIT",
 	"homepage": "https://activekit.app",

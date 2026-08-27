@@ -1,6 +1,6 @@
 {
 	"name": "@activekit/js",
-	"version": "0.2.0-alpha.0",
+	"version": "1.0.0-alpha.1",
 	"description": "Browser client and embeddable widget for ActiveKit. Vanilla TypeScript, zero dependencies.",
 	"license": "MIT",
 	"homepage": "https://activekit.app",
