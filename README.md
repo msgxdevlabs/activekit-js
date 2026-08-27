@@ -93,7 +93,7 @@ grants organization-wide access, and there is no scoping that makes that safe.
 import { ActiveKit } from "activekit";
 
 const activekit = new ActiveKit({ apiKey: process.env.ACTIVEKIT_API_KEY! });
-const { token } = await activekit.subjects.createToken({ subjectId: user.id });
+const { token } = await activekit.subjects.createSession({ subjectId: user.id });
 ```
 
 Then, in the browser:

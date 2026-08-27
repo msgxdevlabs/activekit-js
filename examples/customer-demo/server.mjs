@@ -134,7 +134,7 @@ const server = createServer(async (req, res) => {
 	// ever sees a short-lived token scoped to this one user.
 	if (url.pathname === "/api/activekit/token" && req.method === "GET") {
 		try {
-			const { token, expiresAt } = await activekit.subjects.createToken({
+			const { token, expiresAt } = await activekit.subjects.createSession({
 				subjectId: DEMO_USER,
 				ttlSeconds: 3600,
 			});

@@ -54,7 +54,7 @@ The only supported way to authenticate a browser. The API key grants
 organization-wide access; a subject token grants one subject's own view.
 
 ```ts
-const { token, expiresAt } = await activekit.subjects.createToken({
+const { token, expiresAt } = await activekit.subjects.createSession({
   subjectId: user.id,
   ttlSeconds: 900,
 });
