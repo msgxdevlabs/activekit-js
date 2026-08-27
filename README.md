@@ -5,9 +5,11 @@ widget, and one thin binding per framework.
 
 > **Status: pre-release.** Published on npm under the
 > [`@activekit` scope](https://www.npmjs.com/org/activekit) — see each package's
-> page for its current version. The API they call, `api.activekit.app/v1`, is not
-> live yet, so nothing here talks to a running server. Treat the wire types as a
-> contract under construction.
+> page for its current version. Production, `api.activekit.app/v1`, is not live
+> yet; staging is, and these packages are exercised against it end to end by the
+> hosted demo in
+> [`activekit-play`](https://github.com/msgxdevlabs/activekit-play). Treat the
+> wire types as a contract that is settled but still pre-1.0.
 
 | Package | Install | Source | What it is |
 | --- | --- | --- | --- |
