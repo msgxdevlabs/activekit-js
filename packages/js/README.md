@@ -71,7 +71,7 @@ at whatever rate their developer console allows. Server-side re-derivation does
 not save you, because the *event* is the thing being faked — the server is
 faithfully computing a reward from a lie. For a product whose whole job is
 recording what people earned, that is not a hardening detail, it is the
-integrity of the ledger.
+integrity of the grant record.
 
 So the split is:
 

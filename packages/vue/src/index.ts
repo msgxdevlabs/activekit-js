@@ -179,7 +179,7 @@ export const ActiveKitWidget = defineComponent({
 		// attached by the time we mount — including on first render, where the
 		// ref going null → element is itself the trigger. Rebuilding on any
 		// change is cheap and correct for every parameter; diffing the params
-		// would be the optimisation that introduces the bug.
+		// would be the optimization that introduces the bug.
 		watch([host, () => props.campaignKey, () => props.theme, () => colorsKey(props.colors)], remount, {
 			flush: "post",
 		});
@@ -271,7 +271,7 @@ export const ActiveKitShell = defineComponent({
 		onMounted(remount);
 
 		// Rebuilding on any change is cheap and correct for every parameter;
-		// diffing them would be the optimisation that introduces the bug.
+		// diffing them would be the optimization that introduces the bug.
 		watch(
 			[
 				() => props.appUrl,

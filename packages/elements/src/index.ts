@@ -7,7 +7,7 @@
  * Angular, Astro, Rails and Laravel views, HTMX, Alpine, plain HTML — and in
  * whatever framework arrives next. Writing a hand binding per framework is
  * three packages, three test matrices and three release cadences for the same
- * behaviour.
+ * behavior.
  *
  *   <script type="module" src="…/@activekit/elements"></script>
  *   <activekit-widget token="SUBJECT_JWT" campaign="daily-login"></activekit-widget>

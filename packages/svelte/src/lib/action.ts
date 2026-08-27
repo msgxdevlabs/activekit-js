@@ -19,7 +19,7 @@ export function activekit(node: HTMLElement, params: ActiveKitActionParams) {
 	return {
 		update(next: ActiveKitActionParams): void {
 			// Cheap enough to rebuild, and correct for every parameter including a
-			// swapped client. Diffing the params would be the optimisation that
+			// swapped client. Diffing the params would be the optimization that
 			// introduces the bug.
 			handle.destroy();
 			handle = mountWidget(node, next.client, next);

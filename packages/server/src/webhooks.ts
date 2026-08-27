@@ -47,16 +47,16 @@ const sign = async (payload: string, secret: string): Promise<string> => {
 	return toHex(await crypto.subtle.sign("HMAC", key, encoder.encode(payload)));
 };
 
-/** Parse `t=1754827200,v1=abc…` into its parts. Unknown keys are ignored. */
+/** Parse `ts=1754827200;v1=abc…` into its parts. Unknown keys are ignored. */
 const parseHeader = (header: string): { timestamp: number; signatures: string[] } => {
 	let timestamp = Number.NaN;
 	const signatures: string[] = [];
-	for (const part of header.split(",")) {
+	for (const part of header.split(";")) {
 		const index = part.indexOf("=");
 		if (index === -1) continue;
 		const key = part.slice(0, index).trim();
 		const value = part.slice(index + 1).trim();
-		if (key === "t") timestamp = Number(value);
+		if (key === "ts") timestamp = Number(value);
 		else if (key === "v1") signatures.push(value);
 	}
 	return { timestamp, signatures };
@@ -68,7 +68,7 @@ export interface VerifyOptions {
 	 *
 	 * This is the replay window: without it, a signature captured once stays
 	 * valid forever, and an attacker who can replay a `grant.created` webhook
-	 * can make you fulfil the same reward repeatedly.
+	 * can make you fulfill the same reward repeatedly.
 	 */
 	toleranceSeconds?: number;
 	/** Injected in tests. Defaults to the current time. */
@@ -105,7 +105,7 @@ export async function verifyWebhook<T = unknown>(
 		throw new WebhookVerificationError("Signature timestamp outside tolerance window.");
 	}
 
-	const expected = await sign(`${timestamp}.${rawBody}`, secret);
+	const expected = await sign(`${timestamp}:${rawBody}`, secret);
 
 	// Multiple v1 values exist during a secret rotation. Any match is a pass.
 	if (!signatures.some((candidate) => timingSafeEqual(candidate, expected))) {
@@ -130,5 +130,5 @@ export async function signWebhook(
 	secret: string,
 	timestampSeconds: number,
 ): Promise<string> {
-	return `t=${timestampSeconds},v1=${await sign(`${timestampSeconds}.${rawBody}`, secret)}`;
+	return `ts=${timestampSeconds};v1=${await sign(`${timestampSeconds}:${rawBody}`, secret)}`;
 }

@@ -456,19 +456,31 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 				headers: { authorization: `Bearer ${token}` },
 			});
 			if (!response.ok) return;
-			const body = (await response.json()) as { unseen?: boolean };
-			root.dataset["unseen"] = String(Boolean(body.unseen));
+			// `unacknowledged` is the platform's word. This read `unseen`, which
+			// it never sends, so `Boolean(undefined)` held the dot off for
+			// every subject forever, and silently: a perfectly good 200 passed
+			// the guard above.
+			const body = (await response.json()) as { unacknowledged?: boolean };
+			root.dataset["unseen"] = String(Boolean(body.unacknowledged));
 		} catch {
 			// A dot that fails to load is a dot that stays as it was. Nothing on
 			// the customer's page should notice our API having a bad minute.
 		}
 	};
 
-	/** Opening is the acknowledgement, and it has to survive a reload to mean anything. */
+	/**
+	 * Opening is the acknowledgement, and the platform records it inside the
+	 * read rather than as a separate call.
+	 *
+	 * This used to `POST /me/badge/seen`. That route does not exist, and could
+	 * not: `/v1/me` refuses every method but GET and HEAD before it reads a
+	 * credential, so the call was a 405 on every open, swallowed by the catch
+	 * below. `GET /v1/me/grants` stamps acknowledgment in its own transaction,
+	 * so asking for the grants is what clears the dot.
+	 */
 	const acknowledge = async (): Promise<void> => {
 		try {
-			await fetch(`${apiUrl}/me/badge/seen`, {
-				method: "POST",
+			await fetch(`${apiUrl}/me/grants`, {
 				headers: { authorization: `Bearer ${token}` },
 			});
 		} catch {

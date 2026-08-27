@@ -53,8 +53,18 @@ test("sends the subject JWT and parses the response", async () => {
 });
 
 test("reads grants", async () => {
-	const grant = { id: "grant_1", campaignId: "cmp_1", subjectId: "sub_1", status: "recorded" };
-	const { fetch, calls } = stubFetch([{ body: { data: [grant] } }]);
+	// The platform's shape, not ours: the envelope key is `grants`, the campaign
+	// is nested, and `recorded` was never one of its statuses.
+	const grant = {
+		id: "grant_1",
+		campaign: { id: "campaign_1", name: "First render" },
+		status: "fulfilled",
+		reward: { kind: "credits", amount: 40 },
+		issuedAt: "2026-08-19T09:12:00.000Z",
+		acknowledgedAt: null,
+		firstShown: true,
+	};
+	const { fetch, calls } = stubFetch([{ body: { environment: "production", grants: [grant], grantCount: 1 } }]);
 	const client = createClient({ token: "jwt", fetch, apiUrl: "https://api.test/v1" });
 
 	const grants = await client.grants();

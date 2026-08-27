@@ -62,7 +62,7 @@ write, the browser's owner can forge — a subject who can record their own even
 can mint streak days and referrals at whatever rate their console allows, and
 server-side re-derivation does not help when the *event* is the lie. For a
 product whose job is recording what people earned, that is the integrity of the
-ledger.
+grant record.
 
 So events are recorded by the organization's server, holding an API key, through
 `activekit`. The browser only ever asks what already happened. `pnpm check`

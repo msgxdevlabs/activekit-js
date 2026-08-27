@@ -3,7 +3,7 @@ import test, { mock } from "node:test";
 
 import { ActiveKit } from "../dist/index.js";
 
-// These pin the wire shape rather than the method's behaviour, because the
+// These pin the wire shape rather than the method's behavior, because the
 // method has almost none: what matters is that the path and the body match
 // what `apps/api/src/routes/subject-sessions.ts` in `activekit-io` accepts.
 // They disagreed once, silently, and only a real integration would have found
