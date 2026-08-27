@@ -50,7 +50,7 @@ origin from the customer page on `:4173`.
 That second port is the point. A same-origin iframe can reach into `parent`
 directly, which would make the boundary imaginary and leave the message
 protocol untested. Here the only way across is `postMessage`, exactly as in
-production, where the app is on `app.activekit.app` and the customer is on
+production, where the app is on `play.activekit.app` and the customer is on
 theirs.
 
 Worth watching in the network tab: the frame's URL carries `theme` and a

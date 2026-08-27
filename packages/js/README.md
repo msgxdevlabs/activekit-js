@@ -141,7 +141,7 @@ layout gives up nothing for it.
 Almost nothing runs here. The shell is a button, a frame, a loading skeleton
 and a versioned message protocol — 5.8 kB brotli, and it does not grow when the
 product does, because every screen with content in it is served from
-`app.activekit.app` on ActiveKit's own origin.
+`play.activekit.app` on ActiveKit's own origin.
 
 That means your content-security policy needs `frame-src`, not permission to
 execute our code. We cannot read your page, and you can say so in a security
@@ -166,7 +166,7 @@ Three details worth knowing:
 ### Content-security policy
 
 ```
-frame-src   https://app.activekit.app;
+frame-src   https://play.activekit.app;
 connect-src https://api.activekit.app;
 ```
 

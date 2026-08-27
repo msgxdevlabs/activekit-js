@@ -164,7 +164,7 @@ export function ActiveKitWidget({
 
 /**
  * `token` and `apiUrl` come from the provider's client; everything else is
- * yours. Omit `appUrl` in production and it points at app.activekit.app.
+ * yours. Omit `appUrl` in production and it points at play.activekit.app.
  */
 export interface ActiveKitShellProps extends Omit<ShellOptions, "token" | "apiUrl"> {}
 
