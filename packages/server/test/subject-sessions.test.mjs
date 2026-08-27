@@ -29,7 +29,7 @@ test("posts to the path the platform actually serves", async () => {
 	const capture = {};
 	const kit = new ActiveKit({ apiKey: "ak_test", fetch: stubFetch(capture) });
 
-	await kit.subjects.createToken({ subjectId: "user_8c1d2e" });
+	await kit.subjects.createSession({ subjectId: "user_8c1d2e" });
 
 	assert.match(capture.url, /\/subject-sessions$/);
 	assert.doesNotMatch(capture.url, /subjects\/tokens/);
@@ -40,7 +40,7 @@ test("names the subject field the way the platform's strict body requires", asyn
 	const capture = {};
 	const kit = new ActiveKit({ apiKey: "ak_test", fetch: stubFetch(capture) });
 
-	await kit.subjects.createToken({ subjectId: "user_8c1d2e" });
+	await kit.subjects.createSession({ subjectId: "user_8c1d2e" });
 
 	const body = JSON.parse(capture.init.body);
 	assert.deepEqual(body, { subject: "user_8c1d2e" });
@@ -49,7 +49,7 @@ test("names the subject field the way the platform's strict body requires", asyn
 test("returns the token, its expiry and the subject it belongs to", async () => {
 	const kit = new ActiveKit({ apiKey: "ak_test", fetch: stubFetch({}) });
 
-	const session = await kit.subjects.createToken({ subjectId: "user_8c1d2e" });
+	const session = await kit.subjects.createSession({ subjectId: "user_8c1d2e" });
 
 	assert.equal(session.token, "st_test");
 	assert.equal(session.expiresAt, "2026-08-27T19:15:00.000Z");

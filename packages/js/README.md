@@ -26,7 +26,7 @@ Pass a **subject token**, minted on your server with the
 [`activekit`](https://www.npmjs.com/package/activekit) server SDK:
 
 ```ts
-const { token } = await activekit.subjects.createToken({ subjectId: user.id });
+const { token } = await activekit.subjects.createSession({ subjectId: user.id });
 ```
 
 Never an API key. An API key in the browser is an API key in every browser: it

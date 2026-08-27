@@ -123,7 +123,14 @@ export class ActiveKit {
 
 	readonly subjects = {
 		/**
-		 * Mint a short-lived JWT for one subject, for `@activekit/js` in the browser.
+		 * Open a short-lived, read-only session for one subject, for
+		 * `@activekit/js` in the browser.
+		 *
+		 * Named for what it returns rather than for the field a caller reaches
+		 * for first. The platform serves `/v1/subject-sessions`, its contract
+		 * row is Subject session, and the answer carries the token, its expiry
+		 * and the subject it belongs to. Calling it `createToken` would name one
+		 * field of that and force every reader to translate.
 		 *
 		 * This is the only supported way to authenticate a browser. The API key
 		 * grants organization-wide access; a subject token grants one subject's
@@ -137,7 +144,7 @@ export class ActiveKit {
 		 * choosing it could choose badly, and a token that outlives its purpose
 		 * is the one thing this whole mechanism exists to avoid.
 		 */
-		createToken: (input: { subjectId: string }) =>
+		createSession: (input: { subjectId: string }) =>
 			this.#request<{ token: string; expiresAt: string; subject: { externalId: string } }>(
 				"POST",
 				"/subject-sessions",
