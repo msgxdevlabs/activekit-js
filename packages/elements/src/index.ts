@@ -7,16 +7,16 @@
  * Angular, Astro, Rails and Laravel views, HTMX, Alpine, plain HTML — and in
  * whatever framework arrives next. Writing a hand binding per framework is
  * three packages, three test matrices and three release cadences for the same
- * behaviour.
+ * behavior.
  *
  *   <script type="module" src="…/@activekit/elements"></script>
- *   <activekit-widget token="SUBJECT_JWT" campaign="daily-login"></activekit-widget>
+ *   <activekit-widget token="SUBJECT_JWT" campaign="campaign_123"></activekit-widget>
  *   <activekit-shell token="SUBJECT_JWT"></activekit-shell>
  */
 import { createClient, mountShell, mountWidget } from "@activekit/js";
 import type { ActiveKitClient, ShellHandle, WidgetColors, WidgetHandle } from "@activekit/js";
 
-const OBSERVED = ["token", "campaign", "theme", "api-url", "brand-color", "accent-color"] as const;
+const OBSERVED = ["token", "campaign", "label", "theme", "api-url", "brand-color", "accent-color"] as const;
 
 /**
  * The shell's own set. It mounts an app rather than a campaign card, so it
@@ -87,14 +87,16 @@ export class ActiveKitWidgetElement extends HTMLElement {
 		}
 
 		const apiUrl = this.getAttribute("api-url");
-		const campaignKey = this.getAttribute("campaign");
+		const campaignId = this.getAttribute("campaign");
+		const label = this.getAttribute("label");
 		const theme = this.getAttribute("theme") as "light" | "dark" | "auto" | null;
 
 		const colors = readColors(this);
 
 		this.#client = createClient({ token, ...(apiUrl ? { apiUrl } : {}) });
 		this.#handle = mountWidget(this, this.#client, {
-			...(campaignKey ? { campaignKey } : {}),
+			...(campaignId ? { campaignId } : {}),
+			...(label ? { label } : {}),
 			...(theme ? { theme } : {}),
 			...(colors ? { colors } : {}),
 		});

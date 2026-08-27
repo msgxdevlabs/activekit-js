@@ -5,8 +5,14 @@ import type { ActiveKitClient } from "./client.js";
 import type { CampaignProgress } from "./types.js";
 
 export interface MountOptions {
-	/** Which campaign to render. Omit to render the first active one. */
-	campaignKey?: string;
+	/** Which campaign to render, by its id. Omit to render the first live one. */
+	campaignId?: string;
+	/**
+	 * The card's title. The platform deliberately never sends a campaign name
+	 * to a subject — player-facing words come from a vocabulary pack — so the
+	 * card cannot invent one. Without this it says "Your progress".
+	 */
+	label?: string;
 	/** `auto` follows the host page's `prefers-color-scheme`. */
 	theme?: "light" | "dark" | "auto";
 	/**
@@ -99,7 +105,7 @@ export function mountWidget(
 	const meta = el("p", "ak-meta", "");
 	const track = el("div", "ak-track");
 	const fill = el("div", "ak-fill");
-	const pill = el("span", "ak-pill", "Reward ready");
+	const pill = el("span", "ak-pill", "Reward earned");
 	pill.hidden = true;
 
 	fill.style.width = "0%";
@@ -110,6 +116,8 @@ export function mountWidget(
 
 	let destroyed = false;
 
+	const label = options.label ?? "Your progress";
+
 	const paint = (progress: CampaignProgress | undefined): void => {
 		if (!progress) {
 			name.textContent = "No active campaign";
@@ -118,17 +126,22 @@ export function mountWidget(
 			pill.hidden = true;
 			return;
 		}
-		const pct = progress.target > 0 ? Math.min(progress.current / progress.target, 1) * 100 : 0;
-		name.textContent = progress.campaign.name;
-		meta.textContent = `${progress.current} of ${progress.target}`;
+		const { achieved, target } = progress.goal;
+		const pct = target > 0 ? Math.min(achieved / target, 1) * 100 : 0;
+		name.textContent = label;
+		meta.textContent = `${achieved} of ${target}`;
 		fill.style.width = `${pct}%`;
 		track.setAttribute("role", "progressbar");
-		track.setAttribute("aria-valuenow", String(progress.current));
+		track.setAttribute("aria-valuenow", String(achieved));
 		track.setAttribute("aria-valuemin", "0");
-		track.setAttribute("aria-valuemax", String(progress.target));
-		track.setAttribute("aria-label", progress.campaign.name);
-		// A statement of fact, not a control. Nothing here can act on it.
-		pill.hidden = !progress.eligible;
+		track.setAttribute("aria-valuemax", String(target));
+		track.setAttribute("aria-label", label);
+		// A statement of fact, not a control. Nothing here can act on it. A
+		// voided or reversed grant is a record, never a celebration, so the
+		// pill stays hidden for those.
+		const reward = progress.reward;
+		const stands = reward.source !== "grant" || reward.status === "pending" || reward.status === "fulfilled";
+		pill.hidden = !(progress.completed && stands);
 	};
 
 	const refresh = async (): Promise<void> => {
@@ -136,9 +149,9 @@ export function mountWidget(
 			const snapshot = await client.progress();
 			if (destroyed) return;
 			paint(
-				options.campaignKey
-					? snapshot.campaigns.find((p) => p.campaign.key === options.campaignKey)
-					: snapshot.campaigns.find((p) => p.campaign.status === "active"),
+				options.campaignId
+					? snapshot.campaigns.find((p) => p.id === options.campaignId)
+					: snapshot.campaigns.find((p) => p.status === "live"),
 			);
 		} catch {
 			if (destroyed) return;

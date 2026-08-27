@@ -29,7 +29,36 @@ export interface ActiveKitOptions {
 	maxRetries?: number;
 }
 
+/** What the platform answers when it accepted and recorded the event. */
+export interface RecordedEvent {
+	id: string;
+	name: string;
+	subject: string;
+	meta: Record<string, unknown> | null;
+	clientTrust: boolean;
+	occurredAt: string;
+	receivedAt: string;
+	late: boolean;
+}
+
+/**
+ * What it answers when the event name is not confirmed for this app: the
+ * delivery is dropped rather than recorded, and saying so is the point. A
+ * caller that treats every 2xx as recorded will believe in events the platform
+ * never kept.
+ */
+export interface PendingEvent {
+	status: "pending_confirmation";
+	name: string;
+}
+
 export interface RecordEventInput {
+	/**
+	 * The identifier your own system knows this person by, exactly as your
+	 * events carry it. The platform names this field `subject` on the wire; it
+	 * is `subjectId` here because that is what it is to a caller holding a user
+	 * record, and the mapping happens in one place rather than in every app.
+	 */
 	subjectId: string;
 	name: string;
 	properties?: Record<string, unknown>;
@@ -38,19 +67,48 @@ export interface RecordEventInput {
 	 * records the event twice, and for a streak or a referral that is a
 	 * double-grant against a real budget.
 	 */
-	idempotencyKey?: string;
+	/**
+	 * Required. The platform dedupes on it, so a retry after a timeout records
+	 * one event rather than two. It was optional here while it was being sent
+	 * as a header nothing read, which made every retry a double write.
+	 */
+	idempotencyKey: string;
 	/** Defaults to server receipt time. Pass an ISO string when backfilling. */
 	occurredAt?: string;
 }
 
 export interface Grant {
 	id: string;
-	campaignId: string;
-	subjectId: string;
-	reward: { kind: string; amount: number; unit: string; label: string };
-	status: "pending" | "recorded" | "fulfilled" | "revoked";
-	createdAt: string;
+	campaign: { id: string; name: string };
+	app: { id: string; name: string; slug: string };
+	subject: { externalId: string };
+	/**
+	 * Which side of the app issued it. Load bearing for reconciliation: without
+	 * it a sandbox rehearsal is indistinguishable from real production debt.
+	 */
+	environment: "sandbox" | "production";
+	/**
+	 * `voided` and `reversed` are both terminal. `reversed` is the clawback,
+	 * and it is a state a fulfilment system has to handle rather than a state
+	 * that cannot happen.
+	 */
+	status: "pending" | "fulfilled" | "voided" | "reversed";
+	/** Frozen at issuance, so a later edit to the reward never rewrites history. */
+	reward: Reward;
+	issuedAt: string;
+	updatedAt: string;
 }
+
+/**
+ * What a grant pays. A discriminated union, because the fields differ per kind
+ * and a flat shape would promise fields that are absent on most of them.
+ */
+export type Reward =
+	| { kind: "credits"; amount: number }
+	| { kind: "percent_bonus"; percent: number; of: string }
+	| { kind: "badge"; badge: string }
+	| { kind: "perk"; perk: string }
+	| { kind: "custom"; label: string; meta?: Record<string, unknown> };
 
 export interface Page<T> {
 	data: T[];
@@ -97,27 +155,47 @@ export class ActiveKit {
 
 	readonly events = {
 		/** Record something a subject did. The event is the only input to criteria. */
-		record: (input: RecordEventInput): Promise<{ eventId: string; advanced: string[] }> => {
-			const { idempotencyKey, ...body } = input;
+		record: (input: RecordEventInput): Promise<RecordedEvent | PendingEvent> => {
+			const { subjectId, properties, idempotencyKey, ...rest } = input;
 			return this.#request("POST", "/events", {
-				body,
-				...(idempotencyKey ? { idempotencyKey } : {}),
+				// Mapped rather than spread. The platform's body is a strict
+				// object, so a stray key is a 400 rather than something ignored,
+				// and the key names differ from the ones a caller thinks in.
+				body: {
+					...rest,
+					subject: subjectId,
+					idempotencyKey,
+					...(properties ? { meta: properties } : {}),
+				},
 			});
 		},
 	};
 
 	readonly grants = {
 		/**
-		 * Read what subjects earned. This is the ledger you reconcile against —
-		 * ActiveKit records grants, your billing system fulfils them.
+		 * Read what subjects earned. This is the grant record you reconcile against —
+		 * ActiveKit records grants, your billing system fulfills them.
 		 */
-		list: (params: { subjectId?: string; campaignKey?: string; cursor?: string; limit?: number } = {}) => {
+		list: (
+			params: {
+				subjectId?: string;
+				campaignId?: string;
+				status?: Grant["status"];
+				environment?: Grant["environment"];
+			} = {},
+		): Promise<{ grants: Grant[] }> => {
+			// Named as the platform names them. These were `subjectId` and
+			// `campaignKey`, which its query schema does not reject: it strips
+			// them, so the filters vanished and the answer was every grant in
+			// the organization. A wrong filter that 400s is a bug you find; one
+			// that silently widens the answer is a bug you ship.
 			const query = new URLSearchParams();
-			for (const [key, value] of Object.entries(params)) {
-				if (value !== undefined) query.set(key, String(value));
-			}
+			if (params.subjectId) query.set("subject", params.subjectId);
+			if (params.campaignId) query.set("campaign", params.campaignId);
+			if (params.status) query.set("status", params.status);
+			if (params.environment) query.set("environment", params.environment);
 			const suffix = query.size > 0 ? `?${query}` : "";
-			return this.#request<Page<Grant>>("GET", `/grants${suffix}`);
+			return this.#request("GET", `/grants${suffix}`);
 		},
 	};
 
@@ -173,14 +251,13 @@ export class ActiveKit {
 	async #request<T>(
 		method: string,
 		path: string,
-		options: { body?: unknown; idempotencyKey?: string } = {},
+		options: { body?: unknown } = {},
 	): Promise<T> {
 		const headers: Record<string, string> = {
 			authorization: `Bearer ${this.#apiKey}`,
 			accept: "application/json",
 		};
 		if (options.body !== undefined) headers["content-type"] = "application/json";
-		if (options.idempotencyKey) headers["idempotency-key"] = options.idempotencyKey;
 
 		const init: RequestInit = {
 			method,

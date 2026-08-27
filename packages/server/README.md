@@ -38,9 +38,9 @@ await activekit.events.record({
 });
 ```
 
-### Read the ledger
+### Read grants
 
-ActiveKit records what subjects earned; your billing system fulfils it. Grants
+ActiveKit records what subjects earned; your billing system fulfills it. Grants
 are append-only and snapshot the reward as it was at issuance, so editing a
 reward never rewrites history.
 

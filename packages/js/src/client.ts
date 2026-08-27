@@ -141,8 +141,11 @@ export class ActiveKitClient {
 
 	/** Everything this subject has earned, newest first. */
 	async grants(): Promise<Grant[]> {
-		const { data } = await this.#get<{ data: Grant[] }>("/me/grants");
-		return data;
+		// The envelope key is `grants`. It was `data`, which is not a key the
+		// platform sends, so this resolved `undefined` while its signature
+		// promised an array and every caller's `.map` threw.
+		const { grants } = await this.#get<{ grants: Grant[] }>("/me/grants");
+		return grants;
 	}
 
 	/** Drops every subscriber. Call it when the host page tears the widget down. */

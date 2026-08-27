@@ -76,4 +76,4 @@ Two things the demo does that production should not:
 - `apiUrl` points at the local mock. A real integration omits it everywhere.
 - The daily check-in uses a random idempotency key per click, so you can
   simulate a week of logins in ten seconds. Production would use
-  `${userId}:practice:${today}` so the same day never counts twice.
+  `${subjectId}:practice:${today}` so the same day never counts twice.

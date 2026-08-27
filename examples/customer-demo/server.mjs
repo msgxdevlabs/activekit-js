@@ -35,8 +35,8 @@ if (!existsSync(join(sdkDir, "index.js"))) {
 const PORT = Number(process.env.PORT ?? 4173);
 
 // In a real app this is whoever your session says is logged in.
-const DEMO_USER = "usr_demo_1";
-seed(DEMO_USER);
+const DEMO_SUBJECT = "sub_demo_1";
+seed(DEMO_SUBJECT);
 
 // ⭐ Acme's server-side ActiveKit client. In production you drop `apiUrl`
 // (the SDK defaults to api.activekit.app/v1) and read the key from a secret.
@@ -49,7 +49,7 @@ const activekit = new ActiveKit({
 // Acme's backend records for it. `idempotencyKey` is the dedup handle: a
 // retried request must not advance a streak twice. The daily check-in uses a
 // fresh key per click so *the demo* can simulate many days in one sitting —
-// in production it would be `${userId}:practice:${today}` so a user checking
+// in production it would be `${subjectId}:practice:${today}` so a subject checking
 // in twice on one day counts once.
 const ACTIONS = {
 	practice: () => ({
@@ -135,7 +135,7 @@ const server = createServer(async (req, res) => {
 	if (url.pathname === "/api/activekit/token" && req.method === "GET") {
 		try {
 			const { token, expiresAt } = await activekit.subjects.createSession({
-				subjectId: DEMO_USER,
+				subjectId: DEMO_SUBJECT,
 				ttlSeconds: 3600,
 			});
 			json(res, 200, { token, expiresAt });
@@ -158,7 +158,7 @@ const server = createServer(async (req, res) => {
 			return;
 		}
 		try {
-			const result = await activekit.events.record({ subjectId: DEMO_USER, ...build() });
+			const result = await activekit.events.record({ subjectId: DEMO_SUBJECT, ...build() });
 			json(res, 200, result);
 		} catch (error) {
 			json(res, 502, { error: String(error?.message ?? error) });
@@ -168,7 +168,7 @@ const server = createServer(async (req, res) => {
 
 	// Demo-only: put the in-memory state back to its seeded start.
 	if (url.pathname === "/api/demo/reset" && req.method === "POST") {
-		reset(DEMO_USER);
+		reset(DEMO_SUBJECT);
 		json(res, 200, { ok: true });
 		return;
 	}

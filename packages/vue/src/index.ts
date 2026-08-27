@@ -148,8 +148,10 @@ export function useProgress(): UseProgressResult {
 export const ActiveKitWidget = defineComponent({
 	name: "ActiveKitWidget",
 	props: {
-		/** Which campaign to render. Omit to render the first active one. */
-		campaignKey: { type: String, required: false, default: undefined },
+		/** Which campaign to render, by its id. Omit to render the first live one. */
+		campaignId: { type: String, required: false, default: undefined },
+		/** The card's title. Without it the card says "Your progress". */
+		label: { type: String, required: false, default: undefined },
 		/** `auto` follows the host page's `prefers-color-scheme`. */
 		theme: {
 			type: String as PropType<"light" | "dark" | "auto">,
@@ -169,7 +171,8 @@ export const ActiveKitWidget = defineComponent({
 			handle = null;
 			if (!host.value) return;
 			handle = mountWidget(host.value, client, {
-				...(props.campaignKey ? { campaignKey: props.campaignKey } : {}),
+				...(props.campaignId ? { campaignId: props.campaignId } : {}),
+				...(props.label ? { label: props.label } : {}),
 				...(props.theme ? { theme: props.theme } : {}),
 				...(props.colors ? { colors: props.colors } : {}),
 			});
@@ -179,10 +182,12 @@ export const ActiveKitWidget = defineComponent({
 		// attached by the time we mount — including on first render, where the
 		// ref going null → element is itself the trigger. Rebuilding on any
 		// change is cheap and correct for every parameter; diffing the params
-		// would be the optimisation that introduces the bug.
-		watch([host, () => props.campaignKey, () => props.theme, () => colorsKey(props.colors)], remount, {
-			flush: "post",
-		});
+		// would be the optimization that introduces the bug.
+		watch(
+			[host, () => props.campaignId, () => props.label, () => props.theme, () => colorsKey(props.colors)],
+			remount,
+			{ flush: "post" },
+		);
 
 		onUnmounted(() => {
 			handle?.destroy();
@@ -271,7 +276,7 @@ export const ActiveKitShell = defineComponent({
 		onMounted(remount);
 
 		// Rebuilding on any change is cheap and correct for every parameter;
-		// diffing them would be the optimisation that introduces the bug.
+		// diffing them would be the optimization that introduces the bug.
 		watch(
 			[
 				() => props.appUrl,

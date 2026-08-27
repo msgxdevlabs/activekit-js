@@ -107,7 +107,7 @@ Then use `<activekit-widget [attr.token]="token">` in any template.
 ## Why this instead of a per-framework package
 
 Hand-written bindings for Angular, Astro and Rails are three packages, three
-test matrices and three release cadences for the same behaviour. A custom
+test matrices and three release cadences for the same behavior. A custom
 element is one package that works in all of them, forever. That is why it ships
 before a Vue binding, not after.
 

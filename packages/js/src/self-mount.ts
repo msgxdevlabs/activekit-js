@@ -13,7 +13,8 @@ export interface ScriptConfig {
 	client: ActiveKitClient;
 	/** Options `mountWidget` accepts. */
 	common: {
-		campaignKey?: string;
+		campaignId?: string;
+		label?: string;
 		theme?: "light" | "dark" | "auto";
 		colors?: WidgetColors;
 	};
@@ -35,7 +36,8 @@ export const readScript = (): ScriptConfig | null => {
 	if (!script || !token) return null;
 
 	const apiUrl = script.dataset["apiUrl"];
-	const campaignKey = script.dataset["campaign"];
+	const campaignId = script.dataset["campaign"];
+	const label = script.dataset["label"];
 	const theme = script.dataset["theme"] as "light" | "dark" | "auto" | undefined;
 
 	// `data-brand-color` / `data-accent-color` cover the script tag's needs;
@@ -48,7 +50,8 @@ export const readScript = (): ScriptConfig | null => {
 	return {
 		client: createClient({ token, ...(apiUrl ? { apiUrl } : {}) }),
 		common: {
-			...(campaignKey ? { campaignKey } : {}),
+			...(campaignId ? { campaignId } : {}),
+			...(label ? { label } : {}),
 			...(theme ? { theme } : {}),
 			...(colors ? { colors } : {}),
 		},
