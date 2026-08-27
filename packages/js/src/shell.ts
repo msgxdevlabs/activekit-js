@@ -44,7 +44,7 @@ export interface ShellColors {
 export interface ShellOptions {
 	/** Subject token, minted by your server with the `activekit` server SDK. */
 	token: string;
-	/** Origin serving the app. Default `https://app.activekit.app`. */
+	/** Origin serving the app. Default `https://play.activekit.app`. */
 	appUrl?: string;
 	/** API root, used only for the unseen check. Default `https://api.activekit.app/v1`. */
 	apiUrl?: string;
@@ -112,7 +112,7 @@ const PROTOCOL = 1;
  */
 const READY_TIMEOUT = 8000;
 
-const DEFAULT_APP = "https://app.activekit.app";
+const DEFAULT_APP = "https://play.activekit.app";
 const DEFAULT_API = "https://api.activekit.app/v1";
 
 /*
