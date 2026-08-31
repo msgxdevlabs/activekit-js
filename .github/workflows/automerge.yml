@@ -1,0 +1,102 @@
+# Auto-merge, self-hosted. Squash-merges a pull request that carries the
+# `automerge` label once every other check on its head commit has finished
+# green. GitHub's built-in auto-merge is plan-gated on private repositories
+# (observed in this org's repository settings, 2026-08-31), and LOOP.md
+# section 15 refuses an approver bot, which would add a check and no
+# judgment. This adds neither a payment nor an approval: the judgment stays
+# where it was, in the gate script, the design review, and CI. Attaching the
+# label is the act that says "merge this when green", exactly what pressing
+# the native auto-merge button says, and only a collaborator can attach it.
+#
+# The same file ships verbatim in activekit-play and activekit-js, so the
+# mechanism reads identically across the three repositories.
+#
+# Two properties worth knowing before editing:
+#   - The check_suite trigger fires only from the copy of this file on the
+#     default branch, so the pull request that first ships or edits it runs
+#     the old copy, not its own.
+#   - Every skip below exits green. A "not ready" outcome is ordinary and
+#     retried by the next event; a red run here would train everyone to
+#     ignore red, which is the one thing a merge gate cannot afford.
+name: automerge
+
+on:
+  pull_request:
+    types: [labeled, ready_for_review]
+  check_suite:
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    name: automerge
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Merge labeled pull requests whose checks are green
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # A pull_request event names one candidate; a check_suite event
+          # names every open PR whose head is the suite's commit, which is
+          # empty for a plain branch push and ends the run here.
+          case "$GITHUB_EVENT_NAME" in
+            pull_request) nums=$(jq '.pull_request.number' "$GITHUB_EVENT_PATH") ;;
+            check_suite)  nums=$(jq -r '.check_suite.pull_requests[].number' "$GITHUB_EVENT_PATH") ;;
+            *)            nums="" ;;
+          esac
+          [ -n "$nums" ] || { echo "no pull request in this event"; exit 0; }
+
+          default_branch=$(gh api "repos/$REPO" -q .default_branch)
+
+          for n in $nums; do
+            pr=$(gh api "repos/$REPO/pulls/$n")
+            state=$(jq -r .state <<<"$pr")
+            base=$(jq -r .base.ref <<<"$pr")
+            labeled=$(jq -r '[.labels[].name] | index("automerge") != null' <<<"$pr")
+            sha=$(jq -r .head.sha <<<"$pr")
+
+            [ "$state" = open ] || { echo "#$n is $state; skipping"; continue; }
+            [ "$labeled" = true ] || { echo "#$n carries no automerge label; skipping"; continue; }
+
+            # A release-* base would let a label reach what LOOP.md section 6
+            # puts outside loop scope, so only the default branch qualifies.
+            [ "$base" = "$default_branch" ] || {
+              echo "#$n targets $base, not $default_branch; refusing"; continue; }
+
+            # The label is the intent, so a labeled draft is marked ready
+            # here. gh uses GraphQL for this, which the REST API cannot do.
+            if [ "$(jq -r .draft <<<"$pr")" = true ]; then
+              gh pr ready "$n" -R "$REPO"
+            fi
+
+            # Every check run on the head commit except this workflow's own,
+            # which is in progress while it reads. Zero checks is a wait, not
+            # a pass: an empty suite must never merge anything.
+            runs=$(gh api "repos/$REPO/commits/$sha/check-runs" --paginate \
+              -q '.check_runs[] | select(.name != "automerge") | {name, status, conclusion}' | jq -s .)
+            total=$(jq length <<<"$runs")
+            [ "$total" -gt 0 ] || { echo "#$n has no checks on $sha yet; waiting"; continue; }
+
+            pending=$(jq '[.[] | select(.status != "completed")] | length' <<<"$runs")
+            [ "$pending" -eq 0 ] || { echo "#$n: $pending checks still running; waiting"; continue; }
+
+            red=$(jq '[.[] | select(.conclusion != "success"
+              and .conclusion != "neutral" and .conclusion != "skipped")] | length' <<<"$runs")
+            [ "$red" -eq 0 ] || {
+              echo "#$n: a check did not pass:"
+              jq -r '.[] | "  \(.name): \(.conclusion)"' <<<"$runs"
+              continue; }
+
+            if gh api -X PUT "repos/$REPO/pulls/$n/merge" -f merge_method=squash >/dev/null; then
+              echo "#$n merged"
+            else
+              echo "#$n did not merge (conflict, or the base moved); the next event retries"
+            fi
+          done
