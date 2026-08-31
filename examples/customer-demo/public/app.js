@@ -76,12 +76,6 @@ const toast = (message) => {
 	setTimeout(() => node.remove(), 3800);
 };
 
-const LABELS = {
-	practice: "practice.checkin",
-	lesson: "lesson.completed",
-	refer: "referral.converted",
-};
-
 document.addEventListener("click", async (event) => {
 	const action = event.target.closest("[data-action]")?.dataset.action;
 	if (!action) return;
@@ -101,20 +95,35 @@ document.addEventListener("click", async (event) => {
 		return;
 	}
 
-	// ⭐ 5. After your backend records an event, one read is all it takes:
-	//    the widget subscribes to the client and repaints on every
-	//    successful progress() — whoever triggered it.
-	try {
-		await client.progress();
-	} catch {
-		toast("Recorded, but refreshing the widget failed — it will catch up on the next read.");
+	// ⭐ 5. A 2xx is not the same as recorded. An event name the platform has not
+	//    confirmed for this app is answered `pending_confirmation` and dropped,
+	//    so nothing moved and there is nothing to re-read. Treating every 2xx as
+	//    recorded is how a client ends up believing in events that were never
+	//    kept.
+	if (result.status === "pending_confirmation") {
+		toast(`${result.name} is not a confirmed event name. Nothing was recorded.`);
 		return;
 	}
 
+	// ⭐ 6. Once your backend has recorded one, a single read brings the page up
+	//    to date. Every subscriber repaints from the snapshot this emits.
+	let snapshot;
+	try {
+		snapshot = await client.progress();
+	} catch {
+		toast("Recorded, but the read that follows it failed. It will catch up next time.");
+		return;
+	}
+
+	// Find the campaign the way a subject-facing surface has to: by the event
+	// names its criteria listen for. The platform never sends a campaign's own
+	// name to a subject, because that is an operator string, and the words a
+	// player reads come from a swappable vocabulary pack instead.
+	const moved = snapshot.campaigns.find((campaign) => campaign.events.includes(result.name));
 	toast(
-		result.advanced.length > 0
-			? `Recorded ${LABELS[action]} → advanced: ${result.advanced.join(", ")}`
-			: `Recorded ${LABELS[action]} (no campaign advanced)`,
+		moved
+			? `Recorded ${result.name}. Progress: ${moved.goal.achieved} of ${moved.goal.target} (${moved.goal.kind}).`
+			: `Recorded ${result.name}. No campaign listens for it.`,
 	);
 });
 

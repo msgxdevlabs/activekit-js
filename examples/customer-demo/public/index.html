@@ -135,9 +135,9 @@
 				<p class="sub">Simulate things the user does</p>
 				<p class="demo-note">
 					Each button calls <strong>Acme's backend</strong> (<code>POST /api/actions/…</code>),
-					which records an event with the <code>activekit</code> server SDK. The floating
-					widget (bottom-right) then repaints from a single <code>client.progress()</code> call —
-					the browser itself can never write.
+					which records an event with the <code>activekit</code> server SDK. The page then
+					re-reads its own progress with one <code>client.progress()</code> call, and the
+					bubble in the corner opens the ActiveKit app. The browser itself can never write.
 				</p>
 				<div class="actions">
 					<button data-action="practice">✅ Complete today's practice</button>
