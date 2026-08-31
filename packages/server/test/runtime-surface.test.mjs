@@ -18,13 +18,17 @@
 // rest to an integration that actually boots each runtime. Read a pass as "no
 // module reached for Node", never as "verified on four runtimes".
 //
-// It is also a text scan, not a parse. Comments and string literals are
-// separated so that prose about `node:crypto`, of which the source has plenty,
-// does not read as an import; a regular-expression literal containing a quote
-// character would confuse that separation, and there is none in this package.
-// A builtin reached through a computed specifier would also slip past. Both are
-// deliberate: a parser here would be more machinery than the risk deserves, and
-// the risk this catches is somebody typing an import.
+// It is also a text scan, not a parse. It runs two passes over two strippings:
+// specifiers keep string literals, because a specifier is one, and globals drop
+// string contents, because they are matched as bare identifiers. Comments go in
+// both, since this package documents at length why it avoids `node:crypto` and
+// every one of those sentences would otherwise be a failure.
+//
+// What that leaves open: a regular-expression literal containing a quote
+// character would confuse the stripping, and there is none in this package; a
+// builtin reached through a computed specifier would slip past entirely. Both
+// are deliberate. A parser here would be more machinery than the risk deserves,
+// and the risk this catches is somebody typing an import.
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -46,28 +50,32 @@ const BARE_BUILTINS = new Set([
 ]);
 
 /**
- * Node-only globals, matched in use rather than as bare words, so a sentence
- * mentioning one in a comment that survived stripping is not a failure.
+ * Node-only globals, matched as bare identifiers.
+ *
+ * A bare word is the strong form: `process.env`, `process?.env` and
+ * `globalThis.process` are all the same reach, and a pattern narrow enough to
+ * describe one of them is a pattern the next one walks through. It is only safe
+ * because the globals pass sees neither comments nor string contents, so prose
+ * about a process and a message mentioning a buffer are both invisible to it.
+ *
+ * `\bglobal\b` does not match inside `globalThis`: the boundary after `global`
+ * needs a non-word character, and `T` is not one.
  */
-const NODE_GLOBALS = [
-	[/\bprocess\s*\./, "process"],
-	[/\bBuffer\s*[.(]/, "Buffer"],
-	[/\bnew\s+Buffer\b/, "Buffer"],
-	[/\bglobal\s*\./, "global"],
-	[/\b__dirname\b/, "__dirname"],
-	[/\b__filename\b/, "__filename"],
-	[/\bsetImmediate\s*\(/, "setImmediate"],
-];
+const NODE_GLOBALS = ["process", "Buffer", "global", "__dirname", "__filename", "setImmediate", "require"];
 
 /**
- * Blank out comments, leaving strings intact.
+ * Blank out comments, and optionally the contents of string literals.
  *
- * Import specifiers are string literals, so strings have to survive; comments
- * do not, because this package documents at length why it avoids `node:crypto`
- * and every one of those sentences would otherwise be a failure. Replaced with
- * spaces rather than removed so reported line numbers stay true.
+ * Two passes need two strippings. Import specifiers *are* string literals, so
+ * the specifier pass keeps strings and drops only comments, which is enough
+ * because this package documents at length why it avoids `node:crypto` and
+ * every one of those sentences would otherwise read as an import. The globals
+ * pass matches bare identifiers, so it drops string contents too and a future
+ * error message mentioning a process cannot fail the build.
+ *
+ * Blanked rather than removed, so reported line numbers stay true.
  */
-const stripComments = (source) => {
+const strip = (source, { blankStrings = false } = {}) => {
 	let out = "";
 	let i = 0;
 	while (i < source.length) {
@@ -90,19 +98,21 @@ const stripComments = (source) => {
 			continue;
 		}
 		if (c === '"' || c === "'" || c === "`") {
+			const keep = (char) => (blankStrings && char !== "\n" ? " " : char);
 			out += c;
 			i++;
 			while (i < source.length) {
 				if (source[i] === "\\") {
-					out += source[i] + (source[i + 1] ?? "");
+					out += keep(source[i]) + keep(source[i + 1] ?? "");
 					i += 2;
 					continue;
 				}
-				out += source[i];
 				if (source[i] === c) {
+					out += c;
 					i++;
 					break;
 				}
+				out += keep(source[i]);
 				i++;
 			}
 			continue;
@@ -147,18 +157,20 @@ const lineOf = (code, index) => code.slice(0, index).split("\n").length;
 /** Every finding in one file, named precisely enough to fix without hunting. */
 const audit = (path) => {
 	const raw = readFileSync(path, "utf8");
-	const code = stripComments(raw);
 	const findings = [];
 
-	for (const specifier of specifiers(code)) {
+	const withStrings = strip(raw);
+	for (const specifier of specifiers(withStrings)) {
 		if (offendingSpecifier(specifier)) {
 			findings.push(`${path}: imports the Node builtin "${specifier}"`);
 		}
 	}
-	for (const [pattern, name] of NODE_GLOBALS) {
-		const match = pattern.exec(code);
+
+	const bare = strip(raw, { blankStrings: true });
+	for (const name of NODE_GLOBALS) {
+		const match = new RegExp(`\\b${name}\\b`).exec(bare);
 		if (match) {
-			findings.push(`${path}:${lineOf(code, match.index)}: reaches the Node global \`${name}\``);
+			findings.push(`${path}:${lineOf(bare, match.index)}: reaches the Node global \`${name}\``);
 		}
 	}
 	return findings;
