@@ -1,4 +1,4 @@
-import { signWebhook, verifyWebhook } from "./webhooks.js";
+import { createWebhookRouter, signWebhook, verifyWebhook } from "./webhooks.js";
 import type { VerifyOptions } from "./webhooks.js";
 
 const DEFAULT_API_URL = "https://api.activekit.app/v1";
@@ -52,7 +52,7 @@ export interface PendingEvent {
 	name: string;
 }
 
-export interface RecordEventInput {
+export interface TrackEventInput {
 	/**
 	 * The identifier your own system knows this person by, exactly as your
 	 * events carry it. The platform names this field `subject` on the wire; it
@@ -75,6 +75,38 @@ export interface RecordEventInput {
 	idempotencyKey: string;
 	/** Defaults to server receipt time. Pass an ISO string when backfilling. */
 	occurredAt?: string;
+}
+
+/**
+ * @deprecated Renamed to `TrackEventInput`, alongside `events.record` becoming
+ * `events.track`. Identical shape; the alias stays so `1.0.0-alpha.1` keeps
+ * compiling.
+ */
+export type RecordEventInput = TrackEventInput;
+
+/**
+ * The two calls that put an event into the platform, one of which is the same
+ * function under its former name.
+ *
+ * Declared rather than inferred so the deprecation reaches the published
+ * `.d.ts` and an editor strikes `record` through at the call site, which is the
+ * only way a rename nobody is forced into actually happens.
+ */
+export interface EventsApi {
+	/**
+	 * Record something a subject did. The event is the only input to criteria.
+	 *
+	 * Named `track` because that is what the platform's own route is called, and
+	 * what the roadmap, the landing page and every other SDK in this space say.
+	 * The verb is yours; `RecordedEvent` is what the platform did with it.
+	 */
+	track(input: TrackEventInput): Promise<RecordedEvent | PendingEvent>;
+	/**
+	 * @deprecated Renamed to `track`. This is the same function, not a wrapper,
+	 * and it is staying: `activekit@1.0.0-alpha.1` is published and callers of it
+	 * are not being broken for a name. Move to `track` at your convenience.
+	 */
+	record(input: TrackEventInput): Promise<RecordedEvent | PendingEvent>;
 }
 
 export interface Grant {
@@ -110,6 +142,12 @@ export type Reward =
 	| { kind: "perk"; perk: string }
 	| { kind: "custom"; label: string; meta?: Record<string, unknown> };
 
+/**
+ * @deprecated Nothing returns one. `GET /v1/grants` answers `{ grants }` with
+ * no cursor, so this type describes pagination the platform does not serve. It
+ * is still exported because it was exported in `1.0.0-alpha.1`; the surface
+ * freeze before 1.0 is where it goes.
+ */
 export interface Page<T> {
 	data: T[];
 	/** Pass back as `cursor`. `null` means the last page. */
@@ -153,23 +191,28 @@ export class ActiveKit {
 		this.#fetch = injected.bind(globalThis) as FetchLike;
 	}
 
-	readonly events = {
-		/** Record something a subject did. The event is the only input to criteria. */
-		record: (input: RecordEventInput): Promise<RecordedEvent | PendingEvent> => {
-			const { subjectId, properties, idempotencyKey, ...rest } = input;
-			return this.#request("POST", "/events", {
-				// Mapped rather than spread. The platform's body is a strict
-				// object, so a stray key is a 400 rather than something ignored,
-				// and the key names differ from the ones a caller thinks in.
-				body: {
-					...rest,
-					subject: subjectId,
-					idempotencyKey,
-					...(properties ? { meta: properties } : {}),
-				},
-			});
-		},
+	readonly #track = (input: TrackEventInput): Promise<RecordedEvent | PendingEvent> => {
+		const { subjectId, properties, idempotencyKey, ...rest } = input;
+		return this.#request("POST", "/events", {
+			// Mapped rather than spread. The platform's body is a strict
+			// object, so a stray key is a 400 rather than something ignored,
+			// and the key names differ from the ones a caller thinks in.
+			body: {
+				...rest,
+				subject: subjectId,
+				idempotencyKey,
+				...(properties ? { meta: properties } : {}),
+			},
+		});
 	};
+
+	/**
+	 * `record` and `track` are one function under two names, deliberately the
+	 * same reference rather than one delegating to the other. A wrapper is a
+	 * second place for the two to drift; identity cannot drift, and a test
+	 * asserts it.
+	 */
+	readonly events: EventsApi = { track: this.#track, record: this.#track };
 
 	readonly grants = {
 		/**
@@ -232,6 +275,12 @@ export class ActiveKit {
 			),
 	};
 
+	/**
+	 * One registry per client. Its own factory is exported too, because
+	 * receiving a webhook needs a signing secret and not an API key.
+	 */
+	readonly #webhookRouter = createWebhookRouter();
+
 	readonly webhooks = {
 		/**
 		 * Verify a webhook and return its body. Pass the raw request text, not a
@@ -243,6 +292,19 @@ export class ActiveKit {
 			secret: string,
 			options?: VerifyOptions,
 		): Promise<T> => verifyWebhook<T>(rawBody, signatureHeader, secret, options),
+
+		/**
+		 * Register a handler for one event type. Returns a function that
+		 * unregisters it. Registration alone receives nothing: `dispatch` is what
+		 * verifies a delivery and runs what is registered for it.
+		 */
+		on: this.#webhookRouter.on,
+
+		/**
+		 * Verify one delivery and run its handlers. The other half of `on`, and
+		 * `verify` plus a lookup rather than a second signature implementation.
+		 */
+		dispatch: this.#webhookRouter.dispatch,
 
 		/** Sign a payload. For tests and local replay only. */
 		sign: signWebhook,

@@ -13,7 +13,7 @@ widget, and one thin binding per framework.
 
 | Package | Install | Source | What it is |
 | --- | --- | --- | --- |
-| [`activekit`](https://www.npmjs.com/package/activekit) | `pnpm add activekit` | [`packages/server`](packages/server) | Server SDK. Record events, read grants, mint subject tokens, verify webhooks. |
+| [`activekit`](https://www.npmjs.com/package/activekit) | `pnpm add activekit` | [`packages/server`](packages/server) | Server SDK. Track events, read grants, mint subject tokens, verify and handle webhooks. |
 | [`@activekit/js`](https://www.npmjs.com/package/@activekit/js) | `pnpm add @activekit/js` | [`packages/js`](packages/js) | Browser client and widget. Read-only, zero dependencies. |
 | [`@activekit/react`](https://www.npmjs.com/package/@activekit/react) | `pnpm add @activekit/react` | [`packages/react`](packages/react) | Provider, hooks, widget component. |
 | [`@activekit/vue`](https://www.npmjs.com/package/@activekit/vue) | `pnpm add @activekit/vue` | [`packages/vue`](packages/vue) | Plugin, composables, widget component. Vue 3. |
@@ -258,8 +258,16 @@ shell that has started reimplementing the app, which is the drift this
 architecture exists to prevent.
 
 Tests cover the two packages where logic actually lives: transport and retry in
-`@activekit/js`, HMAC verification in `activekit`. The bindings are covered by
-typecheck and build; browser-level tests arrive with the API they need.
+`@activekit/js`; HMAC verification, webhook dispatch and the wire shapes in
+`activekit`. The bindings are covered by typecheck and build; browser-level
+tests arrive with the API they need.
+
+`activekit` also carries the check behind its own runtime claim: nothing in its
+source, and nothing in either artifact built from it, may import a Node builtin
+or reach a Node global. That is what makes one build run on Node, Workers, Bun
+and Deno, and it is one import away from being false at any time. What the check
+does not do is run anything on the three non-Node runtimes, and its header says
+so.
 
 `minimumReleaseAge` in `pnpm-workspace.yaml` refuses any dependency version
 published in the last three days. If an install fails on it, that is the
