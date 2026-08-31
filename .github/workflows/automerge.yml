@@ -26,9 +26,14 @@ on:
   check_suite:
     types: [completed]
 
+# checks: read is load-bearing: the run lists the head commit's check runs
+# to decide green, and a permissions block grants nothing it does not name.
+# Its absence was this workflow's first live failure (io #140, 2026-08-31):
+# the labeled draft was marked ready, then the check-runs read answered 403.
 permissions:
   contents: write
   pull-requests: write
+  checks: read
 
 jobs:
   automerge:
