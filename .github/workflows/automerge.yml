@@ -11,10 +11,24 @@
 # The same file ships verbatim in activekit-play and activekit-js, so the
 # mechanism reads identically across the three repositories.
 #
-# Two properties worth knowing before editing:
-#   - The check_suite trigger fires only from the copy of this file on the
+# Three properties worth knowing before editing:
+#   - The workflow_run trigger fires only from the copy of this file on the
 #     default branch, so the pull request that first ships or edits it runs
-#     the old copy, not its own.
+#     the old copy, not its own. A pull_request run is the exception and uses
+#     the branch's own copy, which is why labeling still works on such a
+#     branch while the completion half does not.
+#   - check_suite was the second trigger here from #139 until 2026-08-31, and
+#     it could never fire. GitHub emits no workflow-triggering event for a
+#     check suite that Actions itself created with GITHUB_TOKEN, which is its
+#     recursion guard, and every check suite in these three repositories comes
+#     from ci.yml on that token. Measured rather than reasoned: all four runs
+#     this workflow had were pull_request runs. So it merged only what was
+#     already green at the moment the label was attached, which is precisely
+#     the case a merge-on-green workflow exists to remove. workflow_run is the
+#     documented way to react to a workflow finishing without meeting that
+#     guard, and it replaces check_suite rather than joining it: a branch that
+#     cannot run is a branch nobody can prove, and it reads as coverage while
+#     providing none. Do not put it back.
 #   - Every skip below exits green. A "not ready" outcome is ordinary and
 #     retried by the next event; a red run here would train everyone to
 #     ignore red, which is the one thing a merge gate cannot afford.
@@ -23,7 +37,15 @@ name: automerge
 on:
   pull_request:
     types: [labeled, ready_for_review]
-  check_suite:
+  # Both spellings of the CI workflow's name, because the three repositories
+  # disagree and this file is byte-identical in all of them: activekit-io and
+  # activekit-js declare `name: CI`, activekit-play declares `name: ci`, and
+  # the match here is case-sensitive. A name no workflow in the repository
+  # carries is inert, so listing both costs nothing, while dropping either
+  # silently disables merge-on-green in one repository and leaves the other
+  # two looking healthy.
+  workflow_run:
+    workflows: [CI, ci]
     types: [completed]
 
 # checks: read is load-bearing: the run lists the head commit's check runs
@@ -48,12 +70,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          # A pull_request event names one candidate; a check_suite event
-          # names every open PR whose head is the suite's commit, which is
-          # empty for a plain branch push and ends the run here.
+          # A pull_request event names one candidate; a workflow_run event
+          # names every open pull request whose head is the finished run's
+          # commit. That list is empty for a run on a plain branch push and
+          # empty when the head branch lives in a fork, and either ends the
+          # run here. `// []` because the field is absent rather than empty
+          # on some payloads, where a bare `[]` would make jq exit non-zero
+          # and `set -e` would turn "nothing to do" into a red run.
           case "$GITHUB_EVENT_NAME" in
             pull_request) nums=$(jq '.pull_request.number' "$GITHUB_EVENT_PATH") ;;
-            check_suite)  nums=$(jq -r '.check_suite.pull_requests[].number' "$GITHUB_EVENT_PATH") ;;
+            workflow_run) nums=$(jq -r '(.workflow_run.pull_requests // [])[].number' "$GITHUB_EVENT_PATH") ;;
             *)            nums="" ;;
           esac
           [ -n "$nums" ] || { echo "no pull request in this event"; exit 0; }
