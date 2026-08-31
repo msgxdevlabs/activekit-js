@@ -9,7 +9,7 @@
 	"scripts": {
 		"build": "pnpm -r --sequential build",
 		"typecheck": "pnpm -r --sequential typecheck",
-		"test": "pnpm -r --sequential test",
+		"test": "pnpm -r --sequential test && node --test examples/customer-demo/demo.test.mjs",
 		"lint:publish": "pnpm -r exec publint --strict",
 		"size": "node scripts/size.mjs",
 		"check": "pnpm build && pnpm typecheck && pnpm test && pnpm lint:publish && pnpm size",

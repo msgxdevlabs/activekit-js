@@ -202,7 +202,7 @@ stays 2.9 kB brotli instead of carrying the shell's 5.8 kB.
 
 [`examples/customer-demo`](examples/customer-demo) is a complete fake customer
 — an "Acme Learn" page with the shell docked in its corner, a backend that
-mints subject tokens and records events with the server SDK, an in-memory
+opens subject sessions and records events with the server SDK, an in-memory
 stand-in for the not-yet-live API, and a stand-in ActiveKit app served from a
 second port, so the whole loop and the origin boundary both run locally:
 
@@ -211,10 +211,18 @@ pnpm install
 pnpm demo   # builds, then serves → http://localhost:4173 (app on :4174)
 ```
 
-Buttons on the page simulate the user doing things; you watch progress move, a
-streak complete, and the reward land in the app. The app is on its own port on
-purpose — a same-origin iframe would make the boundary imaginary and leave the
-message protocol untested.
+Buttons on the page simulate the user doing things. Each one records an event
+through Acme's backend, the page re-reads its own progress, and completing a
+campaign issues a grant that lights the bubble's unacknowledged dot until the
+app is opened. The stand-in app renders fixed sample data rather than the
+mock's, so what it demonstrates is the frame and the handshake, not the numbers.
+
+The app is on its own port on purpose. A same-origin iframe would make the
+boundary imaginary and leave the message protocol untested.
+
+`pnpm check` runs the demo too. It boots the server, drives it through the same
+SDKs a customer ships, and asserts the mock answers in the platform's shapes:
+the demo went two merges broken because nothing ever ran it.
 
 ## Develop
 
@@ -261,6 +269,13 @@ Tests cover the two packages where logic actually lives: transport and retry in
 `@activekit/js`; HMAC verification, webhook dispatch and the wire shapes in
 `activekit`. The bindings are covered by typecheck and build; browser-level
 tests arrive with the API they need.
+
+The customer demo is covered as well, from `examples/customer-demo/demo.test.mjs`
+and named by the root `test` script, because `examples/` is not a workspace
+package and the recursive run cannot reach it. It boots the demo server on a
+free port and drives the routes the page and the backend actually call, so a
+mock that drifts away from the platform's shapes is a red build rather than a
+broken `pnpm demo` nobody runs.
 
 `activekit` also carries the check behind its own runtime claim: nothing in its
 source, and nothing in either artifact built from it, may import a Node builtin

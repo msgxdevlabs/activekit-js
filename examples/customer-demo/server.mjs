@@ -186,7 +186,9 @@ const server = createServer(async (req, res) => {
 
 server.on("error", (error) => {
 	if (error.code === "EADDRINUSE") {
-		console.error(`✗ Port ${PORT} is already in use — pick another: PORT=4174 node examples/customer-demo/server.mjs`);
+		// Not 4174: that is the stand-in app's port, so suggesting it swaps one
+		// collision for another.
+		console.error(`✗ Port ${PORT} is already in use. Pick another: PORT=4183 node examples/customer-demo/server.mjs`);
 		process.exit(1);
 	}
 	throw error;
