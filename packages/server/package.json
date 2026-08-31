@@ -1,7 +1,7 @@
 {
 	"name": "activekit",
 	"version": "1.0.0-alpha.1",
-	"description": "Server SDK for ActiveKit — record events, read grants, mint subject tokens, verify webhooks. Runs on Node, Workers, Bun and Deno.",
+	"description": "Server SDK for ActiveKit — track events, read grants, mint subject tokens, verify and handle webhooks. Runs on Node, Workers, Bun and Deno.",
 	"license": "MIT",
 	"homepage": "https://activekit.app",
 	"repository": {

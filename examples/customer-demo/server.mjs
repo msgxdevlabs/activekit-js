@@ -134,9 +134,11 @@ const server = createServer(async (req, res) => {
 	// ever sees a short-lived token scoped to this one user.
 	if (url.pathname === "/api/activekit/token" && req.method === "GET") {
 		try {
+			// No lifetime argument: the platform sets it, and the SDK does not
+			// send one. Passing `ttlSeconds` here looked like it worked and was
+			// dropped on the floor.
 			const { token, expiresAt } = await activekit.subjects.createSession({
 				subjectId: DEMO_SUBJECT,
-				ttlSeconds: 3600,
 			});
 			json(res, 200, { token, expiresAt });
 		} catch (error) {
@@ -158,7 +160,7 @@ const server = createServer(async (req, res) => {
 			return;
 		}
 		try {
-			const result = await activekit.events.record({ subjectId: DEMO_SUBJECT, ...build() });
+			const result = await activekit.events.track({ subjectId: DEMO_SUBJECT, ...build() });
 			json(res, 200, result);
 		} catch (error) {
 			json(res, 502, { error: String(error?.message ?? error) });
