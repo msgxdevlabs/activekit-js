@@ -1,8 +1,9 @@
 # Auto-merge, self-hosted. Squash-merges a pull request that carries the
 # `automerge` label once every other check on its head commit has finished
-# green. GitHub's built-in auto-merge is plan-gated on private repositories
-# (observed in this org's repository settings, 2026-08-31), and LOOP.md
-# section 15 refuses an approver bot, which would add a check and no
+# green, then deletes the branch it merged, for the reasons written beside
+# that step. GitHub's built-in auto-merge is plan-gated on private
+# repositories (observed in this org's repository settings, 2026-08-31), and
+# LOOP.md section 15 refuses an approver bot, which would add a check and no
 # judgment. This adds neither a payment nor an approval: the judgment stays
 # where it was, in the gate script, the design review, and CI. Attaching the
 # label is the act that says "merge this when green", exactly what pressing
@@ -129,5 +130,63 @@ jobs:
               echo "#$n merged"
             else
               echo "#$n did not merge (conflict, or the base moved); the next event retries"
+              continue
+            fi
+
+            # A squash merge does not delete the branch it merged, and the
+            # setting that would, "Automatically delete head branches", is a
+            # per-repository checkbox no file in the repository can assert or
+            # even read. So a merged branch survives on origin until somebody
+            # clears it by hand, and that is what had been happening: on
+            # 2026-09-02, fifteen of the twenty-two branches on origin in
+            # activekit-io were the head of a pull request that had already
+            # merged, thirteen of them the loop's own `wt/*`, counted by
+            # intersecting the merged pull requests' head refs with the remote
+            # branch list. Deleting here keeps the behavior in the one file
+            # that ships byte-identical in all three repositories, where it is
+            # read rather than remembered and reviewed like any other change.
+            # `permissions:` above already grants `contents: write` for the
+            # merge, and a ref delete needs that same scope, so nothing is
+            # added there.
+            #
+            # Every outcome below exits green, for the reason the header
+            # gives. The merge already happened; a branch left standing is a
+            # tidiness matter, and letting it color the run would train
+            # everyone to ignore a red merge gate.
+            head_repo=$(jq -r '.head.repo.full_name // ""' <<<"$pr")
+            head_ref=$(jq -r .head.ref <<<"$pr")
+
+            # A fork's head branch lives in a repository this token cannot
+            # write, so deleting it is impossible rather than merely unwanted,
+            # and trying would print a failure on a completely ordinary
+            # outcome.
+            [ "$head_repo" = "$REPO" ] || {
+              echo "#$n came from $head_repo; its branch is not ours to delete"; continue; }
+
+            # The base is what everything merges into, and the guard above has
+            # already held it to the default branch. GitHub refuses to delete
+            # it, and the refusal is the only thing standing between a bad
+            # payload and the branch this whole repository sits on.
+            [ "$head_ref" != "$base" ] || {
+              echo "#$n head is $base itself; leaving it"; continue; }
+
+            # A protected branch is one somebody decided cannot be deleted, so
+            # ask before acting. Only a plain false proceeds: an error, an
+            # empty answer or a branch that no longer reads all keep the
+            # branch, because this step guesses in the direction of leaving
+            # work alone.
+            protected=$(gh api "repos/$REPO/branches/$head_ref" -q .protected 2>/dev/null) \
+              || protected=unreadable
+            [ "$protected" = false ] || {
+              echo "#$n head $head_ref reads protected=${protected:-empty}; leaving it"; continue; }
+
+            # 422 is also the answer when the ref is already gone, which is
+            # ordinary rather than exceptional: a person, or a second event on
+            # the same merge, may have deleted it first. Nothing here turns a
+            # successful merge into a red run.
+            if gh api -X DELETE "repos/$REPO/git/refs/heads/$head_ref" >/dev/null 2>&1; then
+              echo "#$n head branch $head_ref deleted"
+            else
+              echo "#$n head branch $head_ref was not deleted (already gone, or refused); the merge stands"
             fi
           done
