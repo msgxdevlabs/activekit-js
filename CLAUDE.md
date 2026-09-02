@@ -14,8 +14,18 @@ change what the owner would do. No summary, no table, no structured write-up
 unless asked for one; detail on request, not by default. A follow-up question
 wants the answer, not a fuller version of the last reply. Written down on
 2026-09-02 because "be concise" was read as "a shorter essay" and the owner had
-to ask twice. Chat only: pull request bodies, docs and code comments keep the
-fullness the work requires.
+to ask twice.
+
+Pull request bodies obey the same rule in their own shape: what changed, why,
+and how it was checked, the way a developer writes one, and no restatement of
+anything the diff already says. Docs and code comments are the exception and
+keep the fullness the work requires, because they are read cold, months later,
+by someone with none of this context.
+
+Be decisive. Weighing a choice means giving the recommendation, not the survey;
+a fact already established in the session is not re-derived, a decision the
+owner has made is not reopened, and an option that will not be taken is not
+narrated.
 
 ## Am I done
 
@@ -41,11 +51,18 @@ through `release.yml`, never `pnpm publish` from a laptop.
 
 ## Three repositories
 
-| Repo | Role |
-|---|---|
-| `activekit-js` (this repo, public) | The SDKs customers install |
-| `activekit-io` (private) | The platform: dashboard, public API, landing page |
-| `activekit-play` (private) | The hosted player app and the content pipeline |
+The short name is the first column because it is what the owner says:
+
+| Short | Repo | Role |
+|---|---|---|
+| **js** | `activekit-js` (this repo, public) | The SDKs customers install |
+| **io** | `activekit-io` (private) | The platform: dashboard, public API, landing page |
+| **play** | `activekit-play` (private) | The hosted player app and the content pipeline |
+
+Answer in the same shorthand. Chat only: anything written down and read
+somewhere else keeps the full name, and a pull request reference stays
+qualified so it resolves from any repository, `msgxdevlabs/activekit-js#21`
+and never `js#21`.
 
 Types come from the published OpenAPI contract, never a workspace import
 across repositories. `.github/workflows/automerge.yml` ships byte-identical in
