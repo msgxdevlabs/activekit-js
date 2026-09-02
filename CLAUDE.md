@@ -41,11 +41,18 @@ through `release.yml`, never `pnpm publish` from a laptop.
 
 ## Three repositories
 
-| Repo | Role |
-|---|---|
-| `activekit-js` (this repo, public) | The SDKs customers install |
-| `activekit-io` (private) | The platform: dashboard, public API, landing page |
-| `activekit-play` (private) | The hosted player app and the content pipeline |
+The short name is the first column because it is what the owner says:
+
+| Short | Repo | Role |
+|---|---|---|
+| **js** | `activekit-js` (this repo, public) | The SDKs customers install |
+| **io** | `activekit-io` (private) | The platform: dashboard, public API, landing page |
+| **play** | `activekit-play` (private) | The hosted player app and the content pipeline |
+
+Answer in the same shorthand. Chat only: anything written down and read
+somewhere else keeps the full name, and a pull request reference stays
+qualified so it resolves from any repository, `msgxdevlabs/activekit-js#21`
+and never `js#21`.
 
 Types come from the published OpenAPI contract, never a workspace import
 across repositories. `.github/workflows/automerge.yml` ships byte-identical in
