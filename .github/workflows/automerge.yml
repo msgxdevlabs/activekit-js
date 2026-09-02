@@ -104,8 +104,15 @@ jobs:
 
             # The label is the intent, so a labeled draft is marked ready
             # here. gh uses GraphQL for this, which the REST API cannot do.
+            # Guarded like every other call in this loop, because the header's
+            # rule is that every skip exits green and a bare call under `set -e`
+            # is not a skip: a `pull_request` event from a fork gets a read-only
+            # token whatever `permissions:` says, so this mutation answers 403
+            # on an outcome this file calls ordinary, and a transient rate limit
+            # does the same on an in-repo pull request.
             if [ "$(jq -r .draft <<<"$pr")" = true ]; then
-              gh pr ready "$n" -R "$REPO"
+              gh pr ready "$n" -R "$REPO" || {
+                echo "#$n could not be marked ready for review; the next event retries"; continue; }
             fi
 
             # Every check run on the head commit except this workflow's own,
@@ -126,10 +133,18 @@ jobs:
               jq -r '.[] | "  \(.name): \(.conclusion)"' <<<"$runs"
               continue; }
 
-            if gh api -X PUT "repos/$REPO/pulls/$n/merge" -f merge_method=squash >/dev/null; then
+            # `sha` pins the merge to the commit whose checks were just read.
+            # Without it GitHub squashes whatever the head is at the moment of
+            # the call, so a push landing between that read and this line merges
+            # a commit no check ever ran on, and the delete below then removes
+            # the branch that held it. GitHub answers 409 on a mismatch, which
+            # the failure arm already handles: the next completion re-enters
+            # with the new commit's own checks.
+            if gh api -X PUT "repos/$REPO/pulls/$n/merge" \
+              -f merge_method=squash -f sha="$sha" >/dev/null; then
               echo "#$n merged"
             else
-              echo "#$n did not merge (conflict, or the base moved); the next event retries"
+              echo "#$n did not merge (conflict, the head moved, or the base moved); the next event retries"
               continue
             fi
 
@@ -154,14 +169,15 @@ jobs:
             # tidiness matter, and letting it color the run would train
             # everyone to ignore a red merge gate.
             head_repo=$(jq -r '.head.repo.full_name // ""' <<<"$pr")
-            head_ref=$(jq -r .head.ref <<<"$pr")
+            head_ref=$(jq -r '.head.ref // ""' <<<"$pr")
+            [ -n "$head_ref" ] || { echo "#$n names no head branch; leaving it"; continue; }
 
             # A fork's head branch lives in a repository this token cannot
             # write, so deleting it is impossible rather than merely unwanted,
             # and trying would print a failure on a completely ordinary
             # outcome.
             [ "$head_repo" = "$REPO" ] || {
-              echo "#$n came from $head_repo; its branch is not ours to delete"; continue; }
+              echo "#$n came from ${head_repo:-a repository GitHub no longer names}; its branch is not ours to delete"; continue; }
 
             # The base is what everything merges into, and the guard above has
             # already held it to the default branch. GitHub refuses to delete
@@ -170,11 +186,31 @@ jobs:
             [ "$head_ref" != "$base" ] || {
               echo "#$n head is $base itself; leaving it"; continue; }
 
+            # The guard that actually decides, because the protected read
+            # below cannot. Branch protection is a paid feature for private
+            # repositories and this org is on the free plan, the same plan gate
+            # this file's header cites for native auto-merge, so
+            # `GET /repos/{owner}/{repo}/branches/{branch}` answers
+            # `protected: false` for every branch in these three repositories
+            # and the only ref GitHub itself refuses to delete is the default
+            # branch, which the guard above already covers. That left `main`
+            # and `release-*` deletable: one labeled merge-back pull request,
+            # which the release runbook describes opening by hand, would delete
+            # the record of what is live. A name rule depends on no setting
+            # anyone has to buy, and these are the shapes this loop creates and
+            # therefore owns; measured on origin the day this was written, they
+            # are also every branch it has ever merged.
+            case "$head_ref" in
+              wt/*|feature/*|claude/*) ;;
+              *) echo "#$n head $head_ref is not a disposable branch shape; leaving it"; continue ;;
+            esac
+
             # A protected branch is one somebody decided cannot be deleted, so
-            # ask before acting. Only a plain false proceeds: an error, an
-            # empty answer or a branch that no longer reads all keep the
-            # branch, because this step guesses in the direction of leaving
-            # work alone.
+            # ask before acting. Defence in depth rather than the deciding
+            # guard, for the reason above, and it costs one API call. Only a
+            # plain false proceeds: an error, an empty answer or a branch that
+            # no longer reads all keep the branch, because this step guesses in
+            # the direction of leaving work alone.
             protected=$(gh api "repos/$REPO/branches/$head_ref" -q .protected 2>/dev/null) \
               || protected=unreadable
             [ "$protected" = false ] || {
@@ -183,10 +219,18 @@ jobs:
             # 422 is also the answer when the ref is already gone, which is
             # ordinary rather than exceptional: a person, or a second event on
             # the same merge, may have deleted it first. Nothing here turns a
-            # successful merge into a red run.
-            if gh api -X DELETE "repos/$REPO/git/refs/heads/$head_ref" >/dev/null 2>&1; then
+            # successful merge into a red run. But the reason is kept rather
+            # than discarded, because there is no second attempt: the pull
+            # request is closed by now and the state guard above skips it on
+            # every later event, so a delete that fails for a systematic
+            # reason (a token scope, a ruleset) fails silently forever and
+            # rebuilds the pile this step exists to remove. `2>&1 >/dev/null`
+            # rather than `>/dev/null 2>&1`: stderr is redirected to the pipe
+            # first and stdout to /dev/null after, so the message is captured
+            # and the payload is not.
+            if delete_error=$(gh api -X DELETE "repos/$REPO/git/refs/heads/$head_ref" 2>&1 >/dev/null); then
               echo "#$n head branch $head_ref deleted"
             else
-              echo "#$n head branch $head_ref was not deleted (already gone, or refused); the merge stands"
+              echo "#$n head branch $head_ref was not deleted; the merge stands: ${delete_error:-no message}"
             fi
           done
