@@ -42,12 +42,24 @@ shipped.
 also a one-line edit to the root `test` script. A test no runner names is not
 a test.
 
+A green `check` is also the merge. With review findings fixed and the pull
+request's own CI green, the session labels its pull request `automerge` itself
+and `automerge.yml` squash-merges it into `main`. No owner word stands in front
+of that, and the demo walk above is feedback that follows shipping rather than
+a gate before it. Written down on 2026-09-08 because the loop sat twenty hours
+on three finished, green pull requests waiting for a merge word the owner never
+meant to hold; his words were that the only approval he wants is the production
+releases, which in this repository means the npm publish and nothing else.
+
 ## Changesets
 
 Every pull request carries one, `pnpm changeset`. An empty changeset
 (`pnpm changeset --empty`) is the right answer for repository plumbing that
 ships nothing, and the CI job that checks for one accepts it. Releases go
-through `release.yml`, never `pnpm publish` from a laptop.
+through `release.yml`, never `pnpm publish` from a laptop, and that dispatch is
+the owner's: `release.yml` with `confirm=RELEASE` puts packages on npm under the
+`@activekit` scope, so a session never runs it and never pushes `main` directly.
+Merging a pull request is a session's; publishing what it merged is not.
 
 ## Three repositories
 
