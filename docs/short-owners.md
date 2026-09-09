@@ -22,11 +22,21 @@ what a pass looks like. The why lives where each card points:
 > it into a story.
 
 > [!IMPORTANT]
-> **Which tier.** J02 runs on your machine against the in-memory mock, no
-> deployed tier at all. J01 and J03 are npm and Cloudflare, not a tier.
-> When a walk here needs a deployed platform, it is **staging**, the only
-> tier where io, play and js meet; that walk lives in `activekit-play` as
-> `P03`.
+> **Which tier, and which environment.** Two axes, easy to conflate. The
+> **tier** is which deployment you open: dev, staging or production. The
+> **environment** is the toggle inside an app on the dashboard: Sandbox or
+> Production keys. The rule, the same in all three repositories:
+>
+> | Walk | Tier | Why |
+> |---|---|---|
+> | A screen or API nothing outside one repository touches | **Dev** | Each repository's dev Worker is its own, redeployed on every merge, so it holds the newest build |
+> | Anything the demo, the golden loop or a second repository touches, webhooks included | **Staging** | The only tier where io, play and js meet; the demo Worker holds a staging sandbox key |
+> | Anything | **Production** | Never for a walk. Production is a release, and yours to dispatch |
+>
+> This repository deploys nothing itself, so its walks sit outside the table:
+> J02 runs on your machine against the in-memory mock, and J01 and J03 are
+> npm and Cloudflare. When a walk needs a deployed platform it is
+> **staging**, and that walk lives in `activekit-play` as `P03`.
 
 ## Walks
 
