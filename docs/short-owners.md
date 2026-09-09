@@ -21,6 +21,13 @@ what a pass looks like. The why lives where each card points:
 > leaves. Every walk that fails comes back as a bug report, and the loop turns
 > it into a story.
 
+> [!IMPORTANT]
+> **Which tier.** J02 runs on your machine against the in-memory mock, no
+> deployed tier at all. J01 and J03 are npm and Cloudflare, not a tier.
+> When a walk here needs a deployed platform, it is **staging**, the only
+> tier where io, play and js meet; that walk lives in `activekit-play` as
+> `P03`.
+
 ## Walks
 
 ### J01. Release to npm
