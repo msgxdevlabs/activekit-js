@@ -27,6 +27,13 @@ a fact already established in the session is not re-derived, a decision the
 owner has made is not reopened, and an option that will not be taken is not
 narrated.
 
+An ID never travels alone in a reply. A walk, an epic, a story, a milestone or
+a lane item is named with its short title beside the code every time it is
+said: "P01, give the demo its two secrets", "E50, the dashboard redesign",
+"item 3, close the golden loop's webhook leg". The code is for the loop; the
+title is what the owner reads. Written down on 2026-09-09 because a reply full
+of bare codes read as noise and the owner had to ask what each one was.
+
 ## Am I done
 
 ```bash
