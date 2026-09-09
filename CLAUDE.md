@@ -36,7 +36,9 @@ pnpm check   # build, typecheck, test, publint, bundle budget, in that order
 That is the same list `ci.yml` runs, so a green `check` is the mechanical
 answer. It is not the whole proof: nothing here exercises the SDK against a
 deployed API, and a person still walks the demo before anything is called
-shipped.
+shipped. `docs/short-owners.md` is that lane in one screen: every walk that is
+a person's, `J01` onward, numbered steps and a pass checklist, and a walk
+added or finished changes it in the same pull request.
 
 `pnpm test` names its files rather than globbing them, so a new test file is
 also a one-line edit to the root `test` script. A test no runner names is not
