@@ -8,7 +8,7 @@ what a pass looks like. The why lives where each card points:
 `activekit-io` for the items that span all three repositories.
 
 > [!NOTE]
-> **How a card reads.** **Where** is the surface, **Holds** is what the walk
+> **How a card reads.** **Where** is the surface, with the address to open, **Holds** is what the walk
 > keeps open. **Do** is numbered so a step has a name, and "J02 failed at step
 > 4" is enough to say back to the loop. **Pass** is a checklist, tick as you
 > go. A callout under the card names a prerequisite or the way it fails.
@@ -42,7 +42,7 @@ what a pass looks like. The why lives where each card points:
 
 ### J01. Release to npm
 
-- **Where:** Actions, the Release workflow, from `main`
+- **Where:** Actions, the Release workflow, <https://github.com/msgxdevlabs/activekit-js/actions/workflows/release.yml>, from `main`
 - **Holds:** the only approval in this repository that is yours. Merging is the session's, and publishing what it merged is not
 
 **Do**
@@ -71,7 +71,7 @@ what a pass looks like. The why lives where each card points:
 
 ### J02. The demo, as a developer sees it
 
-- **Where:** this checkout, `pnpm demo`, then `http://localhost:4173`
+- **Where:** this checkout, `pnpm demo`, then <http://localhost:4173>
 - **Holds:** the word "shipped" for any SDK change. `pnpm check` exercises nothing against a deployed API, and this walk is the part no gate covers
 
 **Do**
@@ -97,7 +97,7 @@ what a pass looks like. The why lives where each card points:
 
 ### J03. Stand up `cdn.activekit.app`
 
-- **Where:** the Cloudflare dashboard
+- **Where:** the Cloudflare dashboard, <https://dash.cloudflare.com>
 - **Holds:** CDN delivery of the shell, the one path no environment exercises. Drift row 3 in `docs/integration-map.md` in `activekit-play`
 
 **Do**
