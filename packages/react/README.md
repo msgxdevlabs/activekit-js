@@ -28,14 +28,18 @@ const client = createClient({ token });
 export function Rewards() {
   return (
     <ActiveKitProvider client={client}>
-      <ActiveKitWidget campaignKey="daily-login" />
+      <ActiveKitWidget slot="main" />
     </ActiveKitProvider>
   );
 }
 ```
 
-There is no `onGrant` prop, because nothing here issues a grant. When
-`progress.eligible` is true, render your own button and post to your own
+`slot` picks which campaign to draw: `main` is the week's chain, `daily` today's
+objective, `side` a one-off and `event` a limited-time one. `campaignId` names
+one exactly and wins over it.
+
+There is no `onGrant` prop, because nothing here issues a grant. When a
+campaign's `completed` is true, render your own button and post to your own
 backend — that route calls the server SDK, which is the only thing that can
 write.
 

@@ -9,6 +9,9 @@
 //   3. A mock ActiveKit API  — stands in for api.activekit.app, which is not
 //      live yet. A real integration deletes this role entirely.
 //
+// The app the bubble opens is a fourth process on its own port, standing in for
+// the hosted player app on play.activekit.app: examples/dummy-app.
+//
 // Run from the repo root, after `pnpm install && pnpm build`:
 //
 //   node examples/customer-demo/server.mjs
@@ -45,25 +48,47 @@ const activekit = new ActiveKit({
 	apiUrl: `http://127.0.0.1:${PORT}/v1`,
 });
 
-// Demo actions. Each maps a thing a user did in Acme's product to the event
-// Acme's backend records for it. `idempotencyKey` is the dedup handle: a
-// retried request must not advance a streak twice. The daily check-in uses a
-// fresh key per click so *the demo* can simulate many days in one sitting —
-// in production it would be `${subjectId}:practice:${today}` so a subject checking
-// in twice on one day counts once.
+// The objectives of Acme's game, as the events its backend records for them.
+// Each entry is a thing a user did in Acme's product; which slot it advances is
+// the platform's business, and the note beside each one is only here because
+// this file is read as a worked example.
+//
+// `idempotencyKey` is the dedup handle: a retried request must not advance a
+// streak twice. Every one below uses a fresh key per click so *the demo* can
+// simulate a week of logins in one sitting — in production the check-in would
+// be `${subjectId}:practice:${today}`, so a subject checking in twice on one
+// day counts once.
 const ACTIONS = {
+	// Today's daily objective, and the seven-day streak side quest with it:
+	// one event advances every campaign whose criteria name it.
 	practice: () => ({
 		name: "practice.checkin",
 		idempotencyKey: `practice:${randomUUID()}`,
 	}),
-	lesson: () => ({
-		name: "lesson.completed",
+	// The three steps of this week's main quest. Each step has its own event,
+	// which is why there are three here rather than one `lesson.completed`.
+	grammar: () => ({
+		name: "lesson.grammar",
 		properties: { course: "spanish-101" },
-		idempotencyKey: `lesson:${randomUUID()}`,
+		idempotencyKey: `lesson-grammar:${randomUUID()}`,
 	}),
+	listening: () => ({
+		name: "lesson.listening",
+		idempotencyKey: `lesson-listening:${randomUUID()}`,
+	}),
+	speaking: () => ({
+		name: "lesson.speaking",
+		idempotencyKey: `lesson-speaking:${randomUUID()}`,
+	}),
+	// A side quest, with no clock on it.
 	refer: () => ({
 		name: "referral.converted",
 		idempotencyKey: `referral:${randomUUID()}`,
+	}),
+	// The limited-time event, which runs between a hard start and a hard end.
+	sprint: () => ({
+		name: "sprint.session",
+		idempotencyKey: `sprint:${randomUUID()}`,
 	}),
 };
 

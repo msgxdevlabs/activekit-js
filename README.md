@@ -138,7 +138,7 @@ import { ActiveKitWidget } from "@activekit/vue";
 </script>
 
 <template>
-  <ActiveKitWidget campaign-key="daily-login" />
+  <ActiveKitWidget slot="main" />
 </template>
 ```
 </details>
@@ -195,7 +195,7 @@ is exactly why it will be gated like a production deploy.
 The shell is a second file, `activekit-shell.js`, loaded the same way and
 needing no container. Two builds rather than one with a switch: a script tag
 has no bundler to shake out the half you did not ask for, so the inline widget
-stays 2.9 kB brotli instead of carrying the shell's 5.8 kB.
+stays 3.1 kB brotli instead of carrying the shell's 6.1 kB.
 </details>
 
 ## See it running
@@ -214,8 +214,11 @@ pnpm demo   # builds, then serves → http://localhost:4173 (app on :4174)
 Buttons on the page simulate the user doing things. Each one records an event
 through Acme's backend, the page re-reads its own progress, and completing a
 campaign issues a grant that lights the bubble's unacknowledged dot until the
-app is opened. The stand-in app renders fixed sample data rather than the
-mock's, so what it demonstrates is the frame and the handshake, not the numbers.
+app is opened. Acme runs one game with all four slots filled, so a press moves a
+daily objective, a step of the week's chain, a side quest or the limited-time
+event. The stand-in app draws the two views every widget template draws, Home
+and Map, from fixed sample data rather than the mock's, so what it demonstrates
+is the frame, the handshake and the shape of those views, not the numbers.
 
 The app is on its own port on purpose. A same-origin iframe would make the
 boundary imaginary and leave the message protocol untested.
@@ -253,7 +256,7 @@ decision about someone else's page load — say why in the PR.
 
 Budgets are per entry point, because that is the unit a customer downloads.
 The package entries are ceilings: `sideEffects: false` means a bundler ships
-only the subset that was imported, so `@activekit/js` at 5.7 kB is what the
+only the subset that was imported, so `@activekit/js` at 5.9 kB is what the
 whole library weighs, not what any one page pays. The script-tag builds get the
 tight budgets because they have no bundler to shake anything out: whatever is
 in the file is on the page.

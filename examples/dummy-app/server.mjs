@@ -1,13 +1,18 @@
 /*
  * Serves the stand-in ActiveKit app, on its own port.
  *
- * The port is the point. In production the app is on `app.activekit.app` and
+ * The port is the point. In production the app is on `play.activekit.app` and
  * the customer's page is on theirs, so the frame is genuinely cross-origin and
  * the message protocol is the only way across. Serving this from the customer
  * demo's own server would make the boundary imaginary and the handshake
  * untested — a same-origin iframe can just reach into `parent`.
  *
  *   node examples/dummy-app/server.mjs        → http://localhost:4174
+ *
+ * It draws the two views every widget template draws, Home and Map, dressed in
+ * `activekit-dark`. Add `?template=activekit-light` to the URL to see the same
+ * views in the inverted palette, which is also the quickest way to watch the
+ * shell paint its frame from the app's ground rather than the host's theme.
  */
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";

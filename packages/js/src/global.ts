@@ -10,7 +10,7 @@
  *     integrity="sha384-…"
  *     crossorigin="anonymous"
  *     data-token="SUBJECT_JWT"
- *     data-campaign="daily-login"
+ *     data-slot="main"
  *     data-target="#activekit"
  *     defer
  *   ></script>

@@ -46,8 +46,8 @@ rotateBefore(expiresAt);
 //    permission to execute our code.
 //
 //    In production `appUrl` and `apiUrl` are both omitted and default to
-//    app.activekit.app and api.activekit.app/v1. Here they point at the demo's
-//    stand-in app on :4174 and the mock API on this origin.
+//    play.activekit.app and api.activekit.app/v1. Here they point at the
+//    demo's stand-in app on :4174 and the mock API on this origin.
 const theme = () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light");
 const mountAcmeShell = (mode) =>
 	mountShell({
@@ -59,13 +59,32 @@ const mountAcmeShell = (mode) =>
 		// prefetch defaults to "hover": the frame is built on first pointer
 		// contact with the bubble, so visitors who never open it pay nothing.
 		// Only the bubble and the frame chrome. What the *app* looks like is
-		// Acme's theme selection in the ActiveKit dashboard, not a mount option.
+		// the widget template selected in the ActiveKit dashboard, not a mount
+		// option — and the frame's own ground follows that template, which is
+		// why the app names its ground when it signals ready.
 		colors: { brand: "#5b5bd6" },
 		onError: (error) => console.warn(error.message),
 	});
 let shell = mountAcmeShell(theme());
 
 // --- demo scaffolding from here down ---------------------------------------
+
+/**
+ * What one campaign now reads, in the goal's own unit.
+ *
+ * A checklist is a list of ticks rather than a quantity, so it counts the steps
+ * that are done and names them; every other goal kind counts in one number. A
+ * campaign published before titles existed carries none, which is a cue to fall
+ * back rather than an empty line to draw.
+ */
+const describe = (campaign) => {
+	const title = campaign.title ?? "Your progress";
+	const goal = campaign.goal;
+	if (goal.kind !== "checklist") return `${title}: ${goal.achieved} of ${goal.target}.`;
+	const done = goal.steps.filter((step) => step.done);
+	const named = done.length > 0 ? ` (${done.map((step) => step.key).join(", ")})` : "";
+	return `${title}: ${done.length} of ${goal.steps.length} done${named}.`;
+};
 
 const toasts = document.getElementById("toasts");
 const toast = (message) => {
@@ -115,16 +134,24 @@ document.addEventListener("click", async (event) => {
 		return;
 	}
 
-	// Find the campaign the way a subject-facing surface has to: by the event
-	// names its criteria listen for. The platform never sends a campaign's own
-	// name to a subject, because that is an operator string, and the words a
-	// player reads come from a swappable vocabulary pack instead.
-	const moved = snapshot.campaigns.find((campaign) => campaign.events.includes(result.name));
-	toast(
-		moved
-			? `Recorded ${result.name}. Progress: ${moved.goal.achieved} of ${moved.goal.target} (${moved.goal.kind}).`
-			: `Recorded ${result.name}. No campaign listens for it.`,
-	);
+	// ⭐ 7. The app in the frame reads the same wire this page just re-read, so
+	//    tell it to read again. Without this an open app keeps painting the
+	//    snapshot it fetched before your backend recorded anything.
+	await shell.refresh();
+
+	// Find the campaigns the way a subject-facing surface has to: by the event
+	// names their criteria listen for. One event can advance several — a
+	// check-in moves today's objective and the streak beside it. What each one
+	// is called comes from its own `title`, the player-facing sentence the
+	// platform freezes into the published version; the campaign's operator name
+	// is never sent to a subject.
+	const moved = snapshot.campaigns.filter((campaign) => campaign.events.includes(result.name));
+	if (moved.length === 0) {
+		toast(`Recorded ${result.name}. No campaign listens for it.`);
+		return;
+	}
+	const also = moved.length > 1 ? ` And ${moved.length - 1} more.` : "";
+	toast(`Recorded ${result.name}. ${describe(moved[0])}${also}`);
 });
 
 // Theme toggle. The shell's `auto` theme follows prefers-color-scheme; this

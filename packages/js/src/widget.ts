@@ -88,7 +88,7 @@ color:var(--ak-fg);background:var(--ak-bg);border-radius:12px;padding:16px;borde
  * Render the progress widget into `target`.
  *
  * Read-only, like the client behind it. The widget reports what the server
- * says and offers no control that writes — when a subject becomes eligible it
+ * says and offers no control that writes — when a subject completes a campaign it
  * says so and stops there, because issuing the grant is the organization's
  * server's job. If you want a claim button, render your own and point it at
  * your own backend.
