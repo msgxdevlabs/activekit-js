@@ -102,3 +102,45 @@ test("the shipped bundles carry the ActiveKit palette, not the placeholder one",
 		assert.ok(!bundle.includes(value), `stale placeholder color ${value} in index.js`);
 	}
 });
+
+test("the shell frame keeps the geometry the widget contract pins", () => {
+	// `docs/contracts/shell.md` in `activekit-play` pins these numbers as what
+	// the widget lays itself out against: the frame box, its radius, the scrim
+	// behind it, the close control's corner and the sheet breakpoint. Nothing in
+	// this repository's CI can see the app, so a geometry change that breaks the
+	// widget's layout would otherwise ship silently and be found in a browser.
+	const shell = dist("activekit-shell.global.iife.js");
+	assert.match(
+		shell,
+		/\.ak-frame\{position:relative;width:min\(1080px,100%\);height:min\(760px,100%\);background:var\(--ak-bg\);border-radius:16px/,
+		"the frame box, its ground variable or its radius moved",
+	);
+	assert.ok(shell.includes("rgba(11,20,31,.55)"), "the scrim color moved");
+	assert.ok(shell.includes("width:34px;height:34px"), "the close control's size moved");
+	assert.ok(shell.includes("top:12px;right:12px"), "the close control's corner moved");
+	assert.ok(shell.includes("max-width:640px"), "the sheet breakpoint moved");
+});
+
+test("the shell paints the frame ground from the app's ready message", () => {
+	// The template inside the frame decides the ground, not the host theme, so
+	// the app names its ground on `ready` and the shell paints `--ak-bg` from
+	// it. Without this a tenant on a light template inside a dark host page
+	// crossfades against the wrong color at every open.
+	const shell = dist("activekit-shell.global.iife.js");
+	assert.match(shell, /\.ground\b/, "the shell never reads `ground` off the ready message");
+	assert.match(
+		shell,
+		/\/\^#\[0-9a-f\]\{6\}\$\/i/,
+		"the `#rrggbb` shape guard is gone: a string from inside the frame would reach the host page's CSS unchecked",
+	);
+	assert.match(
+		shell,
+		/ground[^;]{0,80}\^#\[0-9a-f\]\{6\}\$/,
+		"`ground` is read but not put through the shape guard",
+	);
+	assert.match(
+		shell,
+		/setProperty\((["'`])--ak-bg\1,\s*\w+\|\|/,
+		"`--ak-bg` no longer prefers the app's ground over the theme default",
+	);
+});

@@ -242,6 +242,10 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 	let returnFocus: Element | null = null;
 	let scrollLock = "";
 	let resolveOpen: (() => void) | undefined;
+	// The frame ground the app told us it is rendering on, empty until `ready`.
+	// Held rather than written once because a theme change repaints, and a
+	// repaint that fell back to the theme default would undo it.
+	let ground = "";
 
 	// --- shadow root -------------------------------------------------------
 	//
@@ -342,7 +346,12 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 		root.style.setProperty("--ak-brand", c.brand);
 		root.style.setProperty("--ak-on-brand", c.onBrand);
 		root.style.setProperty("--ak-ring", c.ring);
-		root.style.setProperty("--ak-bg", c.background);
+		// The template inside the frame decides the ground, the host theme
+		// decides the bubble and the scrim. Once the app has named its ground
+		// it outranks both the theme default and `colors.background`: the frame
+		// is about to show that exact color, and anything else is a flash at
+		// the open crossfade and a seam around the frame's rounded corners.
+		root.style.setProperty("--ak-bg", ground || c.background);
 		root.style.setProperty("--ak-fg", c.foreground);
 	};
 
@@ -384,6 +393,15 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 				ready = true;
 				root.dataset["ready"] = "true";
 				delete root.dataset["state"];
+				// `ground` is a string from inside the frame that becomes a CSS
+				// value on the host page, so it is checked for shape and not
+				// trusted: six hex digits or it is ignored and the theme default
+				// stands. Anything looser lets a compromised app write arbitrary
+				// CSS into the host document.
+				if (typeof data["ground"] === "string" && /^#[0-9a-f]{6}$/i.test(data["ground"])) {
+					ground = data["ground"];
+					paint();
+				}
 				post({ type: "init", token, theme: resolved(), locale: navigator.language });
 				if (open) {
 					options.onOpen?.();
