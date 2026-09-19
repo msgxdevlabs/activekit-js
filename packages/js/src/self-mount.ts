@@ -7,6 +7,7 @@
 import { createClient } from "./client.js";
 import type { ActiveKitClient } from "./client.js";
 import type { WidgetColors } from "./colors.js";
+import type { CampaignSlot } from "./types.js";
 
 export interface ScriptConfig {
 	/** The client, already built from `data-token` and `data-api-url`. */
@@ -14,6 +15,7 @@ export interface ScriptConfig {
 	/** Options `mountWidget` accepts. */
 	common: {
 		campaignId?: string;
+		slot?: CampaignSlot;
 		label?: string;
 		theme?: "light" | "dark" | "auto";
 		colors?: WidgetColors;
@@ -37,6 +39,10 @@ export const readScript = (): ScriptConfig | null => {
 
 	const apiUrl = script.dataset["apiUrl"];
 	const campaignId = script.dataset["campaign"];
+	// `data-slot` rather than a second campaign attribute: it selects from the
+	// customer's game by the region the card is standing in, which is what a
+	// page with one card and a whole game actually wants.
+	const slot = script.dataset["slot"] as CampaignSlot | undefined;
 	const label = script.dataset["label"];
 	const theme = script.dataset["theme"] as "light" | "dark" | "auto" | undefined;
 
@@ -51,6 +57,7 @@ export const readScript = (): ScriptConfig | null => {
 		client: createClient({ token, ...(apiUrl ? { apiUrl } : {}) }),
 		common: {
 			...(campaignId ? { campaignId } : {}),
+			...(slot ? { slot } : {}),
 			...(label ? { label } : {}),
 			...(theme ? { theme } : {}),
 			...(colors ? { colors } : {}),

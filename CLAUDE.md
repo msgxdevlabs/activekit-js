@@ -88,3 +88,26 @@ and never `js#21`.
 Types come from the published OpenAPI contract, never a workspace import
 across repositories. `.github/workflows/automerge.yml` ships byte-identical in
 all three: change it here and the same bytes land there, or not at all.
+
+## Regenerating the wire types
+
+`packages/js/src/types.ts` is a hand transcription of the read-only slice of
+that contract, so it goes stale silently: nothing in this repository fails when
+the platform adds a field, and the first sign is a customer reading `undefined`
+off a shape our own `.d.ts` swore was complete. The step, whenever a story here
+says the wire moved:
+
+1. Read the wire, not a memory of it. Either `docs/contracts/platform.md` in
+   `activekit-play`, which pins which parts the widget consumes and names what
+   is served and what is only asked for, or the dev tier's own document at
+   `GET /v1/openapi.json`. The document wins where the two disagree, and the
+   contract file is the one that says whether a field has actually landed.
+2. Change the types, the demo's stand-in and the tests in the same commit.
+   `examples/customer-demo/mock-activekit.mjs` answers the shape the SDK claims
+   and the fixtures in `packages/js/test/` assert against it, so a type that
+   moves without them leaves three descriptions of one payload and no way to
+   tell which is current.
+3. Never invent a field. A field the document does not serve is not a type
+   here, however clearly the roadmap says it is coming: the SDK is downstream
+   of the published API, and a type it does not answer is a promise we cannot
+   keep.

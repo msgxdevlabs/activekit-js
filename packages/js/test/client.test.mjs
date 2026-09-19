@@ -22,17 +22,54 @@ const stubFetch = (responses) => {
 	return { fetch, calls };
 };
 
+/**
+ * One `GET /v1/me/progress` answer, in the platform's shape rather than a
+ * convenient one. Every field is transcribed from the published document, the
+ * game model's `title`, `slot`, `cadence`, `periodKey`, `periodEndsAt` and
+ * `xp` included, and the goal is a `checklist` because that is the one arm
+ * with steps under it. The old fixture answered `subjectId` and a flat
+ * `current` / `target`, neither of which the platform has ever sent, so every
+ * assertion over it was a test of our own invention.
+ */
 const SNAPSHOT = {
-	subjectId: "sub_1",
+	environment: "production",
 	campaigns: [
 		{
-			campaign: { id: "cmp_1", key: "daily-login", name: "Daily login", status: "active" },
-			current: 3,
-			target: 7,
-			eligible: false,
+			id: "campaign_1",
+			status: "live",
+			publishedVersion: 1,
+			title: "Finish the week",
+			slot: "main",
+			cadence: "weekly",
+			periodKey: "2026-W38",
+			periodEndsAt: "2026-09-21T00:00:00.000Z",
+			xp: 100,
+			startsAt: null,
+			endsAt: null,
+			enrollment: "enrolled",
+			events: ["image.generated"],
+			goal: {
+				kind: "checklist",
+				achieved: 3,
+				target: 5,
+				steps: [
+					{ key: "mon", achieved: 1, target: 1, done: true },
+					{ key: "tue", achieved: 1, target: 1, done: true },
+					{ key: "wed", achieved: 1, target: 1, done: true },
+					{ key: "thu", achieved: 0, target: 1, done: false },
+					{ key: "fri", achieved: 0, target: 1, done: false },
+				],
+			},
+			completed: false,
 			completedAt: null,
+			reward: { source: "campaign", reward: { kind: "credits", amount: 40 } },
 		},
 	],
+	campaignCount: 1,
+	wallets: [{ currency: "coins", balance: 120 }],
+	currencyCount: 1,
+	progression: { xp: 340, level: 4, levelFloorXp: 300, nextLevelXp: 500 },
+	game: { id: "game_1", status: "live" },
 };
 
 test("refuses to construct without a token", () => {
@@ -45,8 +82,12 @@ test("sends the subject JWT and parses the response", async () => {
 
 	const snapshot = await client.progress();
 
-	assert.equal(snapshot.subjectId, "sub_1");
-	assert.equal(snapshot.campaigns[0].current, 3);
+	assert.equal(snapshot.campaigns[0].id, "campaign_1");
+	assert.equal(snapshot.campaigns[0].slot, "main");
+	assert.equal(snapshot.campaigns[0].title, "Finish the week");
+	assert.equal(snapshot.campaigns[0].goal.achieved, 3);
+	assert.equal(snapshot.game.id, "game_1");
+	assert.equal(snapshot.progression.nextLevelXp, 500);
 	assert.equal(calls.length, 1);
 	assert.equal(calls[0].url, "https://api.test/v1/me/progress");
 	assert.equal(calls[0].init.headers.authorization, "Bearer jwt_abc");
@@ -122,7 +163,7 @@ test("retries are safe because every request is idempotent", async () => {
 
 	const snapshot = await client.progress();
 
-	assert.equal(snapshot.subjectId, "sub_1");
+	assert.equal(snapshot.campaigns[0].id, "campaign_1");
 	assert.equal(calls.length, 2);
 	// Nothing was mutated on the first attempt, so the retry cannot double-count.
 	assert.ok(calls.every((c) => c.init.method === "GET"));
@@ -179,13 +220,13 @@ test("emits `progress` on every snapshot, and unsubscribes cleanly", async () =>
 	const client = createClient({ token: "jwt", fetch });
 
 	const seen = [];
-	const off = client.on("progress", (s) => seen.push(s.subjectId));
+	const off = client.on("progress", (s) => seen.push(s.campaigns[0].id));
 
 	await client.progress();
 	off();
 	await client.progress();
 
-	assert.deepEqual(seen, ["sub_1"]);
+	assert.deepEqual(seen, ["campaign_1"]);
 });
 
 test("one throwing subscriber does not stop the others", async () => {
@@ -196,11 +237,11 @@ test("one throwing subscriber does not stop the others", async () => {
 	client.on("progress", () => {
 		throw new Error("subscriber blew up");
 	});
-	client.on("progress", (s) => seen.push(s.subjectId));
+	client.on("progress", (s) => seen.push(s.campaigns[0].id));
 
 	await client.progress();
 
-	assert.deepEqual(seen, ["sub_1"]);
+	assert.deepEqual(seen, ["campaign_1"]);
 });
 
 test("a destroyed client refuses further requests", async () => {

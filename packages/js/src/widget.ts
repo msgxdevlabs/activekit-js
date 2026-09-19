@@ -2,15 +2,31 @@ import { el } from "./dom.js";
 import { applyColors } from "./colors.js";
 import type { WidgetColors } from "./colors.js";
 import type { ActiveKitClient } from "./client.js";
-import type { CampaignProgress } from "./types.js";
+import type { CampaignProgress, CampaignSlot, SubjectSnapshot } from "./types.js";
 
 export interface MountOptions {
 	/** Which campaign to render, by its id. Omit to render the first live one. */
 	campaignId?: string;
 	/**
-	 * The card's title. The platform deliberately never sends a campaign name
-	 * to a subject — player-facing words come from a vocabulary pack — so the
-	 * card cannot invent one. Without this it says "Your progress".
+	 * Which slot of the customer's game to render from, when no `campaignId`
+	 * names one exactly: the first live campaign filling that slot. `main` is
+	 * the week's chain, `daily` today's objective, `side` a one-off and
+	 * `event` a limited-time one. Ignored when `campaignId` is set.
+	 *
+	 * Without either, the card renders the first live campaign in the answer,
+	 * which is a reasonable default for a page running one campaign and a
+	 * coin toss for a page running a whole game.
+	 */
+	slot?: CampaignSlot;
+	/**
+	 * The card's title, overriding whatever the campaign carries.
+	 *
+	 * The platform sends a player-facing `title` per campaign, frozen into the
+	 * published version, and that is what the card draws by default. It still
+	 * never sends the operator's own campaign name. Pass this when the words
+	 * on your page should win over the words in the dashboard; a campaign
+	 * published before titles existed carries none, and the card says
+	 * "Your progress".
 	 */
 	label?: string;
 	/** `auto` follows the host page's `prefers-color-scheme`. */
@@ -64,7 +80,7 @@ color:var(--ak-fg);background:var(--ak-bg);border-radius:12px;padding:16px;borde
 .ak-track{height:6px;border-radius:9999px;background:var(--ak-track);overflow:hidden}
 .ak-fill{height:100%;background:linear-gradient(135deg,var(--ak-fill),var(--ak-fill2));transition:width 320ms cubic-bezier(.2,0,0,1)}
 .ak-pill{justify-self:start;font-size:11px;font-weight:600;color:var(--ak-accent);border:1px solid var(--ak-accent);border-radius:9999px;padding:3px 8px}
-.ak-pill[hidden]{display:none}
+.ak-pill[hidden],.ak-track[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){.ak-fill{transition:none}}
 `;
 
@@ -79,6 +95,11 @@ color:var(--ak-fg);background:var(--ak-bg);border-radius:12px;padding:16px;borde
  *
  * Synchronous by design: it paints a loading state immediately and fills in
  * when the network answers, so the host page never has to await a layout.
+ *
+ * Which campaign it draws: `campaignId` when one is named, else the first live
+ * campaign filling `slot`, else the first live one. What it calls that
+ * campaign: `label` when the caller gives one, else the campaign's own frozen
+ * title, else "Your progress".
  */
 export function mountWidget(
 	target: Element,
@@ -116,20 +137,41 @@ export function mountWidget(
 
 	let destroyed = false;
 
-	const label = options.label ?? "Your progress";
+	/**
+	 * The first live campaign the options select: one named by id, else the
+	 * first filling the named slot, else simply the first live one.
+	 */
+	const select = (snapshot: SubjectSnapshot): CampaignProgress | undefined =>
+		options.campaignId
+			? snapshot.campaigns.find((p) => p.id === options.campaignId)
+			: snapshot.campaigns.find(
+					(p) => p.status === "live" && (!options.slot || p.slot === options.slot),
+				);
 
 	const paint = (progress: CampaignProgress | undefined): void => {
 		if (!progress) {
-			name.textContent = "No active campaign";
+			// Nothing rather than a placeholder: a track drawn at zero reads as a
+			// campaign nobody has started, which is a different and wronger thing
+			// to say than that there is no campaign here.
+			name.textContent = "No campaign to show";
 			meta.textContent = "";
-			fill.style.width = "0%";
+			track.hidden = true;
 			pill.hidden = true;
 			return;
 		}
-		const { achieved, target } = progress.goal;
+		track.hidden = false;
+		const goal = progress.goal;
+		const { achieved, target } = goal;
 		const pct = target > 0 ? Math.min(achieved / target, 1) * 100 : 0;
+		const label = options.label ?? progress.title ?? "Your progress";
 		name.textContent = label;
-		meta.textContent = `${achieved} of ${target}`;
+		// A checklist is a list of ticks rather than a quantity, so it says how
+		// many of its steps are done. Counted off the steps themselves, so the
+		// line and a list drawn from the same goal cannot disagree.
+		meta.textContent =
+			goal.kind === "checklist"
+				? `${goal.steps.filter((step) => step.done).length} of ${goal.steps.length} done`
+				: `${achieved} of ${target}`;
 		fill.style.width = `${pct}%`;
 		track.setAttribute("role", "progressbar");
 		track.setAttribute("aria-valuenow", String(achieved));
@@ -148,11 +190,7 @@ export function mountWidget(
 		try {
 			const snapshot = await client.progress();
 			if (destroyed) return;
-			paint(
-				options.campaignId
-					? snapshot.campaigns.find((p) => p.id === options.campaignId)
-					: snapshot.campaigns.find((p) => p.status === "live"),
-			);
+			paint(select(snapshot));
 		} catch {
 			if (destroyed) return;
 			// A widget that renders an error stack on a customer's landing page is
@@ -160,6 +198,7 @@ export function mountWidget(
 			// call `client.progress()` themselves and catch it.
 			name.textContent = "Unavailable";
 			meta.textContent = "";
+			track.hidden = true;
 			pill.hidden = true;
 		}
 	};
