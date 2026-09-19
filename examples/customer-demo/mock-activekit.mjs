@@ -214,7 +214,11 @@ const CONFIRMED_EVENTS = new Set(CAMPAIGNS.flatMap(criteriaOf));
 // --- the clocks the slots run on --------------------------------------------
 //
 // Computed on every read rather than frozen at seed, so a demo left open
-// overnight answers today's period instead of yesterday's.
+// overnight answers today's period instead of yesterday's. The fields roll and
+// the progress behind them does not: a completed daily objective stays
+// completed under tomorrow's period key, where the platform would have
+// materialized a fresh instance. The demo is not a clock, and a walk that
+// crosses UTC midnight should reset it.
 
 /** `2026-09-19`, the UTC day a `daily` instance covers. */
 const utcDayKey = (now) => now.toISOString().slice(0, 10);
@@ -526,8 +530,11 @@ const applyEvent = (state, campaign, event) => {
 
 	if (campaign.reward.kind === "none") {
 		// No grant row, because there is nothing to record: the customer's
-		// ledger is never touched and the only thing earned is XP.
-		state.xp += SLOT_XP[campaign.slot];
+		// ledger is never touched and the only thing earned is XP. The main
+		// slot pays the chain's own figure rather than the slot's, the same as
+		// the branch below, or the XP credited here would disagree with the
+		// `xp` this campaign serves on the wire.
+		state.xp += campaign.slot === "main" ? MAIN_CHAIN_XP : SLOT_XP[campaign.slot];
 		return;
 	}
 

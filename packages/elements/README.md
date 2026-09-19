@@ -97,7 +97,7 @@ off a subject's state, read it directly and render whatever you like:
 import { createClient } from "@activekit/js";
 
 const { campaigns } = await createClient({ token }).progress();
-if (campaigns.some((p) => p.completed)) showYourOwnFulfilmentButton();
+if (campaigns.some((p) => p.completed)) showYourOwnFulfillmentButton();
 ```
 
 That button posts to your backend, which calls the server SDK. It is the only

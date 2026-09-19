@@ -233,7 +233,7 @@ test("every route the demo's own page calls answers", async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Idempotency, and the 202. Two platform behaviours a client has to handle, so
+// Idempotency, and the 202. Two platform behaviors a client has to handle, so
 // a mock that does not reproduce them teaches a client that breaks in
 // production. Driven straight at `/v1/events` because the demo's buttons mint a
 // fresh key per click on purpose, to simulate a week of logins in ten seconds.
@@ -452,7 +452,7 @@ test("completing a campaign issues a grant that snapshots its reward", async () 
 	assert.equal(week.status, "pending");
 	assert.deepEqual(week.reward, { kind: "credits", amount: 500 });
 	// One grant for the week, not one per objective: five grants a week per
-	// subject meters the customer's ledger five times for one behaviour.
+	// subject meters the customer's ledger five times for one behavior.
 	assert.equal(grants.filter((grant) => grant.campaign.id === "cmp_week_chain").length, 1);
 });
 
@@ -652,7 +652,13 @@ test("the stand-in names a ground the shell's own guard accepts", () => {
 
 	const source = standInSource();
 	assert.match(source, /type: "ready", ground:/, "the stand-in stopped naming its ground");
-	const grounds = [...source.matchAll(/"(#[0-9a-fA-F]{3,8})"/g)].map((match) => match[1]);
+	// Matched inside the `GROUNDS` literal rather than over the file, because a
+	// sweep of every hex string passes only while nothing else in the file
+	// carries one, and then fails some later change with a message about
+	// grounds.
+	const literal = /const GROUNDS = \{([^}]*)\}/.exec(source);
+	assert.ok(literal, "the stand-in no longer names its grounds in one place");
+	const grounds = [...literal[1].matchAll(/"(#[0-9a-fA-F]{3,8})"/g)].map((match) => match[1]);
 	assert.equal(grounds.length, 2, `expected one ground per template, found ${grounds.length}`);
 
 	for (const ground of grounds) {

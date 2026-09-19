@@ -10,4 +10,4 @@ Documentation only, and every sample in it was wrong. The bindings' READMEs show
 
 The inline card's marker reads "Reward earned" and has since the card learned the reward kinds; `ShellColors.accent` and two READMEs still called it "Reward ready". The size figures in `@activekit/js`'s README and the root README were a release behind and are re-derived: the client and inline widget at 3.1 kB brotli and the shell at 6.1 kB.
 
-No behaviour changes, and no public API moves.
+No behavior changes, and no public API moves.
