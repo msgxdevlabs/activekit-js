@@ -162,16 +162,18 @@ export function mountWidget(
 		track.hidden = false;
 		const goal = progress.goal;
 		const { achieved, target } = goal;
-		const pct = target > 0 ? Math.min(achieved / target, 1) * 100 : 0;
+		// A checklist's bar reads the steps the meta line below counts, for the
+		// reason that line gives: one goal cannot be allowed to draw two
+		// different amounts of progress.
+		const done = goal.kind === "checklist" ? goal.steps.filter((step) => step.done).length : achieved;
+		const whole = goal.kind === "checklist" ? goal.steps.length : target;
+		const pct = whole > 0 ? Math.min(done / whole, 1) * 100 : 0;
 		const label = options.label ?? progress.title ?? "Your progress";
 		name.textContent = label;
 		// A checklist is a list of ticks rather than a quantity, so it says how
 		// many of its steps are done. Counted off the steps themselves, so the
 		// line and a list drawn from the same goal cannot disagree.
-		meta.textContent =
-			goal.kind === "checklist"
-				? `${goal.steps.filter((step) => step.done).length} of ${goal.steps.length} done`
-				: `${achieved} of ${target}`;
+		meta.textContent = goal.kind === "checklist" ? `${done} of ${whole} done` : `${achieved} of ${target}`;
 		fill.style.width = `${pct}%`;
 		track.setAttribute("role", "progressbar");
 		track.setAttribute("aria-valuenow", String(achieved));
@@ -180,10 +182,13 @@ export function mountWidget(
 		track.setAttribute("aria-label", label);
 		// A statement of fact, not a control. Nothing here can act on it. A
 		// voided or reversed grant is a record, never a celebration, so the
-		// pill stays hidden for those.
+		// pill stays hidden for those, and so is a reward of kind `none`: it
+		// writes no grant row at all, which is what every daily objective and
+		// every step of a main chain pays.
 		const reward = progress.reward;
 		const stands = reward.source !== "grant" || reward.status === "pending" || reward.status === "fulfilled";
-		pill.hidden = !(progress.completed && stands);
+		const pays = reward.reward.kind !== "none";
+		pill.hidden = !(progress.completed && stands && pays);
 	};
 
 	const refresh = async (): Promise<void> => {

@@ -111,13 +111,32 @@ test("a checklist says how many of its steps are done", async () => {
 });
 
 test("a checklist counts the steps rather than trusting the total", async () => {
-	// `achieved` and the ticked steps are two derivations of one fact, so the
-	// line is drawn from the steps and cannot disagree with a list beside it.
+	// `achieved` and the ticked steps are two derivations of one fact, so both
+	// the line and the bar are drawn from the steps and cannot disagree with a
+	// list beside them, or with each other.
 	const root = await render([
 		campaign({ goal: { kind: "checklist", achieved: 0, target: 5, steps: steps(4) } }),
 	]);
 
 	assert.equal(find(root, "ak-meta").textContent, "4 of 5 done");
+	assert.equal(find(root, "ak-fill").style.width, "80%");
+});
+
+test("a reward of kind none shows no pill, however complete the campaign is", async () => {
+	// The commonest reward the game model writes: every daily objective and
+	// every step of a main chain pays it, and it records no grant, so there is
+	// nothing for the card to celebrate.
+	const root = await render([
+		campaign({ completed: true, reward: { source: "campaign", reward: { kind: "none" } } }),
+	]);
+
+	assert.equal(find(root, "ak-pill").hidden, true);
+});
+
+test("a reward that pays something still shows its pill on completion", async () => {
+	const root = await render([campaign({ completed: true })]);
+
+	assert.equal(find(root, "ak-pill").hidden, false);
 });
 
 test("every other goal kind keeps the plain count", async () => {

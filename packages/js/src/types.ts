@@ -31,7 +31,13 @@ export type Reward =
 	| { kind: "percent_bonus"; percent: number; of: string }
 	| { kind: "badge"; badge: string }
 	| { kind: "perk"; perk: string }
-	| { kind: "custom"; label: string; meta?: Record<string, unknown> };
+	| { kind: "custom"; label: string; meta?: Record<string, unknown> }
+	/**
+	 * Pays nothing, and is the commonest kind the game model writes: every
+	 * daily objective and every step of a main chain carries it. It records no
+	 * grant, so a completion that pays `none` has nothing to celebrate.
+	 */
+	| { kind: "none" };
 
 /**
  * What a campaign pays, and which side of the promise it came from.
@@ -104,7 +110,11 @@ export interface CampaignProgress {
 	 * there is no constant to name.
 	 */
 	xp: number | null;
-	enrollment: "not_enrolled" | "enrolled" | "completed";
+	/**
+	 * Two values, not three: a campaign a subject cannot enroll in is absent
+	 * from this list rather than present as a third state.
+	 */
+	enrollment: "not_enrolled" | "enrolled";
 	goal: GoalProgress;
 	/**
 	 * The declared event names this campaign's criteria listen for.
