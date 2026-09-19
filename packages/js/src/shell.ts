@@ -35,7 +35,12 @@ export interface ShellColors {
 	onBrand?: string;
 	/** The unseen dot, drawn on the bubble. */
 	ring?: string;
-	/** Frame and skeleton ground. */
+	/**
+	 * Frame and skeleton ground. The skeleton keeps it for as long as it is
+	 * drawn; the frame keeps it only until the app says which ground its
+	 * template is rendering on, after which the frame follows the app so the
+	 * two do not meet in a seam at the rounded corners.
+	 */
 	background?: string;
 	/** Close-button and skeleton foreground. */
 	foreground?: string;
@@ -397,7 +402,10 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 				// value on the host page, so it is checked for shape and not
 				// trusted: six hex digits or it is ignored and the theme default
 				// stands. Anything looser lets a compromised app write arbitrary
-				// CSS into the host document.
+				// CSS into the host document. The case tolerance is deliberate
+				// and is the one place this is looser than the contract, which
+				// says lowercase: a template authoring `#FFFFFF` is not a threat
+				// and is not the shell's to reject. Do not tighten it back.
 				if (typeof data["ground"] === "string" && /^#[0-9a-f]{6}$/i.test(data["ground"])) {
 					ground = data["ground"];
 					paint();
