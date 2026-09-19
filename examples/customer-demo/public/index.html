@@ -113,20 +113,22 @@
 				<div class="course-bar"><i></i></div>
 				<p class="sub" style="margin:4px 0 14px">6 of 13 lessons complete</p>
 
+				<!-- Each row records its own event, because each is one step of the
+				     week's main quest and a step has its own criteria. -->
 				<div class="lesson">
 					<span class="lesson-dot">📖</span>
 					<div><b>Lesson 7 · Preterite vs. imperfect</b><span>12 min · new grammar</span></div>
-					<button class="go" data-action="lesson">Start</button>
+					<button class="go" data-action="grammar">Start</button>
 				</div>
 				<div class="lesson">
 					<span class="lesson-dot">🎧</span>
 					<div><b>Listening · At the market</b><span>8 min · comprehension</span></div>
-					<button class="go" data-action="lesson">Start</button>
+					<button class="go" data-action="listening">Start</button>
 				</div>
 				<div class="lesson">
 					<span class="lesson-dot">🗣️</span>
 					<div><b>Speaking drill · Ser vs. estar</b><span>10 min · review</span></div>
-					<button class="go" data-action="lesson">Start</button>
+					<button class="go" data-action="speaking">Start</button>
 				</div>
 			</section>
 
@@ -138,11 +140,13 @@
 					which records an event with the <code>activekit</code> server SDK. The page then
 					re-reads its own progress with one <code>client.progress()</code> call, and the
 					bubble in the corner opens the ActiveKit app. The browser itself can never write.
+					The three <strong>Start</strong> buttons above are the week's main quest; these
+					are the rest of the game.
 				</p>
 				<div class="actions">
-					<button data-action="practice">✅ Complete today's practice</button>
-					<button data-action="lesson">📘 Finish a lesson</button>
+					<button data-action="practice">✅ Practice for five minutes</button>
 					<button data-action="refer">🤝 A referred friend signs up</button>
+					<button data-action="sprint">⏱ Log a sprint session</button>
 					<button data-action="reset" class="reset">↺ Reset demo state</button>
 				</div>
 			</aside>

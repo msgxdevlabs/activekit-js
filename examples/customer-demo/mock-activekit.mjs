@@ -37,37 +37,115 @@ export const API_KEY = "ak_demo_not_a_real_key";
 const ENVIRONMENT = "sandbox";
 
 /**
- * The campaigns "Acme Learn" is running. In production these are configured in
- * the ActiveKit dashboard.
+ * The one game "Acme Learn" runs, as the progress read answers it: two facts
+ * and no configuration. What a game is made of reaches a subject as the
+ * campaigns below, each one placed by the slot it fills.
+ */
+const GAME = { id: "game_acme_learn", status: "live" };
+
+// --- the platform's published economy ---------------------------------------
+//
+// These are constants the platform owns and a customer reads, not numbers this
+// demo invents: `LEVEL_BASE_XP` and `SLOT_XP` in the platform's own
+// `packages/core/src/level.ts`, published so a customer can see what each
+// completion pays and never set it. They are transcribed here for the same
+// reason the rest of this file is: nothing in this repository can reach the
+// platform, and a mock that guesses at the economy teaches a wrong one.
+
+/** What a completion pays in XP, by the slot the campaign fills. */
+const SLOT_XP = { daily: 20, main: 30, side: 50, event: 80 };
+
+/**
+ * What a main quest's whole chain pays, once, when its last objective ticks.
+ * `SLOT_XP.main` is what each objective along the way pays, which is why the
+ * main slot is the only one that credits XP twice for one week.
+ */
+const MAIN_CHAIN_XP = 100;
+
+/** The per-level step of the platform's triangular level curve. */
+const LEVEL_BASE_XP = 100;
+
+/** The cumulative XP at which `level` begins. Level 1 begins at 0. */
+const xpForLevel = (level) => (LEVEL_BASE_XP * (level - 1) * level) / 2;
+
+/**
+ * The level a subject holding `xp` has reached, by the curve above. Level is
+ * derived from XP and never stored, on the platform and here: one source of
+ * truth means a level that cannot drift from the XP behind it.
+ */
+const levelForXp = (xp) => {
+	let level = 1;
+	while (xpForLevel(level + 1) <= xp) level += 1;
+	return level;
+};
+
+/**
+ * The game's slots, as the campaign rows a subject reads them off.
  *
  * `status` is the subject-facing one: `live`, `paused` or `ended`. A draft is
  * never answered to a subject at all, so it has no spelling here.
  *
+ * `title` is the player-facing sentence the customer wrote, frozen into the
+ * published version. It rides the wire and the operator's own campaign `name`
+ * beside it never does: that is a dashboard string for a different reader, and
+ * it is answered only on a grant. What a card draws is `title`.
+ *
  * `events` is the criteria: the declared event names that advance the campaign
- * by one. The platform sends those, and deliberately never sends the campaign's
- * `name`, which is an operator string. What a player reads is written from the
- * goal and the event names through a vocabulary pack, so the name below is only
- * ever answered on a grant.
+ * by one. A checklist's are the union of its steps', which is how the platform
+ * finds a step's event without the candidate lookup learning what a step is.
  */
 const CAMPAIGNS = [
 	{
-		id: "cmp_streak",
-		name: "Daily practice streak",
+		id: "cmp_daily_practice",
+		name: "Daily practice",
+		title: "Practice for five minutes",
+		slot: "daily",
+		cadence: "daily",
 		status: "live",
-		goal: { kind: "streak", target: 7 },
+		goal: { kind: "count", target: 1 },
 		events: ["practice.checkin"],
+		// Pays nothing, and is the commonest reward the game model writes: a
+		// daily objective credits XP and never touches the customer's ledger,
+		// which is what makes the slot free to leave running forever. No grant
+		// row is written at all, so there is nothing here to celebrate.
+		reward: { kind: "none" },
+		startsAt: null,
+		endsAt: null,
+		publishedVersion: 1,
+	},
+	{
+		id: "cmp_week_chain",
+		name: "Weekly practice plan",
+		title: "Finish this week's practice plan",
+		slot: "main",
+		cadence: "weekly",
+		status: "live",
+		// A checklist, the goal kind the main quest brought: a list of ticks
+		// rather than a quantity. Each step has its own event, and the step keys
+		// are authored once and never renumbered.
+		goal: {
+			kind: "checklist",
+			steps: [
+				{ key: "grammar", event: "lesson.grammar", target: 1 },
+				{ key: "listening", event: "lesson.listening", target: 1 },
+				{ key: "speaking", event: "lesson.speaking", target: 1 },
+			],
+		},
 		reward: { kind: "credits", amount: 500 },
 		startsAt: null,
 		endsAt: null,
 		publishedVersion: 1,
 	},
 	{
-		id: "cmp_lessons",
-		name: "Lesson marathon",
+		id: "cmp_streak_7",
+		name: "Seven-day streak milestone",
+		title: "Practice seven days running",
+		slot: "side",
+		cadence: "once",
 		status: "live",
-		goal: { kind: "count", target: 10 },
-		events: ["lesson.completed"],
-		reward: { kind: "badge", badge: "marathon" },
+		goal: { kind: "streak", target: 7 },
+		events: ["practice.checkin"],
+		reward: { kind: "credits", amount: 1500 },
 		startsAt: null,
 		endsAt: null,
 		publishedVersion: 1,
@@ -75,20 +153,41 @@ const CAMPAIGNS = [
 	{
 		id: "cmp_referral",
 		name: "Refer a friend",
+		title: "Bring three friends along",
+		slot: "side",
+		cadence: "once",
 		status: "live",
 		goal: { kind: "count", target: 3 },
 		events: ["referral.converted"],
-		reward: { kind: "credits", amount: 1500 },
+		reward: { kind: "badge", badge: "recruiter" },
 		startsAt: null,
 		endsAt: null,
 		publishedVersion: 2,
 	},
 	{
+		// The event slot, which is the only one with a hard start and a hard end.
+		id: "cmp_autumn_sprint",
+		name: "Autumn sprint",
+		title: "Five sprint sessions before the sprint ends",
+		slot: "event",
+		cadence: "once",
+		status: "live",
+		goal: { kind: "count", target: 5 },
+		events: ["sprint.session"],
+		reward: { kind: "credits", amount: 2000 },
+		startsAt: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString(),
+		endsAt: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
+		publishedVersion: 1,
+	},
+	{
 		// An ended campaign, so the non-live states get exercised: a status other
-		// than `live` in the snapshot, an `enrollment` of `completed`, and a
-		// reward whose source is a grant rather than the published offer.
+		// than `live` in the snapshot, a completion instant, and a reward whose
+		// source is a grant rather than the published offer.
 		id: "cmp_onboarding",
 		name: "Onboarding week",
+		title: "Find your way around",
+		slot: "side",
+		cadence: "once",
 		status: "ended",
 		goal: { kind: "count", target: 5 },
 		events: ["onboarding.step"],
@@ -99,14 +198,71 @@ const CAMPAIGNS = [
 	},
 ];
 
+/** The declared event names of one campaign, a checklist's being its steps'. */
+const criteriaOf = (campaign) =>
+	campaign.goal.kind === "checklist"
+		? campaign.goal.steps.map((step) => step.event)
+		: campaign.events;
+
 /**
  * Every event name confirmed for this app. An unconfirmed name is answered 202
  * and dropped rather than recorded, so this is the set that decides which of
  * the two answers `POST /v1/events` gives.
  */
-const CONFIRMED_EVENTS = new Set(CAMPAIGNS.flatMap((campaign) => campaign.events));
+const CONFIRMED_EVENTS = new Set(CAMPAIGNS.flatMap(criteriaOf));
 
-/** subjectId -> { progress: Map<campaignId, {achieved, longest, completedAt}>, grants: [] } */
+// --- the clocks the slots run on --------------------------------------------
+//
+// Computed on every read rather than frozen at seed, so a demo left open
+// overnight answers today's period instead of yesterday's.
+
+/** `2026-09-19`, the UTC day a `daily` instance covers. */
+const utcDayKey = (now) => now.toISOString().slice(0, 10);
+
+/** The next UTC midnight, which is when that day's instance stops. */
+const endOfUtcDay = (now) =>
+	new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+	).toISOString();
+
+/** `2026-W38`, the ISO week a `weekly` instance covers. */
+const isoWeekKey = (now) => {
+	const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+	// An ISO week belongs to the year holding its Thursday, so step to that
+	// Thursday before reading either the year or the week number off it.
+	day.setUTCDate(day.getUTCDate() + 4 - (day.getUTCDay() || 7));
+	const firstOfYear = Date.UTC(day.getUTCFullYear(), 0, 1);
+	const week = Math.ceil(((day.getTime() - firstOfYear) / 86_400_000 + 1) / 7);
+	return `${day.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+};
+
+/** Next Monday 00:00 UTC, which is when this week's instance stops. */
+const endOfIsoWeek = (now) => {
+	const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+	day.setUTCDate(day.getUTCDate() + (8 - (day.getUTCDay() || 7)));
+	return day.toISOString();
+};
+
+/** `{ periodKey, periodEndsAt }` for a cadence. A `once` campaign has neither. */
+const periodOf = (cadence, now) => {
+	if (cadence === "daily") return { periodKey: utcDayKey(now), periodEndsAt: endOfUtcDay(now) };
+	if (cadence === "weekly") return { periodKey: isoWeekKey(now), periodEndsAt: endOfIsoWeek(now) };
+	return { periodKey: null, periodEndsAt: null };
+};
+
+/**
+ * subjectId -> {
+ *   progress: Map<campaignId, { achieved, longest, completedAt, steps }>,
+ *   grants: [],
+ *   walletEntries: [],
+ *   xp: number,
+ * }
+ *
+ * `walletEntries` rather than a balance, because that is what the platform
+ * holds: entries are append-only and the balance is a projection over them, so
+ * a reversal is a compensating entry and never a rewrite. `xp` is stored and
+ * the level is not, for the reason `levelForXp` gives.
+ */
 const subjects = new Map();
 /**
  * idempotencyKey -> the full original answer. Proper idempotency replays the
@@ -115,22 +271,37 @@ const subjects = new Map();
  */
 const seenEvents = new Map();
 
+const freshProgress = () => ({
+	achieved: 0,
+	longest: 0,
+	completedAt: null,
+	// Per-step counts for a checklist, keyed by the step's own key. Empty for
+	// every other goal kind, which counts in one number.
+	steps: {},
+});
+
 const freshSubject = () => ({
-	progress: new Map(CAMPAIGNS.map((c) => [c.id, { achieved: 0, longest: 0, completedAt: null }])),
+	progress: new Map(CAMPAIGNS.map((campaign) => [campaign.id, freshProgress()])),
 	grants: [],
+	walletEntries: [],
+	xp: 0,
 });
 
 /**
- * Pre-populate a subject so the very first page load already looks lived in: a
- * streak underway, a couple of lessons done, one historical reward.
+ * Pre-populate a subject so the very first page load already looks lived in:
+ * a week's plan underway, a streak standing, a sprint half done, and one
+ * historical reward.
  */
 export const seed = (subjectId) => {
 	const state = freshSubject();
-	const streak = state.progress.get("cmp_streak");
+	const streak = state.progress.get("cmp_streak_7");
 	streak.achieved = 4;
 	streak.longest = 4;
-	state.progress.get("cmp_lessons").achieved = 6;
+	// One of the week's three objectives ticked, so the board has something
+	// done and something open on the first paint.
+	state.progress.get("cmp_week_chain").steps["grammar"] = 1;
 	state.progress.get("cmp_referral").achieved = 1;
+	state.progress.get("cmp_autumn_sprint").achieved = 2;
 	const onboarding = state.progress.get("cmp_onboarding");
 	onboarding.achieved = 5;
 	onboarding.completedAt = new Date(Date.now() - 9 * 24 * 3600 * 1000).toISOString();
@@ -146,6 +317,10 @@ export const seed = (subjectId) => {
 		// first page load and opening the app visibly clears it.
 		acknowledgedAt: null,
 	});
+	// XP from that history. A perk pays no coins, so the wallet stays empty
+	// until a credit-denominated reward is earned in front of you, which is the
+	// first thing the demo's buttons can do.
+	state.xp = 340;
 	subjects.set(subjectId, state);
 };
 
@@ -208,23 +383,78 @@ const bearer = (req) => {
 const unexpectedKey = (body, allowed) =>
 	Object.keys(body ?? {}).find((key) => !allowed.includes(key));
 
+/**
+ * One campaign's goal, in the goal's own unit and in the shape the read
+ * answers: nested rather than flat, `achieved` rather than `current`, and only
+ * the extras the kind actually has.
+ *
+ * A checklist step carries `key`, `achieved`, `target` and `done` and nothing
+ * else. It has no title and no XP of its own on the wire; both are owed and
+ * neither is served, so a surface that wants them writes its own words rather
+ * than reading fields the platform does not answer.
+ */
+const goalOf = (campaign, progress) => {
+	if (campaign.goal.kind === "checklist") {
+		const steps = campaign.goal.steps.map((step) => {
+			const achieved = progress.steps[step.key] ?? 0;
+			return { key: step.key, achieved, target: step.target, done: achieved >= step.target };
+		});
+		return {
+			kind: "checklist",
+			achieved: steps.filter((step) => step.done).length,
+			target: steps.length,
+			steps,
+		};
+	}
+	return {
+		kind: campaign.goal.kind,
+		achieved: progress.achieved,
+		target: campaign.goal.target,
+		// Streaks only: the best run this subject has had.
+		...(campaign.goal.kind === "streak" ? { longest: progress.longest } : {}),
+	};
+};
+
+/** The balance projected over one subject's entries, one row per currency. */
+const walletsOf = (state) => {
+	const balances = new Map();
+	for (const entry of state.walletEntries) {
+		balances.set(entry.currency, (balances.get(entry.currency) ?? 0) + entry.amount);
+	}
+	return [...balances].map(([currency, balance]) => ({ currency, balance }));
+};
+
 const snapshotOf = (subjectId) => {
 	const state = subjectState(subjectId);
+	const now = new Date();
 	const campaigns = CAMPAIGNS.map((campaign) => {
-		const { achieved, longest, completedAt } = state.progress.get(campaign.id);
+		const progress = state.progress.get(campaign.id);
 		const grant = state.grants.find((g) => g.campaign.id === campaign.id);
+		const goal = goalOf(campaign, progress);
+		// Anything at all recorded against this campaign, a part-ticked
+		// checklist step included, which `goal.achieved` alone would read as
+		// nothing because it counts finished steps.
+		const started =
+			progress.completedAt !== null ||
+			goal.achieved > 0 ||
+			(goal.kind === "checklist" && goal.steps.some((step) => step.achieved > 0));
 		return {
 			id: campaign.id,
 			status: campaign.status,
-			enrollment: completedAt ? "completed" : achieved > 0 ? "enrolled" : "not_enrolled",
-			goal: {
-				kind: campaign.goal.kind,
-				achieved,
-				target: campaign.goal.target,
-				// Streaks only: the best run this subject has had.
-				...(campaign.goal.kind === "streak" ? { longest } : {}),
-			},
-			events: [...campaign.events],
+			title: campaign.title,
+			slot: campaign.slot,
+			cadence: campaign.cadence,
+			...periodOf(campaign.cadence, now),
+			// The platform constant this slot pays, which the customer reads and
+			// never sets. For `main` it is what the whole chain pays, once, when
+			// its last step ticks.
+			xp: campaign.slot === "main" ? MAIN_CHAIN_XP : SLOT_XP[campaign.slot],
+			// Two values, not three: a campaign a subject cannot enroll in is
+			// absent from this list rather than present as a third state, and a
+			// finished campaign stays `enrolled` with `completed` beside it.
+			enrollment: started ? "enrolled" : "not_enrolled",
+			goal,
+			events: [...criteriaOf(campaign)],
 			// The published promise until issuance freezes a copy of it, and the
 			// frozen copy after. The tag is the point: a reward read off a
 			// campaign is an offer and one read off a grant is history, and
@@ -232,25 +462,98 @@ const snapshotOf = (subjectId) => {
 			reward: grant
 				? { source: "grant", reward: { ...grant.reward }, status: grant.status }
 				: { source: "campaign", reward: { ...campaign.reward } },
-			completed: Boolean(completedAt),
+			completed: Boolean(progress.completedAt),
+			completedAt: progress.completedAt,
 			startsAt: campaign.startsAt,
 			endsAt: campaign.endsAt,
 			publishedVersion: campaign.publishedVersion,
 		};
 	});
+	const wallets = walletsOf(state);
+	const level = levelForXp(state.xp);
 	return {
 		environment: ENVIRONMENT,
 		campaigns,
 		campaignCount: campaigns.length,
-		// This mock's campaigns pay grants and never credit a wallet, so there is
-		// no balance to project over. Empty, with the count that goes with it,
-		// is what staging answers for exactly that subject.
-		wallets: [],
-		currencyCount: 0,
-		// No XP rules live in this mock, so it answers the floor rather than
-		// inventing a curve the platform does not have.
-		progression: { xp: 0, level: 1 },
+		wallets,
+		currencyCount: wallets.length,
+		// The band beside the level, so an "XP to the next level" line is
+		// subtraction over served numbers rather than the platform's curve
+		// re-derived by every surface that draws it.
+		progression: {
+			xp: state.xp,
+			level,
+			levelFloorXp: xpForLevel(level),
+			nextLevelXp: xpForLevel(level + 1),
+		},
+		game: { ...GAME },
 	};
+};
+
+/**
+ * Advance one campaign by one event, and pay what that completion earns.
+ *
+ * The economy is the platform's, transcribed: a main quest step credits
+ * `SLOT_XP.main` the moment it ticks; a completion whose reward is `none`
+ * credits the slot's XP and writes no grant row at all; and any other
+ * completion writes a grant, credits the slot's XP (`MAIN_CHAIN_XP` for the
+ * main quest's week), and for a credit-denominated reward appends the wallet
+ * entry that reward cost.
+ */
+const applyEvent = (state, campaign, event) => {
+	const progress = state.progress.get(campaign.id);
+	if (progress.completedAt) return; // completed campaigns stay completed
+
+	if (campaign.goal.kind === "checklist") {
+		const step = campaign.goal.steps.find((s) => s.event === event.name);
+		const ticked = progress.steps[step.key] ?? 0;
+		if (ticked >= step.target) return;
+		progress.steps[step.key] = ticked + 1;
+		if (progress.steps[step.key] >= step.target && campaign.slot === "main") {
+			state.xp += SLOT_XP.main;
+		}
+		const complete = campaign.goal.steps.every(
+			(s) => (progress.steps[s.key] ?? 0) >= s.target,
+		);
+		if (!complete) return;
+	} else {
+		progress.achieved += 1;
+		progress.longest = Math.max(progress.longest, progress.achieved);
+		if (progress.achieved < campaign.goal.target) return;
+	}
+
+	progress.completedAt = event.at;
+
+	if (campaign.reward.kind === "none") {
+		// No grant row, because there is nothing to record: the customer's
+		// ledger is never touched and the only thing earned is XP.
+		state.xp += SLOT_XP[campaign.slot];
+		return;
+	}
+
+	const grantId = `grant_${randomUUID().slice(0, 8)}`;
+	state.grants.unshift({
+		id: grantId,
+		campaign: { id: campaign.id, name: campaign.name },
+		// Issued, not yet fulfilled. Fulfilment is the customer's act in their
+		// own billing system, and the platform records that it happened rather
+		// than performing it.
+		status: "pending",
+		// Frozen copy of the reward at issuance, so a later edit to the campaign
+		// never rewrites what this subject earned.
+		reward: { ...campaign.reward },
+		issuedAt: event.at,
+		acknowledgedAt: null,
+	});
+	state.xp += campaign.slot === "main" ? MAIN_CHAIN_XP : SLOT_XP[campaign.slot];
+	if (campaign.reward.kind === "credits") {
+		state.walletEntries.push({
+			currency: "coins",
+			amount: campaign.reward.amount,
+			grantId,
+			at: event.at,
+		});
+	}
 };
 
 /** Returns `{ status, body }`, because the two answers here are 200 and 202. */
@@ -290,27 +593,8 @@ const recordEvent = (body) => {
 
 	const state = subjectState(body.subject);
 	for (const campaign of CAMPAIGNS) {
-		if (campaign.status !== "live" || !campaign.events.includes(body.name)) continue;
-		const progress = state.progress.get(campaign.id);
-		if (progress.completedAt) continue; // completed campaigns stay completed
-		progress.achieved += 1;
-		progress.longest = Math.max(progress.longest, progress.achieved);
-		if (progress.achieved >= campaign.goal.target) {
-			progress.completedAt = recorded.receivedAt;
-			state.grants.unshift({
-				id: `grant_${randomUUID().slice(0, 8)}`,
-				campaign: { id: campaign.id, name: campaign.name },
-				// Issued, not yet fulfilled. Fulfilment is the customer's act in
-				// their own billing system, and the platform records that it
-				// happened rather than performing it.
-				status: "pending",
-				// Frozen copy of the reward at issuance, so a later edit to the
-				// campaign never rewrites what this subject earned.
-				reward: { ...campaign.reward },
-				issuedAt: recorded.receivedAt,
-				acknowledgedAt: null,
-			});
-		}
+		if (campaign.status !== "live" || !criteriaOf(campaign).includes(body.name)) continue;
+		applyEvent(state, campaign, { name: body.name, at: recorded.receivedAt });
 	}
 
 	const answer = { status: 200, body: recorded };

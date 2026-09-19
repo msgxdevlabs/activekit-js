@@ -204,20 +204,25 @@ test("an action records an event in the platform's own field names", async () =>
 test("an action carries its properties through as the platform's meta", async () => {
 	await reset();
 
-	const event = await (await fetch(`${base}/api/actions/lesson`, { method: "POST" })).json();
+	const event = await (await fetch(`${base}/api/actions/grammar`, { method: "POST" })).json();
 
 	assert.deepEqual(event.meta, { course: "spanish-101" });
 });
 
 test("every route the demo's own page calls answers", async () => {
-	// The page makes exactly these three calls of its own. A 404 or a 502 on any
-	// of them is `pnpm demo` broken, which is the whole defect this file exists
-	// for.
+	// The page has a button for every one of these, one per objective of Acme's
+	// game plus the token fetch and the reset. A 404 or a 502 on any of them is
+	// `pnpm demo` broken, which is the whole defect this file exists for.
 	await reset();
 
 	for (const [method, path] of [
 		["GET", "/api/activekit/token"],
+		["POST", "/api/actions/practice"],
+		["POST", "/api/actions/grammar"],
+		["POST", "/api/actions/listening"],
+		["POST", "/api/actions/speaking"],
 		["POST", "/api/actions/refer"],
+		["POST", "/api/actions/sprint"],
 		["POST", "/api/demo/reset"],
 	]) {
 		const res = await fetch(`${base}${path}`, { method });
@@ -250,7 +255,7 @@ test("a retried event replays its first answer instead of writing twice", async 
 
 	const { token } = await session(subject);
 	const client = createClient({ token, apiUrl: `${base}/v1` });
-	const streak = (await client.progress()).campaigns.find((c) => c.id === "cmp_streak");
+	const streak = (await client.progress()).campaigns.find((c) => c.id === "cmp_streak_7");
 	assert.equal(streak.goal.achieved, 1, "the retry advanced the streak a second time");
 });
 
@@ -301,13 +306,27 @@ test("the browser client reads the snapshot the platform answers", async () => {
 		"campaigns",
 		"currencyCount",
 		"environment",
+		"game",
 		"progression",
 		"wallets",
 	]);
 	assert.equal(snapshot.environment, "sandbox");
 	assert.equal(snapshot.campaignCount, snapshot.campaigns.length);
-	assert.equal(typeof snapshot.progression.xp, "number");
-	assert.equal(typeof snapshot.progression.level, "number");
+	// Two facts and no configuration: what a game is made of reaches a subject
+	// as the campaigns beside it.
+	assert.deepEqual(Object.keys(snapshot.game).sort(), ["id", "status"]);
+	assert.equal(snapshot.game.status, "live");
+	// The level band rides the wire, so an "XP to the next level" line is
+	// subtraction over served numbers rather than the platform's curve
+	// re-derived out here.
+	assert.deepEqual(Object.keys(snapshot.progression).sort(), [
+		"level",
+		"levelFloorXp",
+		"nextLevelXp",
+		"xp",
+	]);
+	const { xp, level, levelFloorXp, nextLevelXp } = snapshot.progression;
+	assert.ok(levelFloorXp <= xp && xp < nextLevelXp, `${xp} is outside level ${level}`);
 	assert.ok(Array.isArray(snapshot.wallets));
 	assert.equal(snapshot.currencyCount, snapshot.wallets.length);
 	// Nothing here names the subject. The session already establishes who is
@@ -321,19 +340,26 @@ test("campaign progress is the platform's shape, not the one it replaced", async
 	const { token } = await (await fetch(`${base}/api/activekit/token`)).json();
 	const client = createClient({ token, apiUrl: `${base}/v1` });
 
-	const streak = (await client.progress()).campaigns.find((c) => c.id === "cmp_streak");
+	const streak = (await client.progress()).campaigns.find((c) => c.id === "cmp_streak_7");
 
 	assert.deepEqual(Object.keys(streak).sort(), [
+		"cadence",
 		"completed",
+		"completedAt",
 		"endsAt",
 		"enrollment",
 		"events",
 		"goal",
 		"id",
+		"periodEndsAt",
+		"periodKey",
 		"publishedVersion",
 		"reward",
+		"slot",
 		"startsAt",
 		"status",
+		"title",
+		"xp",
 	]);
 	// `live`, not `active`; `goal.achieved`, not a flat `current`. The retired
 	// shape is asserted absent because a mock drifting back toward the client's
@@ -343,13 +369,23 @@ test("campaign progress is the platform's shape, not the one it replaced", async
 	assert.equal(streak.goal.target, 7);
 	assert.equal(streak.goal.longest, 4);
 	assert.deepEqual(streak.events, ["practice.checkin"]);
+	// The player-facing sentence rides the wire; the operator's own campaign
+	// name never does, and is answered only on a grant.
+	assert.equal(streak.title, "Practice seven days running");
+	assert.equal(streak.name, undefined);
+	// A side quest has no clock, so it covers no period.
+	assert.equal(streak.slot, "side");
+	assert.equal(streak.cadence, "once");
+	assert.equal(streak.periodKey, null);
+	assert.equal(streak.periodEndsAt, null);
+	assert.equal(streak.xp, 50);
 	assert.equal(streak.current, undefined);
 	assert.equal(streak.eligible, undefined);
 	assert.equal(streak.campaign, undefined);
 	// An offer until issuance freezes a copy of it, and tagged as such. A
 	// reward read off a grant is history; reading one as the other is how a
 	// reversal gets celebrated.
-	assert.deepEqual(streak.reward, { source: "campaign", reward: { kind: "credits", amount: 500 } });
+	assert.deepEqual(streak.reward, { source: "campaign", reward: { kind: "credits", amount: 1500 } });
 });
 
 test("a completed campaign reports its reward from the grant that froze it", async () => {
@@ -360,8 +396,13 @@ test("a completed campaign reports its reward from the grant that froze it", asy
 	const done = (await client.progress()).campaigns.find((c) => c.id === "cmp_onboarding");
 
 	assert.equal(done.status, "ended");
-	assert.equal(done.enrollment, "completed");
+	// Two values and never a third: a finished campaign is still one the subject
+	// enrolled in, with `completed` and `completedAt` beside it saying the rest.
+	// `completed` was a third `enrollment` the wire cannot answer, and it lived
+	// in this mock rather than in the platform until the types caught it.
+	assert.equal(done.enrollment, "enrolled");
 	assert.equal(done.completed, true);
+	assert.ok(Number.isFinite(Date.parse(done.completedAt)), "completedAt is not a timestamp");
 	assert.equal(done.reward.source, "grant");
 	assert.equal(done.reward.status, "fulfilled");
 });
@@ -398,15 +439,170 @@ test("completing a campaign issues a grant that snapshots its reward", async () 
 	const { token } = await (await fetch(`${base}/api/activekit/token`)).json();
 	const client = createClient({ token, apiUrl: `${base}/v1` });
 
-	// Three lessons short of the marathon.
-	for (let i = 0; i < 4; i++) await fetch(`${base}/api/actions/lesson`, { method: "POST" });
+	// Two steps short of this week's chain: the seed leaves `grammar` ticked.
+	await fetch(`${base}/api/actions/listening`, { method: "POST" });
+	await fetch(`${base}/api/actions/speaking`, { method: "POST" });
 
 	const grants = await client.grants();
-	const marathon = grants.find((grant) => grant.campaign.id === "cmp_lessons");
+	const week = grants.find((grant) => grant.campaign.id === "cmp_week_chain");
 
-	assert.ok(marathon, "finishing the marathon issued no grant");
-	assert.equal(marathon.status, "pending");
-	assert.deepEqual(marathon.reward, { kind: "badge", badge: "marathon" });
+	assert.ok(week, "finishing the week's chain issued no grant");
+	assert.equal(week.status, "pending");
+	assert.deepEqual(week.reward, { kind: "credits", amount: 500 });
+	// One grant for the week, not one per objective: five grants a week per
+	// subject meters the customer's ledger five times for one behaviour.
+	assert.equal(grants.filter((grant) => grant.campaign.id === "cmp_week_chain").length, 1);
+});
+
+// ---------------------------------------------------------------------------
+// The game model: one game per app, with its campaigns placed in slots that
+// each run on their own clock. Acme's game fills all four, so every shape the
+// widget has to draw is exercised by the demo rather than described in a doc.
+// ---------------------------------------------------------------------------
+
+/** The subject's snapshot, through the client a customer actually ships. */
+const snapshot = async () => {
+	const { token } = await (await fetch(`${base}/api/activekit/token`)).json();
+	return createClient({ token, apiUrl: `${base}/v1` }).progress();
+};
+
+test("every campaign names the slot it fills, and the game fills all four", async () => {
+	await reset();
+
+	const { campaigns } = await snapshot();
+
+	// A campaign with no slot is one published before the game model, and this
+	// game has none: the widget cannot place a campaign it cannot put in a
+	// region, so a null here is a card with nowhere to draw.
+	assert.ok(
+		campaigns.every((campaign) => campaign.slot !== null),
+		"a campaign reached the wire with no slot",
+	);
+	assert.deepEqual(
+		[...new Set(campaigns.map((campaign) => campaign.slot))].sort(),
+		["daily", "event", "main", "side"],
+	);
+});
+
+test("the period keys name the clock each slot runs on", async () => {
+	await reset();
+
+	const byId = Object.fromEntries((await snapshot()).campaigns.map((c) => [c.id, c]));
+
+	// A UTC day for a daily objective, an ISO week for the main quest, and
+	// nothing at all for a campaign that runs once. Two instances of one
+	// objective differ by this and by nothing else a reader can see.
+	assert.equal(byId["cmp_daily_practice"].cadence, "daily");
+	assert.match(byId["cmp_daily_practice"].periodKey, /^\d{4}-\d{2}-\d{2}$/);
+	assert.equal(byId["cmp_week_chain"].cadence, "weekly");
+	assert.match(byId["cmp_week_chain"].periodKey, /^\d{4}-W\d{2}$/);
+	assert.equal(byId["cmp_referral"].periodKey, null);
+
+	for (const id of ["cmp_daily_practice", "cmp_week_chain"]) {
+		const ends = Date.parse(byId[id].periodEndsAt);
+		assert.ok(Number.isFinite(ends), `${id} has no period end`);
+		assert.ok(ends > Date.now(), `${id}'s period has already stopped`);
+	}
+	assert.equal(byId["cmp_referral"].periodEndsAt, null);
+});
+
+test("a checklist reports its steps, and one event ticks exactly one of them", async () => {
+	await reset();
+
+	const before = (await snapshot()).campaigns.find((c) => c.id === "cmp_week_chain");
+	assert.equal(before.goal.kind, "checklist");
+	// `achieved` counts the steps that are done, so a bar and a list drawn from
+	// the same goal cannot disagree.
+	assert.equal(before.goal.achieved, 1);
+	assert.equal(before.goal.target, 3);
+	assert.deepEqual(Object.keys(before.goal.steps[0]).sort(), [
+		"achieved",
+		"done",
+		"key",
+		"target",
+	]);
+	// No title and no XP on a step: neither is served, and a surface that wants
+	// them writes its own words rather than reading a field that is not there.
+	assert.equal(before.goal.steps[0].title, undefined);
+	assert.equal(before.goal.steps[0].xp, undefined);
+	assert.deepEqual(
+		before.goal.steps.map((step) => [step.key, step.done]),
+		[
+			["grammar", true],
+			["listening", false],
+			["speaking", false],
+		],
+	);
+
+	await fetch(`${base}/api/actions/listening`, { method: "POST" });
+
+	const after = (await snapshot()).campaigns.find((c) => c.id === "cmp_week_chain");
+	assert.deepEqual(
+		after.goal.steps.map((step) => [step.key, step.done]),
+		[
+			["grammar", true],
+			["listening", true],
+			["speaking", false],
+		],
+	);
+	assert.equal(after.goal.achieved, 2);
+	assert.equal(after.completed, false);
+});
+
+test("a daily objective pays XP and writes no grant at all", async () => {
+	await reset();
+	const { token } = await (await fetch(`${base}/api/activekit/token`)).json();
+	const client = createClient({ token, apiUrl: `${base}/v1` });
+	const grantsBefore = (await client.grants()).length;
+	const xpBefore = (await client.progress()).progression.xp;
+
+	await fetch(`${base}/api/actions/practice`, { method: "POST" });
+
+	const after = await client.progress();
+	const daily = after.campaigns.find((c) => c.id === "cmp_daily_practice");
+	assert.equal(daily.completed, true);
+	// A reward of kind `none`, which is the commonest the game model writes: the
+	// customer's ledger is never touched, so there is no grant row to record and
+	// nothing to celebrate. Only the XP moves.
+	assert.deepEqual(daily.reward, { source: "campaign", reward: { kind: "none" } });
+	assert.equal(after.progression.xp, xpBefore + 20);
+	assert.equal((await client.grants()).length, grantsBefore, "a `none` reward issued a grant");
+});
+
+test("a credits grant credits the wallet the balance projects over", async () => {
+	await reset();
+	const { token } = await (await fetch(`${base}/api/activekit/token`)).json();
+	const client = createClient({ token, apiUrl: `${base}/v1` });
+	assert.deepEqual((await client.progress()).wallets, [], "the seed starts with a balance");
+
+	await fetch(`${base}/api/actions/listening`, { method: "POST" });
+	await fetch(`${base}/api/actions/speaking`, { method: "POST" });
+
+	const after = await client.progress();
+	// The player-facing balance, `wallets`, and never the customer's own credit
+	// economy, which is a different object under a different word.
+	assert.deepEqual(after.wallets, [{ currency: "coins", balance: 500 }]);
+	assert.equal(after.currencyCount, 1);
+	// Two steps at 30 and the chain's own 100, which is the one slot that pays
+	// twice for a week: per objective on the way, and once when the last ticks.
+	assert.equal(after.progression.xp, 340 + 30 + 30 + 100);
+});
+
+test("a streak carries the best run beside the run still standing", async () => {
+	await reset();
+
+	await fetch(`${base}/api/actions/practice`, { method: "POST" });
+
+	const streak = (await snapshot()).campaigns.find((c) => c.id === "cmp_streak_7");
+	assert.equal(streak.goal.kind, "streak");
+	assert.equal(streak.goal.achieved, 5);
+	assert.equal(streak.goal.longest, 5);
+	// One event, two campaigns: the check-in moves today's objective and the
+	// streak milestone beside it, because both name it in their criteria.
+	assert.equal(
+		(await snapshot()).campaigns.find((c) => c.id === "cmp_daily_practice").completed,
+		true,
+	);
 });
 
 // ---------------------------------------------------------------------------
