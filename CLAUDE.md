@@ -47,9 +47,12 @@ shipped. `docs/short-owners.md` is that lane in one screen: every walk that is
 a person's, `J01` onward, numbered steps and a pass checklist, and a walk
 added or finished changes it in the same pull request.
 
-`pnpm test` names its files rather than globbing them, so a new test file is
-also a one-line edit to the root `test` script. A test no runner names is not
-a test.
+`pnpm test` names its files rather than globbing them, so a new test file at
+the root is also a one-line edit to the root `test` script. A package may glob
+its own: `packages/js` runs `node --test "test/**/*.test.mjs"`, so a file added
+there is picked up without an edit. Either way the rule is the same one: a test
+no runner names is not a test, so check which of the two applies before
+assuming you are covered.
 
 A green `check` is also the merge. With review findings fixed and the pull
 request's own CI green, the session labels its pull request `automerge` itself
@@ -88,3 +91,31 @@ and never `js#21`.
 Types come from the published OpenAPI contract, never a workspace import
 across repositories. `.github/workflows/automerge.yml` ships byte-identical in
 all three: change it here and the same bytes land there, or not at all.
+
+## Regenerating the wire types
+
+`packages/js/src/types.ts` is a hand transcription of the read-only slice of
+that contract, so it goes stale silently: nothing in this repository fails when
+the platform adds a field, and the first sign is a customer reading `undefined`
+off a shape our own `.d.ts` swore was complete. The step, whenever a story here
+says the wire moved:
+
+1. Read the wire, not a memory of it. Either `docs/contracts/platform.md` in
+   `activekit-play`, which pins which parts the widget consumes and names what
+   is served and what is only asked for, or the dev tier's own document at
+   `GET /v1/openapi.json`. The document wins where the two disagree, and the
+   contract file is the one that says whether a field has actually landed.
+2. Change the types, the demo's stand-in and the tests in the same commit.
+   `examples/customer-demo/mock-activekit.mjs` answers the shape the SDK claims
+   and the fixtures in `packages/js/test/` assert against it, so a type that
+   moves without them leaves three descriptions of one payload and no way to
+   tell which is current. One exception, and it has to be named in the pull
+   request that takes it: a plan story may own the stand-in separately, as
+   story 7.3 of `activekit-io`'s `docs/v2-alignment.md` owns it for the game
+   model, in which case the types move first and the story that owns the
+   stand-in closes the gap. An unnamed split is the failure this step exists
+   to catch.
+3. Never invent a field. A field the document does not serve is not a type
+   here, however clearly the roadmap says it is coming: the SDK is downstream
+   of the published API, and a type it does not answer is a promise we cannot
+   keep.

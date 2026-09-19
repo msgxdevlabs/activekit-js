@@ -17,6 +17,7 @@ export type { ProgressState, ProgressStore } from "./progress.js";
 
 export type {
 	ActiveKitClient,
+	CampaignSlot,
 	Grant,
 	MountOptions,
 	CampaignProgress,

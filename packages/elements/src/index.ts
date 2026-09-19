@@ -10,13 +10,28 @@
  * behavior.
  *
  *   <script type="module" src="…/@activekit/elements"></script>
- *   <activekit-widget token="SUBJECT_JWT" campaign="campaign_123"></activekit-widget>
+ *   <activekit-widget token="SUBJECT_JWT" campaign-slot="main"></activekit-widget>
  *   <activekit-shell token="SUBJECT_JWT"></activekit-shell>
  */
 import { createClient, mountShell, mountWidget } from "@activekit/js";
-import type { ActiveKitClient, ShellHandle, WidgetColors, WidgetHandle } from "@activekit/js";
+import type {
+	ActiveKitClient,
+	CampaignSlot,
+	ShellHandle,
+	WidgetColors,
+	WidgetHandle,
+} from "@activekit/js";
 
-const OBSERVED = ["token", "campaign", "label", "theme", "api-url", "brand-color", "accent-color"] as const;
+const OBSERVED = [
+	"token",
+	"campaign",
+	"campaign-slot",
+	"label",
+	"theme",
+	"api-url",
+	"brand-color",
+	"accent-color",
+] as const;
 
 /**
  * The shell's own set. It mounts an app rather than a campaign card, so it
@@ -88,6 +103,11 @@ export class ActiveKitWidgetElement extends HTMLElement {
 
 		const apiUrl = this.getAttribute("api-url");
 		const campaignId = this.getAttribute("campaign");
+		// `campaign-slot` rather than a bare `slot`, for the same reason `label`
+		// is not `title`: `slot` is a global HTML attribute, and setting it would
+		// reassign the element inside whatever shadow root the host page put it
+		// in, as a side effect of configuring a card.
+		const slot = this.getAttribute("campaign-slot") as CampaignSlot | null;
 		const label = this.getAttribute("label");
 		const theme = this.getAttribute("theme") as "light" | "dark" | "auto" | null;
 
@@ -96,6 +116,7 @@ export class ActiveKitWidgetElement extends HTMLElement {
 		this.#client = createClient({ token, ...(apiUrl ? { apiUrl } : {}) });
 		this.#handle = mountWidget(this, this.#client, {
 			...(campaignId ? { campaignId } : {}),
+			...(slot ? { slot } : {}),
 			...(label ? { label } : {}),
 			...(theme ? { theme } : {}),
 			...(colors ? { colors } : {}),

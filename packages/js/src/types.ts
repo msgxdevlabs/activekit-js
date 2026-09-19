@@ -9,14 +9,18 @@
  * body. See the note on read-only in `client.ts`.
  */
 
-/** A campaign an organization is running: streak, daily login, referral. */
-export interface Campaign {
-	id: string;
-	key: string;
-	name: string;
-	/** `active` is the only state a subject can make progress in. */
-	status: "draft" | "active" | "paused" | "ended";
-}
+/**
+ * Which slot of the customer's game a campaign fills.
+ *
+ * The four slots draw in four different places, which is what makes this the
+ * field that places a campaign rather than one more thing to list about it:
+ * `daily` resets every UTC day, `main` is the week's chain, `side` has no
+ * clock, and `event` runs between a hard start and a hard end.
+ */
+export type CampaignSlot = "daily" | "main" | "side" | "event";
+
+/** How often a campaign is written: once, or one period of a clock. */
+export type CampaignCadence = "once" | "daily" | "weekly";
 
 /**
  * A reward, as the API describes it: what a completion earns. Grants carry a
@@ -27,7 +31,13 @@ export type Reward =
 	| { kind: "percent_bonus"; percent: number; of: string }
 	| { kind: "badge"; badge: string }
 	| { kind: "perk"; perk: string }
-	| { kind: "custom"; label: string; meta?: Record<string, unknown> };
+	| { kind: "custom"; label: string; meta?: Record<string, unknown> }
+	/**
+	 * Pays nothing, and is the commonest kind the game model writes: every
+	 * daily objective and every step of a main chain carries it. It records no
+	 * grant, so a completion that pays `none` has nothing to celebrate.
+	 */
+	| { kind: "none" };
 
 /**
  * What a campaign pays, and which side of the promise it came from.
@@ -41,25 +51,70 @@ export type CampaignReward =
 	| { source: "campaign"; reward: Reward }
 	| { source: "grant"; reward: Reward; status: GrantStatus };
 
+/** One step of a checklist goal, in the order the goal declares them. */
+export interface ChecklistStep {
+	/** Stable key, authored once and never renumbered. */
+	key: string;
+	achieved: number;
+	target: number;
+	done: boolean;
+}
+
 /**
  * How far along a goal is, in the goal's own unit.
  *
  * `achieved` rather than `current`, and nested rather than flat, because that
  * is the shape `/v1/me/progress` answers.
+ *
+ * A union rather than one interface with optional extras, because that is what
+ * the platform answers: `longest` belongs to a streak and `steps` to a
+ * checklist, and a flat shape lets a caller read either off any goal, get
+ * `undefined` and draw it. Narrow on `kind` and the arm carries what it has.
  */
-export interface GoalProgress {
-	kind: string;
-	achieved: number;
-	target: number;
-	/** Streaks only: the best run this subject has had. */
-	longest?: number;
-}
+export type GoalProgress =
+	| { kind: "count"; achieved: number; target: number }
+	| { kind: "sum"; achieved: number; target: number }
+	| { kind: "streak"; achieved: number; target: number; longest: number }
+	| { kind: "checklist"; achieved: number; target: number; steps: readonly ChecklistStep[] };
 
 export interface CampaignProgress {
 	id: string;
 	/** `live`, `paused` or `ended`. A draft is never answered to a subject. */
 	status: "live" | "paused" | "ended";
-	enrollment: "not_enrolled" | "enrolled" | "completed";
+	/**
+	 * The title the organization wrote for the person reading, frozen into the
+	 * published version so it cannot change under a campaign they have already
+	 * finished. Not the operator's own campaign name, which this read
+	 * withholds: that is a different string for a different reader.
+	 *
+	 * Null for a campaign published before titles existed, which is a cue to
+	 * fall back rather than an empty line to draw.
+	 */
+	title: string | null;
+	/** Which slot of the game this fills. Null before the game model. */
+	slot: CampaignSlot | null;
+	/** Null for a campaign published before the game model. */
+	cadence: CampaignCadence | null;
+	/**
+	 * Which period this instance covers: `2026-09-14` for a day, `2026-W38`
+	 * for an ISO week, null for a campaign that runs once. Two instances of
+	 * one objective differ by this and by nothing else a reader can see.
+	 */
+	periodKey: string | null;
+	/** When that period stops, RFC 3339, so a countdown needs neither key format. */
+	periodEndsAt: string | null;
+	/**
+	 * The XP completing this campaign pays, a platform constant per slot that
+	 * the organization never sets. For `main` it is what the whole chain pays,
+	 * once, when its last step ticks. Null for a campaign in no slot, because
+	 * there is no constant to name.
+	 */
+	xp: number | null;
+	/**
+	 * Two values, not three: a campaign a subject cannot enroll in is absent
+	 * from this list rather than present as a third state.
+	 */
+	enrollment: "not_enrolled" | "enrolled";
 	goal: GoalProgress;
 	/**
 	 * The declared event names this campaign's criteria listen for.
@@ -71,6 +126,8 @@ export interface CampaignProgress {
 	events: string[];
 	reward: CampaignReward;
 	completed: boolean;
+	/** When the goal was reached, RFC 3339. Null until it is. */
+	completedAt: string | null;
 	startsAt: string | null;
 	endsAt: string | null;
 	publishedVersion: number;
@@ -115,7 +172,18 @@ export interface SubjectSnapshot {
 	campaignCount: number;
 	wallets: WalletBalance[];
 	currencyCount: number;
-	progression: { xp: number; level: number };
+	/**
+	 * XP and the level derived from it, with the level's own band beside them,
+	 * so a level bar and an "XP to the next level" line are subtraction over
+	 * served numbers rather than the platform's curve re-derived out here.
+	 */
+	progression: { xp: number; level: number; levelFloorXp: number; nextLevelXp: number };
+	/**
+	 * The game this app runs, or null when the organization has not set one up.
+	 * Two facts and no configuration: what a game is made of reaches a subject
+	 * as the campaigns above.
+	 */
+	game: { id: string; status: "draft" | "live" | "paused" } | null;
 }
 
 /** Events the client emits. Subscribe with `client.on(...)`. */

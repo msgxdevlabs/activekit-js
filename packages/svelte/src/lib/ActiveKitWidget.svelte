@@ -19,7 +19,7 @@
 		class?: string;
 	}
 
-	let { client, campaignId, label, theme, colors, class: className = "" }: Props = $props();
+	let { client, campaignId, slot, label, theme, colors, class: className = "" }: Props = $props();
 
 	let host = $state<HTMLDivElement | undefined>();
 
@@ -28,6 +28,7 @@
 
 		const handle = mountWidget(host, client, {
 			...(campaignId ? { campaignId } : {}),
+			...(slot ? { slot } : {}),
 			...(label ? { label } : {}),
 			...(theme ? { theme } : {}),
 			...(colors ? { colors } : {}),

@@ -25,6 +25,7 @@ import type { App, InjectionKey, Plugin, PropType, Ref } from "vue";
 import { mountShell, mountWidget } from "@activekit/js";
 import type {
 	ActiveKitClient,
+	CampaignSlot,
 	Grant,
 	MountOptions,
 	ShellColors,
@@ -150,7 +151,13 @@ export const ActiveKitWidget = defineComponent({
 	props: {
 		/** Which campaign to render, by its id. Omit to render the first live one. */
 		campaignId: { type: String, required: false, default: undefined },
-		/** The card's title. Without it the card says "Your progress". */
+		/** Which slot of the game to render from. See `MountOptions` in `@activekit/js`. */
+		slot: {
+			type: String as PropType<CampaignSlot>,
+			required: false,
+			default: undefined,
+		},
+		/** The card's title, overriding the campaign's own. Without either it says "Your progress". */
 		label: { type: String, required: false, default: undefined },
 		/** `auto` follows the host page's `prefers-color-scheme`. */
 		theme: {
@@ -172,6 +179,7 @@ export const ActiveKitWidget = defineComponent({
 			if (!host.value) return;
 			handle = mountWidget(host.value, client, {
 				...(props.campaignId ? { campaignId: props.campaignId } : {}),
+				...(props.slot ? { slot: props.slot } : {}),
 				...(props.label ? { label: props.label } : {}),
 				...(props.theme ? { theme: props.theme } : {}),
 				...(props.colors ? { colors: props.colors } : {}),
@@ -184,7 +192,14 @@ export const ActiveKitWidget = defineComponent({
 		// change is cheap and correct for every parameter; diffing the params
 		// would be the optimization that introduces the bug.
 		watch(
-			[host, () => props.campaignId, () => props.label, () => props.theme, () => colorsKey(props.colors)],
+			[
+				host,
+				() => props.campaignId,
+				() => props.slot,
+				() => props.label,
+				() => props.theme,
+				() => colorsKey(props.colors),
+			],
 			remount,
 			{ flush: "post" },
 		);
@@ -320,6 +335,7 @@ export const ActiveKitShell = defineComponent({
 
 export type {
 	ActiveKitClient,
+	CampaignSlot,
 	Grant,
 	MountOptions,
 	CampaignProgress,
