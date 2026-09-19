@@ -78,15 +78,20 @@ what a pass looks like. The why lives where each card points:
 
 1. `pnpm install`, then `pnpm demo`. It builds first, so the page serves the exact minified file a customer ships.
 2. Open the page. It is Acme Learn, a pretend language app, with the ActiveKit bubble docked in a corner.
-3. Under Demo controls press **Complete today's practice** a few times, then **Finish a lesson**, then **A referred friend signs up**.
-4. Press the bubble.
-5. Close the app, press **Reset demo state**, and open the network tab before pressing the bubble again.
+3. Under Demo controls press **Practice for five minutes** a few times, then **A referred friend signs up** and **Log a sprint session**. The three **Start** buttons beside the lessons are the week's main quest, one step each.
+4. Press the bubble, and look at both **Home** and **Map**.
+5. Leave the app open, press a **Start** button on the page behind it, and watch the app.
+6. Press the moon button in Acme's own nav to switch the page to dark, then open the app again.
+7. Close the app, press **Reset demo state**, and open the network tab before pressing the bubble again.
 
 **Pass**
 
 - [ ] The bubble has two states and no middle panel. A dot appears when something is unacknowledged, and opening the app clears it.
 - [ ] The app opens on `localhost:4174`, a different origin, in a frame over the dimmed page.
-- [ ] A goal moves on each press, and a grant lands when a goal is met.
+- [ ] It opens on **Home**: the week strip, the main quest's objectives, Today, and the side quests. There is no claim control anywhere on it, and the only thing moving is today's cell in the week strip.
+- [ ] **Map** draws the goal strip across the top and the route below it, with exactly one station pulsing.
+- [ ] A goal moves on each press, and a grant lands when a goal is met. With the app open, a press on the page behind it moves a goal in the app too.
+- [ ] The frame's ground is the app's own, in both page themes: switching Acme's page to dark changes the bubble and the scrim and leaves the ground behind the app alone. It never flashes the page's background at the moment the app appears.
 - [ ] In the network tab the frame's URL carries `theme` and a protocol version and no token. Every request from the page under `/v1/me` is a `GET`.
 
 > [!NOTE]

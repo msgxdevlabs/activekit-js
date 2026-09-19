@@ -26,7 +26,7 @@ Svelte 5 only. Svelte 4 users can use
   const client = createClient({ token });
 </script>
 
-<ActiveKitWidget {client} campaignKey="daily-login" />
+<ActiveKitWidget {client} slot="main" />
 ```
 
 ## Shell
@@ -57,7 +57,7 @@ For when the surrounding markup is yours and only the widget is ours:
   import { activekit } from "@activekit/svelte";
 </script>
 
-<div use:activekit={{ client, campaignKey: "daily-login" }}></div>
+<div use:activekit={{ client, slot: "main" }}></div>
 ```
 
 ## Store

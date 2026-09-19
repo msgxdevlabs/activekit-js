@@ -94,7 +94,13 @@ window.addEventListener("message", (event) => {
 			load();
 			break;
 		case "open":
-			// The shell revealed us. A real app would re-check for staleness here.
+			// ⭐ The shell revealed us, so the dot goes out. A real app reads its
+			// grants here and the platform stamps acknowledgment inside that
+			// read; there is no acknowledge call to make, because a browser
+			// holding a subject token cannot write. Posted on `open` and not on
+			// every paint: the frame is built on first hover, and a badge posted
+			// then would clear the dot for someone who never opened anything.
+			toHost({ type: "badge", value: false });
 			break;
 		case "close":
 			// The shell is dismissing us; nothing to tear down in the demo.
@@ -393,12 +399,6 @@ const render = () => {
 	renderBand();
 	renderHome();
 	renderMap();
-
-	// ⭐ Tell the shell whether the dot should be lit. While we are loaded the
-	// player is looking at what the dot stands for, and the platform stamps
-	// acknowledgment inside the read this app makes on open, so nothing is
-	// unacknowledged for as long as we are here.
-	toHost({ type: "badge", value: false });
 };
 
 // ---------------------------------------------------------------------------

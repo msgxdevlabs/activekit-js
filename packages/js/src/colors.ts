@@ -23,7 +23,7 @@ export interface WidgetColorTokens {
 	 * slate in the dark one. Override it when `brand` changes polarity.
 	 */
 	onBrand?: string;
-	/** Reward color on the panel: the "Reward ready" pill and fulfilled chips. */
+	/** Reward color on the panel: the "Reward earned" pill and fulfilled chips. */
 	accent?: string;
 	/**
 	 * The progress ring and reward dot, drawn on the *bubble* — the opposite

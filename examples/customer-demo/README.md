@@ -6,6 +6,11 @@ ActiveKit shell docked in the corner of its page, a backend that opens
 subject sessions and records events, and buttons that simulate the user doing
 things so you can watch a goal move and a grant land.
 
+Acme runs one game with every slot filled: a daily objective, a main quest whose
+three steps are the three lessons on the page, two side quests and a
+limited-time event. Each slot runs on its own clock and pays its own way, which
+is what makes the demo worth pressing more than once.
+
 Production (`api.activekit.app`) is not live yet, so the demo server also runs
 an in-memory stand-in for it. That mock is the one part of this folder a real
 customer never writes.
@@ -92,9 +97,17 @@ protocol version, and no token. The subject token crosses by `postMessage`
 after the app posts `ready`, because a URL reaches the referrer header, browser
 history and every proxy log on the way.
 
-`examples/dummy-app` is a stand-in for the real ActiveKit app — fake data, real
-handshake. Every message the shell can send is answered there, and every
+`examples/dummy-app` is a stand-in for the hosted ActiveKit app — fixed data,
+real handshake. Every message the shell can send is answered there, and every
 message the shell expects is sent.
+
+It draws the two views every widget template draws and no others: **Home**, the
+main quest board with its week strip, today's objective and the side quests, and
+**Map**, the goal strip and the route. There is no claim control on either,
+because the browser cannot write, and one thing moves per screen. Its `ready`
+message names the ground its template renders on, and the shell paints the
+frame from that, so the frame follows the template inside it rather than the
+host page's theme.
 
 ## Which files are "the integration"
 
@@ -106,9 +119,12 @@ message the shell expects is sent.
 | `mock-activekit.mjs` | Stand-in for api.activekit.app | **Never** — this side is ActiveKit's job. |
 | `demo.test.mjs` | Boots this server and drives every route it serves | No. It exists so this folder cannot rot again. |
 
-Two things the demo does that production should not:
+Three things the demo does that production should not:
 
 - `apiUrl` points at the local mock. A real integration omits it everywhere.
 - The daily check-in uses a random idempotency key per click, so you can
   simulate a week of logins in ten seconds. Production would use
   `${subjectId}:practice:${today}` so the same day never counts twice.
+- The stand-in app advances its own fiction when the shell tells it to refresh.
+  A real app re-reads `/v1/me/progress` there; this one has no wire behind it,
+  and moving on a refresh is what lets a walk watch a goal move.

@@ -20,7 +20,7 @@ pnpm add @activekit/elements
   import "@activekit/elements/auto";
 </script>
 
-<activekit-widget token="SUBJECT_JWT" campaign="daily-login"></activekit-widget>
+<activekit-widget token="SUBJECT_JWT" campaign-slot="main"></activekit-widget>
 ```
 
 Or register it yourself, under whatever tag name you like:
@@ -41,11 +41,18 @@ render.
 | Attribute | Required | Notes |
 | --- | --- | --- |
 | `token` | yes | Subject JWT, minted server-side. Set it late and the widget mounts then. |
-| `campaign` | no | Campaign key. Omit to render the first active campaign. |
+| `campaign` | no | One campaign, by its id. Omit to pick by slot instead. |
+| `campaign-slot` | no | Which slot of your game to draw from: `main`, `daily`, `side` or `event`. Ignored when `campaign` names one. With neither, the first live campaign in the answer. |
+| `label` | no | The card's title, overriding the campaign's own `title`. |
 | `theme` | no | `light`, `dark`, or `auto` (default) |
 | `api-url` | no | Override the API host |
 | `brand-color` | no | Primary brand color. The full per-theme `colors` option needs code. |
-| `accent-color` | no | Reward color: the "Reward ready" pill and fulfilled chips |
+| `accent-color` | no | Reward color: the "Reward earned" pill and fulfilled chips |
+
+`campaign-slot` rather than a bare `slot`, for the same reason `label` is not
+`title`: `slot` is a global HTML attribute, and setting it would reassign the
+element inside whatever shadow root the host page put it in as a side effect of
+configuring a card.
 
 `<activekit-shell>` has its own, shorter set — see below. It mounts an app
 rather than a campaign card, so almost none of the above applies to it.
@@ -81,7 +88,7 @@ the element a browser tooltip as a side effect.
 
 Mount one per page — two shells means two bubbles in the same corner.
 
-## Reacting to eligibility
+## Reacting to a completion
 
 The element emits no events, because nothing in it acts. To drive your own UI
 off a subject's state, read it directly and render whatever you like:
@@ -90,7 +97,7 @@ off a subject's state, read it directly and render whatever you like:
 import { createClient } from "@activekit/js";
 
 const { campaigns } = await createClient({ token }).progress();
-if (campaigns.some((p) => p.eligible)) showYourOwnClaimButton();
+if (campaigns.some((p) => p.completed)) showYourOwnFulfilmentButton();
 ```
 
 That button posts to your backend, which calls the server SDK. It is the only

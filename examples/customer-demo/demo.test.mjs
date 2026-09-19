@@ -53,6 +53,8 @@ const shellBundle = () =>
 		new URL("../../packages/js/dist/activekit-shell.global.iife.js", import.meta.url),
 		"utf8",
 	);
+const standInSource = () =>
+	readFileSync(new URL("../dummy-app/public/embed.js", import.meta.url), "utf8");
 
 /** The subject `server.mjs` acts for. Its own constant, mirrored here. */
 const DEMO_SUBJECT = "sub_demo_1";
@@ -637,6 +639,30 @@ test("the dot is the field the shell reads, and the grants read clears it", asyn
 
 	const after = await (await fetch(`${base}/v1/me/badge`, authed)).json();
 	assert.deepEqual(after, { unacknowledged: false });
+});
+
+test("the stand-in names a ground the shell's own guard accepts", () => {
+	// Read out of the two files rather than restated here, because a copy of the
+	// rule in a third place is a rule that can be right in two places and wrong
+	// where it matters. The shell's guard is the literal in the built bundle a
+	// customer loads; the grounds are the ones the stand-in would post.
+	const guard = /\/\^#\[0-9a-f\]\{6\}\$\/i/.exec(shellBundle());
+	assert.ok(guard, "the shell no longer guards the shape of `ground`");
+	const shape = new RegExp("^#[0-9a-f]{6}$", "i");
+
+	const source = standInSource();
+	assert.match(source, /type: "ready", ground:/, "the stand-in stopped naming its ground");
+	const grounds = [...source.matchAll(/"(#[0-9a-fA-F]{3,8})"/g)].map((match) => match[1]);
+	assert.equal(grounds.length, 2, `expected one ground per template, found ${grounds.length}`);
+
+	for (const ground of grounds) {
+		// The guard refuses a three-digit form on purpose, and a template
+		// authoring `#fff` would silently leave the theme default standing.
+		assert.ok(shape.test(ground), `the shell would refuse ${ground}`);
+		// Lowercase is the contract's word, and the guard is deliberately looser
+		// on case than the contract, so nothing mechanical holds this but this.
+		assert.equal(ground, ground.toLowerCase(), `${ground} is not lowercase`);
+	}
 });
 
 test("nothing a subject token can reach writes", async () => {
