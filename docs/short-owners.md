@@ -27,16 +27,20 @@ what a pass looks like. The why lives where each card points:
 > **environment** is the toggle inside an app on the dashboard: Sandbox or
 > Production keys. The rule, the same in all three repositories:
 >
-> | Walk | Tier | Why |
+> | Tier | Walk? | Why |
 > |---|---|---|
-> | A screen or API nothing outside one repository touches | **Dev** | Each repository's dev Worker is its own, redeployed on every merge, so it holds the newest build |
-> | Anything the demo, the golden loop or a second repository touches, webhooks included | **Staging** | The only tier where io, play and js meet; the demo Worker holds a staging sandbox key |
-> | Anything | **Production** | Never for a walk. Production is a release, and yours to dispatch |
+> | **Staging** | Every walk that opens a deployment, whatever it touches | The only tier you walk, and the only tier where io, play and js meet |
+> | **Dev** | Never | A session's tier for checking its own work. Nothing is asked of you on it |
+> | **Production** | Never | A release, and yours to dispatch |
 >
 > This repository deploys nothing itself, so its walks sit outside the table:
-> J02 runs on your machine against the in-memory mock, and J01 and J03 are
-> npm and Cloudflare. When a walk needs a deployed platform it is
-> **staging**, and that walk lives in `activekit-play` as `P03`.
+> J01 is an Actions dispatch, J02 runs on your machine against the in-memory
+> mock, J03 is the Cloudflare dashboard and J04 is a terminal. In the
+> repositories that do deploy, anything the loop wants you to look at is
+> deployed to staging first, with the steps for walking it, and a walk here that
+> needs a deployed platform is **staging** too and lives in `activekit-play` as
+> `P03`. Written down on 2026-09-24, on your word that staging is the only
+> environment you test.
 
 ## Walks
 

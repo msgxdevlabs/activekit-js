@@ -47,6 +47,16 @@ shipped. `docs/short-owners.md` is that lane in one screen: every walk that is
 a person's, `J01` onward, numbered steps and a pass checklist, and a walk
 added or finished changes it in the same pull request.
 
+Staging is the only tier the owner walks. Dev and staging are both a session's
+to deploy to and to check its own work against, but anything the owner is asked
+to look at goes to staging, whatever it touches, and the ask carries the steps
+for testing it. Written down on 2026-09-24, on his word that staging is the only
+environment he tests. This repository deploys no Worker of its own, so the rule
+reaches it through the walk lane above. The canonical statement is
+`activekit-io`'s, in `LOOP.md` section 13, "Continuous shipping and the walk
+lane"; no checkout of this repository carries that file, which is why the rule
+is written out here rather than pointed at.
+
 `pnpm test` names its files rather than globbing them, so a new test file at
 the root is also a one-line edit to the root `test` script. A package may glob
 its own: `packages/js` runs `node --test "test/**/*.test.mjs"`, so a file added
