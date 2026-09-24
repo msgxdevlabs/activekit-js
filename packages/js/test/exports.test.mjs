@@ -18,6 +18,7 @@ test("the package entry exports the full public surface", () => {
 	assert.equal(typeof pkg.mountWidget, "function");
 	assert.equal(typeof pkg.mountShell, "function");
 	assert.equal(typeof pkg.ActiveKitError, "function");
+	assert.equal(typeof pkg.isCampaignSlot, "function");
 });
 
 test("mountLauncher is gone, and stays gone", () => {

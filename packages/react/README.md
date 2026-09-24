@@ -36,32 +36,41 @@ export function Rewards() {
 
 `slot` picks which campaign to draw: `main` is the week's chain, `daily` today's
 objective, `side` a one-off and `event` a limited-time one. `campaignId` names
-one exactly and wins over it.
+one exactly and wins over it. Without either, the card draws the live main quest
+when there is one, and the first live campaign in any slot when there is not.
 
-There is no `onGrant` prop, because nothing here issues a grant. When a
-campaign's `completed` is true, render your own button and post to your own
-backend — that route calls the server SDK, which is the only thing that can
-write.
+There is no `onGrant` prop, because nothing here issues a grant and there is
+nothing to claim. The platform issues the grant a completion pays and tells
+your backend with a signed webhook; fulfilling it from your own credit ledger
+is your backend's job.
 
 ### Hooks
 
 ```tsx
-import { useActiveKit, useProgress } from "@activekit/react";
+import { useProgress } from "@activekit/react";
 
-function Streak() {
+function Campaigns() {
   const { data, error, loading, refresh } = useProgress();
-  const client = useActiveKit();
 
   if (loading) return <Skeleton />;
   if (error) return <Retry onClick={refresh} />;
 
-  return <ul>{data?.campaigns.map((p) => <li key={p.campaign.id}>{p.current}/{p.target}</li>)}</ul>;
+  return (
+    <ul>
+      {data?.campaigns.map((p) => (
+        <li key={p.id}>
+          {p.title ?? "Your progress"}: {p.goal.achieved} of {p.goal.target}
+        </li>
+      ))}
+    </ul>
+  );
 }
 ```
 
 `useProgress` is deliberately not a cache. Already running TanStack Query or
-SWR? Call `client.progress()` inside your own query instead — reimplementing
-invalidation here would only get it subtly wrong.
+SWR? Call `client.progress()` inside your own query instead, with the client
+from `useActiveKit()`. Reimplementing invalidation here would only get it
+subtly wrong.
 
 ## Shell
 

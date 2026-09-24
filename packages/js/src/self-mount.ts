@@ -8,6 +8,7 @@ import { createClient } from "./client.js";
 import type { ActiveKitClient } from "./client.js";
 import type { WidgetColors } from "./colors.js";
 import type { CampaignSlot } from "./types.js";
+import { isCampaignSlot } from "./widget.js";
 
 export interface ScriptConfig {
 	/** The client, already built from `data-token` and `data-api-url`. */
@@ -41,8 +42,10 @@ export const readScript = (): ScriptConfig | null => {
 	const campaignId = script.dataset["campaign"];
 	// `data-slot` rather than a second campaign attribute: it selects from the
 	// customer's game by the region the card is standing in, which is what a
-	// page with one card and a whole game actually wants.
-	const slot = script.dataset["slot"] as CampaignSlot | undefined;
+	// page with one card and a whole game actually wants. A value that names
+	// no slot is dropped here, so the card falls back to its default.
+	const rawSlot = script.dataset["slot"];
+	const slot = isCampaignSlot(rawSlot) ? rawSlot : undefined;
 	const label = script.dataset["label"];
 	const theme = script.dataset["theme"] as "light" | "dark" | "auto" | undefined;
 

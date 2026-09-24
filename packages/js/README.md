@@ -1,8 +1,8 @@
 # @activekit/js
 
 Browser client and embeddable widget for [ActiveKit](https://activekit.app).
-Vanilla TypeScript, zero dependencies. 3.1 kB brotli for the client and inline
-widget, 6.1 kB for the shell — you pay for the embed you mount, not the
+Vanilla TypeScript, zero dependencies. 3.2 kB brotli for the client and inline
+widget, 6.2 kB for the shell — you pay for the embed you mount, not the
 package.
 
 **Read-only.** This package retrieves a subject's own campaign progress and
@@ -82,9 +82,10 @@ So the split is:
 
 `CampaignProgress.completed` tells you a subject reached a goal, and
 `reward.source` tells you whether issuance has frozen a copy of what it pays.
-Render a button on either if you like — but that button posts to *your* backend,
-which calls the server SDK. Nothing in this package can complete that action,
-and the test suite asserts as much: it walks the client's prototype chain for
+Draw what you like from either; there is nothing to claim. When a completion
+pays a grant, the platform issues it and sends your backend a signed webhook,
+and your backend fulfills it from your own credit ledger. Nothing in this
+package can write, and the test suite asserts as much: it walks the client's prototype chain for
 write-shaped methods and asserts every captured request is a `GET` with no body.
 
 ## Widget
@@ -106,10 +107,13 @@ its styles cannot leak out — which matters because this ships to sites we do
 not control and cannot test against.
 
 It draws one campaign: the one `campaignId` names, else the first live campaign
-filling `slot` — `main` is the week's chain, `daily` today's objective, `side` a
-one-off and `event` a limited-time one. It calls that campaign by its own
-`title`, the player-facing sentence the platform freezes into the published
-version, and `label` overrides it.
+filling `slot`. `main` is the week's chain, `daily` today's objective, `side` a
+one-off and `event` a limited-time one. Without a `slot` the card draws the live
+main quest when the answer carries one, and the first live campaign in any slot
+when it does not. It calls that campaign by its own `title`, the player-facing
+sentence the platform freezes into the published version, and `label` overrides
+it. With nothing live where it looked the card draws no track and says so: "No
+main quest to show" for a `slot` of `main`, and "Nothing to show" without one.
 
 It reports and does not act: a completed campaign that pays a grant shows a
 "Reward earned" marker and stops there. There is no claim button, for the reason
@@ -147,7 +151,7 @@ layout gives up nothing for it.
 ### What runs on your page, and what doesn't
 
 Almost nothing runs here. The shell is a button, a frame, a loading skeleton
-and a versioned message protocol — 6.1 kB brotli, and it does not grow when the
+and a versioned message protocol — 6.2 kB brotli, and it does not grow when the
 product does, because every screen with content in it is served from
 `play.activekit.app` on ActiveKit's own origin.
 
@@ -271,7 +275,7 @@ container element needed:
 Two files rather than one with a mode switch, because a script tag has no
 bundler to shake out what you did not ask for: the shell carries an iframe host
 and a message protocol, and a page that only wants the inline card should not
-download them. 3.1 kB brotli against the shell's 6.1 kB.
+download them. 3.2 kB brotli against the shell's 6.2 kB.
 
 `data-token`, `data-api-url` and `data-theme` work on both. `data-campaign`,
 `data-slot`, `data-label` and `data-target` are the widget's; `data-app-url`, `data-position`, `data-label`,

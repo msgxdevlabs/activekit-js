@@ -44,13 +44,14 @@ import { ActiveKitWidget } from "@activekit/vue";
 
 `slot` picks which campaign to draw: `main` is the week's chain, `daily` today's
 objective, `side` a one-off and `event` a limited-time one. `campaign-id` names
-one exactly and wins over it.
+one exactly and wins over it. Without either, the card draws the live main quest
+when there is one, and the first live campaign in any slot when there is not.
 
 `class` and `style` fall through to the widget's host element — no wrapper
-needed. There is no `onGrant` prop, because nothing here issues a grant. When a
-campaign's `completed` is true, render your own button and post to your own
-backend — that route calls the server SDK, which is the only thing that can
-write.
+needed. There is no `onGrant` prop, because nothing here issues a grant and
+there is nothing to claim. The platform issues the grant a completion pays and
+tells your backend with a signed webhook; fulfilling it from your own credit
+ledger is your backend's job.
 
 For a client scoped to part of the app instead of all of it, call
 `provideActiveKit(client)` in an ancestor's `setup`.
@@ -59,24 +60,26 @@ For a client scoped to part of the app instead of all of it, call
 
 ```vue
 <script setup lang="ts">
-import { useActiveKit, useProgress } from "@activekit/vue";
+import { useProgress } from "@activekit/vue";
 
 const { data, error, loading, refresh } = useProgress();
-const client = useActiveKit();
 </script>
 
 <template>
   <Skeleton v-if="loading" />
   <Retry v-else-if="error" @click="refresh" />
   <ul v-else>
-    <li v-for="p in data?.campaigns" :key="p.campaign.id">{{ p.current }}/{{ p.target }}</li>
+    <li v-for="p in data?.campaigns" :key="p.id">
+      {{ p.title ?? "Your progress" }}: {{ p.goal.achieved }} of {{ p.goal.target }}
+    </li>
   </ul>
 </template>
 ```
 
 `useProgress` is deliberately not a cache. Already running TanStack Query or
-Pinia Colada? Call `client.progress()` inside your own query instead —
-reimplementing invalidation here would only get it subtly wrong.
+Pinia Colada? Call `client.progress()` inside your own query instead, with the
+client from `useActiveKit()`. Reimplementing invalidation here would only get
+it subtly wrong.
 
 ## Shell
 
