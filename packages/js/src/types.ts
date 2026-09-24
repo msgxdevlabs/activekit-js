@@ -186,14 +186,17 @@ export interface SubjectSnapshot {
 	game: { id: string; status: "draft" | "live" | "paused" } | null;
 	/**
 	 * The activity streak: consecutive UTC days, ending today or yesterday, on
-	 * which the subject finished a daily objective, and the best such run.
+	 * which a daily objective's completion paid the subject XP, and the best
+	 * such run.
 	 *
 	 * Not a campaign's `streak` goal. That one counts the days one campaign's
-	 * criteria matched; this counts the days the game's daily slot was finished,
+	 * criteria matched; this counts the days the game's daily slot paid out,
 	 * whatever that day's objective was. `current` reads 0 once a day is missed
-	 * and 0 for a subject who has finished none, so draw a chip at 0 rather than
-	 * hide it. `longest` never falls, so it stays true beside a `current` that
-	 * just went back to 0.
+	 * and 0 for a subject the daily slot has never paid, so draw a chip at 0
+	 * rather than hide it. `longest` is the best run among the newest 730 such
+	 * days the platform reads, not over all time: it holds beside a `current`
+	 * that just went back to 0, and can fall only once a subject has more than
+	 * two years of them.
 	 */
 	streak: { current: number; longest: number };
 }
