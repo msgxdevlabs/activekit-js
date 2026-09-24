@@ -247,8 +247,8 @@ const endOfIsoWeek = (now) => {
 	return day.toISOString();
 };
 
-/** The UTC day number of a `utcDayKey`, so consecutive days differ by one. */
-const dayNumber = (key) => Date.parse(`${key}T00:00:00.000Z`) / 86_400_000;
+/** Whole UTC days since the epoch, so consecutive days differ by one. */
+const utcDay = (instant) => Math.floor(instant.getTime() / 86_400_000);
 
 /**
  * The activity streak the progress read serves, folded the way the platform's
@@ -258,8 +258,8 @@ const dayNumber = (key) => Date.parse(`${key}T00:00:00.000Z`) / 86_400_000;
  * after `now` is not history yet and drops out.
  */
 const activityStreakOf = (days, now) => {
-	const today = dayNumber(utcDayKey(now));
-	const sorted = [...days].map(dayNumber).filter((day) => day <= today).sort((a, b) => a - b);
+	const today = utcDay(now);
+	const sorted = [...days].filter((day) => day <= today).sort((a, b) => a - b);
 	if (sorted.length === 0) return { current: 0, longest: 0 };
 	let run = 1;
 	let longest = 1;
@@ -283,14 +283,14 @@ const periodOf = (cadence, now) => {
  *   grants: [],
  *   walletEntries: [],
  *   xp: number,
- *   dailyDays: Set<string>,
+ *   dailyDays: Set<number>,
  * }
  *
  * `walletEntries` rather than a balance, because that is what the platform
  * holds: entries are append-only and the balance is a projection over them, so
  * a reversal is a compensating entry and never a rewrite. `xp` is stored and
  * the level is not, for the reason `levelForXp` gives. `dailyDays` is the
- * record the activity streak is read from, one `utcDayKey` per day a daily
+ * record the activity streak is read from, one `utcDay` per day a daily
  * objective paid XP, which is the platform's own source: its XP awards joined
  * to the slot of the campaign that paid them.
  */
@@ -356,9 +356,8 @@ export const seed = (subjectId) => {
 	// Four days of finished daily objectives, ending yesterday, the same four
 	// the streak milestone above counts. Today's is still open, so the chip
 	// reads 4 on the first paint and the practice button makes it 5.
-	for (let daysAgo = 1; daysAgo <= 4; daysAgo += 1) {
-		state.dailyDays.add(utcDayKey(new Date(Date.now() - daysAgo * 86_400_000)));
-	}
+	const today = utcDay(new Date());
+	for (let daysAgo = 1; daysAgo <= 4; daysAgo += 1) state.dailyDays.add(today - daysAgo);
 	subjects.set(subjectId, state);
 };
 
@@ -568,7 +567,7 @@ const applyEvent = (state, campaign, event) => {
 	// Every completion below pays XP, so a daily one is a day the activity
 	// streak counts. A set, because three daily objectives finished on one day
 	// are one day of activity.
-	if (campaign.slot === "daily") state.dailyDays.add(utcDayKey(new Date(event.at)));
+	if (campaign.slot === "daily") state.dailyDays.add(utcDay(new Date(event.at)));
 
 	if (campaign.reward.kind === "none") {
 		// No grant row, because there is nothing to record: the customer's
