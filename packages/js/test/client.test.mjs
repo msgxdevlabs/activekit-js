@@ -70,6 +70,7 @@ const SNAPSHOT = {
 	currencyCount: 1,
 	progression: { xp: 340, level: 4, levelFloorXp: 300, nextLevelXp: 500 },
 	game: { id: "game_1", status: "live" },
+	streak: { current: 12, longest: 30 },
 };
 
 test("refuses to construct without a token", () => {
@@ -88,6 +89,7 @@ test("sends the subject JWT and parses the response", async () => {
 	assert.equal(snapshot.campaigns[0].goal.achieved, 3);
 	assert.equal(snapshot.game.id, "game_1");
 	assert.equal(snapshot.progression.nextLevelXp, 500);
+	assert.deepEqual(snapshot.streak, { current: 12, longest: 30 });
 	assert.equal(calls.length, 1);
 	assert.equal(calls[0].url, "https://api.test/v1/me/progress");
 	assert.equal(calls[0].init.headers.authorization, "Bearer jwt_abc");

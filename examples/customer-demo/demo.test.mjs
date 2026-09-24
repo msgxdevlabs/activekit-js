@@ -310,6 +310,7 @@ test("the browser client reads the snapshot the platform answers", async () => {
 		"environment",
 		"game",
 		"progression",
+		"streak",
 		"wallets",
 	]);
 	assert.equal(snapshot.environment, "sandbox");
@@ -329,6 +330,7 @@ test("the browser client reads the snapshot the platform answers", async () => {
 	]);
 	const { xp, level, levelFloorXp, nextLevelXp } = snapshot.progression;
 	assert.ok(levelFloorXp <= xp && xp < nextLevelXp, `${xp} is outside level ${level}`);
+	assert.deepEqual(Object.keys(snapshot.streak).sort(), ["current", "longest"]);
 	assert.ok(Array.isArray(snapshot.wallets));
 	assert.equal(snapshot.currencyCount, snapshot.wallets.length);
 	// Nothing here names the subject. The session already establishes who is
@@ -605,6 +607,44 @@ test("a streak carries the best run beside the run still standing", async () => 
 		(await snapshot()).campaigns.find((c) => c.id === "cmp_daily_practice").completed,
 		true,
 	);
+});
+
+test("the activity streak starts at zero and moves only on a daily objective", async () => {
+	// The top-level `streak`, not the campaign goal of the same name: the days
+	// the game's daily slot was finished. A subject who has finished none reads
+	// 0 and 0, which the widget draws as a chip rather than hides.
+	await reset();
+	const subject = "sub_activity_streak";
+	const { token } = await session(subject);
+	const client = createClient({ token, apiUrl: `${base}/v1` });
+	const track = (name, key) =>
+		apiKeyed("/events", {
+			method: "POST",
+			body: JSON.stringify({ name, subject, idempotencyKey: `${subject}:${key}` }),
+		});
+
+	assert.deepEqual((await client.progress()).streak, { current: 0, longest: 0 });
+
+	// A side quest's event moves its own goal and never the streak, which reads
+	// XP paid by the daily slot and nothing else.
+	await track("referral.converted", "refer:1");
+	assert.deepEqual((await client.progress()).streak, { current: 0, longest: 0 });
+
+	await track("practice.checkin", "practice:1");
+	assert.deepEqual((await client.progress()).streak, { current: 1, longest: 1 });
+
+	// Today is already counted: a second check-in is the same day, not a second.
+	await track("practice.checkin", "practice:2");
+	assert.deepEqual((await client.progress()).streak, { current: 1, longest: 1 });
+});
+
+test("the seeded subject's streak stands through yesterday and today extends it", async () => {
+	await reset();
+	assert.deepEqual((await snapshot()).streak, { current: 4, longest: 4 });
+
+	await fetch(`${base}/api/actions/practice`, { method: "POST" });
+
+	assert.deepEqual((await snapshot()).streak, { current: 5, longest: 5 });
 });
 
 // ---------------------------------------------------------------------------
