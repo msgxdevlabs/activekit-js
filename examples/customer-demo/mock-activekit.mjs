@@ -247,6 +247,35 @@ const endOfIsoWeek = (now) => {
 	return day.toISOString();
 };
 
+/** Whole UTC days since the epoch, so consecutive days differ by one. */
+const utcDay = (instant) => Math.floor(instant.getTime() / 86_400_000);
+
+/**
+ * The activity streak the progress read serves, folded the way the platform's
+ * `foldActivityStreak` folds it: distinct UTC days on which a daily completion
+ * paid XP, `current` the run ending at the last such day while that day is
+ * today or yesterday and 0 once it is older, `longest` the best run. A day
+ * after `now` is not history yet and drops out.
+ *
+ * The platform reads only the newest 730 such days, so its `longest` is the
+ * best run inside that window. This fold reads every day it is given, which
+ * is the same answer for any history a demo can hold.
+ *
+ * Exported so the demo test can hold the fold to fixed days and a fixed `now`.
+ */
+export const activityStreakOf = (days, now) => {
+	const today = utcDay(now);
+	const sorted = [...days].filter((day) => day <= today).sort((a, b) => a - b);
+	if (sorted.length === 0) return { current: 0, longest: 0 };
+	let run = 1;
+	let longest = 1;
+	for (let i = 1; i < sorted.length; i += 1) {
+		run = sorted[i] === sorted[i - 1] + 1 ? run + 1 : 1;
+		longest = Math.max(longest, run);
+	}
+	return { current: today - sorted[sorted.length - 1] <= 1 ? run : 0, longest };
+};
+
 /** `{ periodKey, periodEndsAt }` for a cadence. A `once` campaign has neither. */
 const periodOf = (cadence, now) => {
 	if (cadence === "daily") return { periodKey: utcDayKey(now), periodEndsAt: endOfUtcDay(now) };
@@ -260,12 +289,16 @@ const periodOf = (cadence, now) => {
  *   grants: [],
  *   walletEntries: [],
  *   xp: number,
+ *   dailyDays: Set<number>,
  * }
  *
  * `walletEntries` rather than a balance, because that is what the platform
  * holds: entries are append-only and the balance is a projection over them, so
  * a reversal is a compensating entry and never a rewrite. `xp` is stored and
- * the level is not, for the reason `levelForXp` gives.
+ * the level is not, for the reason `levelForXp` gives. `dailyDays` is the
+ * record the activity streak is read from, one `utcDay` per day a daily
+ * objective paid XP, which is the platform's own source: its XP awards joined
+ * to the slot of the campaign that paid them.
  */
 const subjects = new Map();
 /**
@@ -289,6 +322,7 @@ const freshSubject = () => ({
 	grants: [],
 	walletEntries: [],
 	xp: 0,
+	dailyDays: new Set(),
 });
 
 /**
@@ -296,7 +330,7 @@ const freshSubject = () => ({
  * a week's plan underway, a streak standing, a sprint half done, and one
  * historical reward.
  */
-export const seed = (subjectId) => {
+export const seed = (subjectId, now = new Date()) => {
 	const state = freshSubject();
 	const streak = state.progress.get("cmp_streak_7");
 	streak.achieved = 4;
@@ -308,7 +342,7 @@ export const seed = (subjectId) => {
 	state.progress.get("cmp_autumn_sprint").achieved = 2;
 	const onboarding = state.progress.get("cmp_onboarding");
 	onboarding.achieved = 5;
-	onboarding.completedAt = new Date(Date.now() - 9 * 24 * 3600 * 1000).toISOString();
+	onboarding.completedAt = new Date(now.getTime() - 9 * 24 * 3600 * 1000).toISOString();
 	state.grants.push({
 		id: `grant_${randomUUID().slice(0, 8)}`,
 		campaign: { id: "cmp_onboarding", name: "Onboarding week" },
@@ -325,6 +359,11 @@ export const seed = (subjectId) => {
 	// until a credit-denominated reward is earned in front of you, which is the
 	// first thing the demo's buttons can do.
 	state.xp = 340;
+	// Four days of finished daily objectives, ending the day before the seed.
+	// Today's is still open, so on the day it is seeded the streak reads 4 and
+	// the practice button makes it 5. Read on any later day it has broken.
+	const today = utcDay(now);
+	for (let daysAgo = 1; daysAgo <= 4; daysAgo += 1) state.dailyDays.add(today - daysAgo);
 	subjects.set(subjectId, state);
 };
 
@@ -428,9 +467,13 @@ const walletsOf = (state) => {
 	return [...balances].map(([currency, balance]) => ({ currency, balance }));
 };
 
-const snapshotOf = (subjectId) => {
+/**
+ * The progress read. `now` is a parameter so the demo test can read the
+ * seeded streak at a fixed instant rather than at whatever time the suite
+ * happens to run, which is the difference between a test and a midnight flake.
+ */
+export const snapshotOf = (subjectId, now = new Date()) => {
 	const state = subjectState(subjectId);
-	const now = new Date();
 	const campaigns = CAMPAIGNS.map((campaign) => {
 		const progress = state.progress.get(campaign.id);
 		const grant = state.grants.find((g) => g.campaign.id === campaign.id);
@@ -491,6 +534,10 @@ const snapshotOf = (subjectId) => {
 			nextLevelXp: xpForLevel(level + 1),
 		},
 		game: { ...GAME },
+		// Top-level, and a different thing from the `streak` goal on a campaign:
+		// the days a daily completion paid XP, whatever the day's objective
+		// was. A subject the daily slot has never paid reads 0 and 0.
+		streak: activityStreakOf(state.dailyDays, now),
 	};
 };
 
@@ -527,6 +574,10 @@ const applyEvent = (state, campaign, event) => {
 	}
 
 	progress.completedAt = event.at;
+	// Every completion below pays XP, so a daily one is a day the activity
+	// streak counts. A set, because three daily objectives finished on one day
+	// are one day of activity.
+	if (campaign.slot === "daily") state.dailyDays.add(utcDay(new Date(event.at)));
 
 	if (campaign.reward.kind === "none") {
 		// No grant row, because there is nothing to record: the customer's
@@ -563,8 +614,11 @@ const applyEvent = (state, campaign, event) => {
 	}
 };
 
-/** Returns `{ status, body }`, because the two answers here are 200 and 202. */
-const recordEvent = (body) => {
+/**
+ * Returns `{ status, body }`, because the two answers here are 200 and 202.
+ * `receivedAt` is a parameter for the reason `snapshotOf`'s `now` is.
+ */
+export const recordEvent = (body, receivedAt = new Date()) => {
 	// Replay rather than suppress, and keyed off the body field. The key used to
 	// be read from an `Idempotency-Key` header that nothing sends, which made
 	// every retry a second write against a real budget.
@@ -580,7 +634,6 @@ const recordEvent = (body) => {
 		return { status: 202, body: { status: "pending_confirmation", name: body.name } };
 	}
 
-	const receivedAt = new Date();
 	const occurredAt = body.occurredAt ? new Date(body.occurredAt) : receivedAt;
 	const recorded = {
 		id: `evt_${randomUUID().replace(/-/g, "").slice(0, 16)}`,

@@ -80,6 +80,7 @@ const snapshotOf = (campaigns) => ({
 	currencyCount: 0,
 	progression: { xp: 340, level: 4, levelFloorXp: 300, nextLevelXp: 500 },
 	game: { id: "game_1", status: "live" },
+	streak: { current: 0, longest: 0 },
 });
 
 /** Mount, let the one queued answer land, and hand back the root element. */

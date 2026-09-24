@@ -45,7 +45,13 @@ import { fileURLToPath } from "node:url";
 import test, { after, before } from "node:test";
 
 import { createClient } from "../../packages/js/dist/index.js";
-import { API_KEY } from "./mock-activekit.mjs";
+import {
+	API_KEY,
+	activityStreakOf,
+	recordEvent,
+	seed,
+	snapshotOf,
+} from "./mock-activekit.mjs";
 
 const serverPath = fileURLToPath(new URL("server.mjs", import.meta.url));
 const shellBundle = () =>
@@ -310,6 +316,7 @@ test("the browser client reads the snapshot the platform answers", async () => {
 		"environment",
 		"game",
 		"progression",
+		"streak",
 		"wallets",
 	]);
 	assert.equal(snapshot.environment, "sandbox");
@@ -329,6 +336,7 @@ test("the browser client reads the snapshot the platform answers", async () => {
 	]);
 	const { xp, level, levelFloorXp, nextLevelXp } = snapshot.progression;
 	assert.ok(levelFloorXp <= xp && xp < nextLevelXp, `${xp} is outside level ${level}`);
+	assert.deepEqual(Object.keys(snapshot.streak).sort(), ["current", "longest"]);
 	assert.ok(Array.isArray(snapshot.wallets));
 	assert.equal(snapshot.currencyCount, snapshot.wallets.length);
 	// Nothing here names the subject. The session already establishes who is
@@ -605,6 +613,89 @@ test("a streak carries the best run beside the run still standing", async () => 
 		(await snapshot()).campaigns.find((c) => c.id === "cmp_daily_practice").completed,
 		true,
 	);
+});
+
+test("the activity streak starts at zero and moves only on a daily objective", async () => {
+	// The top-level `streak`, not the campaign goal of the same name: the days
+	// on which a daily completion paid XP. A subject who has none reads 0 and 0,
+	// which the widget draws as a chip rather than hides. Every value read here
+	// holds across a UTC midnight, because a day's run still stands the next.
+	await reset();
+	const subject = "sub_activity_streak";
+	const { token } = await session(subject);
+	const client = createClient({ token, apiUrl: `${base}/v1` });
+	const track = (name, key) =>
+		apiKeyed("/events", {
+			method: "POST",
+			body: JSON.stringify({ name, subject, idempotencyKey: `${subject}:${key}` }),
+		});
+
+	assert.deepEqual((await client.progress()).streak, { current: 0, longest: 0 });
+
+	// A side quest completed, which pays XP and issues a grant, and still
+	// leaves the streak where it was: only the daily slot's XP counts.
+	for (const key of ["refer:1", "refer:2", "refer:3"]) await track("referral.converted", key);
+	const referral = (await client.progress()).campaigns.find((c) => c.id === "cmp_referral");
+	assert.equal(referral.completed, true, "the side quest never completed, so this proves nothing");
+	assert.deepEqual((await client.progress()).streak, { current: 0, longest: 0 });
+
+	await track("practice.checkin", "practice:1");
+	assert.deepEqual((await client.progress()).streak, { current: 1, longest: 1 });
+
+	// The daily objective is already completed, so a second check-in pays no
+	// XP and records no day: the streak does not move.
+	await track("practice.checkin", "practice:2");
+	assert.deepEqual((await client.progress()).streak, { current: 1, longest: 1 });
+});
+
+/** An instant `hours` into UTC day `day`, counted in whole days since the epoch. */
+const at = (day, hours = 12) => new Date((day + hours / 24) * 86_400_000);
+
+test("the streak fold, held to fixed days and a fixed now", () => {
+	// Every value the integration tests reach has `current` equal to `longest`
+	// and no gaps, so the fold's own rules are pinned here, in day numbers.
+	for (const [days, now, expected] of [
+		// A gap ends a run, and the best run outlives it.
+		[[1, 2, 3, 7, 8], 8, { current: 2, longest: 3 }],
+		// A run whose last day was yesterday still stands.
+		[[5, 6], 7, { current: 2, longest: 2 }],
+		// Two days on it has broken, and `longest` keeps what it was.
+		[[5, 6], 8, { current: 0, longest: 2 }],
+		// A one-day gap is a break, not a continuation.
+		[[5, 7], 7, { current: 1, longest: 1 }],
+		// A day after `now` is not history yet.
+		[[5, 6, 9], 7, { current: 2, longest: 2 }],
+		[[], 7, { current: 0, longest: 0 }],
+	]) {
+		assert.deepEqual(
+			activityStreakOf(new Set(days), at(now)),
+			expected,
+			`days ${JSON.stringify(days)} at ${now}`,
+		);
+	}
+});
+
+test("the seeded streak stands through yesterday, today extends it, a missed day breaks it", () => {
+	// In process with a fixed clock rather than through the server, because the
+	// seed and the read are two instants: a suite that straddles 00:00 UTC
+	// between them reads a broken streak, and that is the fold being right.
+	const day = 20_720;
+	const extended = "sub_seed_extended";
+	seed(extended, at(day, 9));
+	assert.deepEqual(snapshotOf(extended, at(day, 9)).streak, { current: 4, longest: 4 });
+
+	recordEvent(
+		{ name: "practice.checkin", subject: extended, idempotencyKey: `${extended}:practice` },
+		at(day, 10),
+	);
+	assert.deepEqual(snapshotOf(extended, at(day, 10)).streak, { current: 5, longest: 5 });
+	assert.deepEqual(snapshotOf(extended, at(day + 1)).streak, { current: 5, longest: 5 });
+	assert.deepEqual(snapshotOf(extended, at(day + 2)).streak, { current: 0, longest: 5 });
+
+	// The midnight case itself: seeded a moment before it, read a moment after.
+	const missed = "sub_seed_missed";
+	seed(missed, at(day, 23.999));
+	assert.deepEqual(snapshotOf(missed, at(day + 1, 0.001)).streak, { current: 0, longest: 4 });
 });
 
 // ---------------------------------------------------------------------------
