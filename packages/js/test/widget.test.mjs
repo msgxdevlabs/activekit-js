@@ -1,92 +1,18 @@
-// What the card draws, asserted over `dist/` like every other test here.
-//
-// Node has no DOM, so the file brings the smallest one `mountWidget` can run
-// against: elements that remember a class, a text and a hidden flag, a shadow
-// root that accepts children, and nothing else. A real headless browser would
-// be a heavier dependency than the thing under test, and the card's rendering
-// is text into three elements — a double that cannot express a layout bug is
-// still the right double for asserting what those three elements say.
+// What the card draws, asserted over `dist/` like every other test here, on
+// the DOM double in `card-double.mjs`.
 import assert from "node:assert/strict";
 import test from "node:test";
 
-/** One element. `style` is a plain object, which is all `applyColors` needs. */
-const makeElement = (tag) => {
-	const node = {
-		tagName: tag,
-		className: "",
-		textContent: "",
-		hidden: false,
-		dataset: {},
-		children: [],
-		attributes: {},
-		style: { setProperty() {}, removeProperty() {} },
-		append(...kids) {
-			node.children.push(...kids);
-		},
-		setAttribute(name, value) {
-			node.attributes[name] = value;
-		},
-		attachShadow() {
-			// Kept on the host so the search below can walk into it. A real
-			// shadow root is reachable the same way, through `host.shadowRoot`.
-			node.shadowRoot = makeElement("#shadow-root");
-			return node.shadowRoot;
-		},
-		remove() {},
-	};
-	return node;
-};
+import { campaign, find, installDom, makeElement, snapshotOf } from "./card-double.mjs";
 
-globalThis.document = { createElement: makeElement };
+installDom();
 
-const { mountWidget } = await import("../dist/index.js");
-
-/** Depth-first search for the one element carrying a class, shadow roots included. */
-const find = (node, className) => {
-	if (node.className === className) return node;
-	for (const child of [...(node.shadowRoot ? [node.shadowRoot] : []), ...node.children]) {
-		const hit = find(child, className);
-		if (hit) return hit;
-	}
-	return undefined;
-};
-
-const campaign = (overrides) => ({
-	id: "campaign_1",
-	status: "live",
-	publishedVersion: 1,
-	title: "Finish the week",
-	slot: "main",
-	cadence: "weekly",
-	periodKey: "2026-W38",
-	periodEndsAt: "2026-09-21T00:00:00.000Z",
-	xp: 100,
-	startsAt: null,
-	endsAt: null,
-	enrollment: "enrolled",
-	events: ["image.generated"],
-	goal: { kind: "count", achieved: 2, target: 7 },
-	completed: false,
-	completedAt: null,
-	reward: { source: "campaign", reward: { kind: "credits", amount: 40 } },
-	...overrides,
-});
-
-const snapshotOf = (campaigns) => ({
-	environment: "production",
-	campaigns,
-	campaignCount: campaigns.length,
-	wallets: [],
-	currencyCount: 0,
-	progression: { xp: 340, level: 4, levelFloorXp: 300, nextLevelXp: 500 },
-	game: { id: "game_1", status: "live" },
-	streak: { current: 0, longest: 0 },
-});
+const { isCampaignSlot, mountWidget } = await import("../dist/index.js");
 
 /** Mount, let the one queued answer land, and hand back the root element. */
-const render = async (campaigns, options = {}) => {
+const render = async (campaigns, options = {}, game) => {
 	const target = makeElement("div");
-	const client = { progress: async () => snapshotOf(campaigns) };
+	const client = { progress: async () => snapshotOf(campaigns, game) };
 	const handle = mountWidget(target, client, { theme: "light", ...options });
 	await handle.refresh();
 	return find(target, "ak");
@@ -160,19 +86,6 @@ test("`label` wins over the title, and both over the fallback", async () => {
 	assert.equal(find(untitled, "ak-name").textContent, "Your progress");
 });
 
-test("`slot` picks the campaign the card is standing beside", async () => {
-	const root = await render(
-		[
-			campaign({ id: "campaign_main", slot: "main" }),
-			campaign({ id: "campaign_daily", slot: "daily", title: "Today", goal: { kind: "count", achieved: 1, target: 3 } }),
-		],
-		{ slot: "daily" },
-	);
-
-	assert.equal(find(root, "ak-name").textContent, "Today");
-	assert.equal(find(root, "ak-meta").textContent, "1 of 3");
-});
-
 test("`campaignId` names one campaign exactly, and `slot` does not override it", async () => {
 	const root = await render(
 		[campaign({ id: "campaign_main", slot: "main" }), campaign({ id: "campaign_daily", slot: "daily", title: "Today" })],
@@ -182,15 +95,137 @@ test("`campaignId` names one campaign exactly, and `slot` does not override it",
 	assert.equal(find(root, "ak-name").textContent, "Finish the week");
 });
 
-test("no campaign draws no track, rather than a track at zero", async () => {
-	// An empty bar reads as a campaign nobody has started. Saying nothing is
-	// the honest answer when there is nothing to say.
-	const root = await render([campaign({ slot: "main" })], { slot: "event" });
+const NO_GAME = null;
 
-	assert.equal(find(root, "ak-name").textContent, "No campaign to show");
-	assert.equal(find(root, "ak-meta").textContent, "");
+/** A daily objective listed before the main quest, so "first live" and `main` disagree. */
+const dailyThenMain = () => [
+	campaign({ id: "campaign_daily", slot: "daily", title: "Today" }),
+	campaign({ id: "campaign_main", slot: "main" }),
+];
+
+test("with no slot named, the card draws the live main quest, not the first live campaign", async () => {
+	// Before the default, the card drew whichever live campaign came first,
+	// so which one a page showed depended on the order the platform answered.
+	const root = await render(dailyThenMain());
+
+	assert.equal(find(root, "ak-name").textContent, "Finish the week");
+});
+
+/**
+ * The default is keyed on the data, never on `game`: a live main quest in the
+ * answer is drawn, and without one the first live campaign in any slot is.
+ * A draft game has published nothing, so it has no main quest to draw, and
+ * the card must not claim it does. An explicit slot wins in every world.
+ */
+const side = () => campaign({ id: "campaign_side", slot: "side", title: "Share a render" });
+const WORLDS = [
+	{
+		world: "a live main quest beside a side quest",
+		campaigns: () => [side(), campaign({ id: "campaign_main", slot: "main" })],
+		game: { id: "game_1", status: "live" },
+		bare: "Finish the week",
+		asMain: "Finish the week",
+		asSide: "Share a render",
+	},
+	{
+		world: "a side quest alone, under a draft game",
+		campaigns: () => [side()],
+		game: { id: "game_1", status: "draft" },
+		bare: "Share a render",
+		asMain: "No main quest to show",
+		asSide: "Share a render",
+	},
+	{
+		world: "a side quest alone, with no game",
+		campaigns: () => [side()],
+		game: NO_GAME,
+		bare: "Share a render",
+		asMain: "No main quest to show",
+		asSide: "Share a render",
+	},
+	{
+		world: "nothing live, under a live game",
+		campaigns: () => [campaign({ status: "ended" })],
+		game: { id: "game_1", status: "live" },
+		bare: "Nothing to show",
+		asMain: "No main quest to show",
+		asSide: "No side quest to show",
+	},
+	{
+		world: "nothing live, with no game",
+		campaigns: () => [campaign({ status: "ended" })],
+		game: NO_GAME,
+		bare: "Nothing to show",
+		asMain: "No main quest to show",
+		asSide: "No side quest to show",
+	},
+];
+
+for (const { world, campaigns, game, bare, asMain, asSide } of WORLDS) {
+	test(`the default and an explicit slot, in ${world}`, async () => {
+		for (const [options, expected] of [
+			[{}, bare],
+			[{ slot: "main" }, asMain],
+			[{ slot: "side" }, asSide],
+		]) {
+			const root = await render(campaigns(), options, game);
+			assert.equal(find(root, "ak-name").textContent, expected, JSON.stringify(options));
+		}
+	});
+}
+
+test("a campaign in no slot is drawn by default only while no main quest is live", async () => {
+	// Published before the game model, so it fills no slot. A live main quest
+	// outranks it; without one it is the first live campaign like any other.
+	const legacy = () => campaign({ id: "campaign_legacy", slot: null, title: "Legacy" });
+
+	const beside = await render([legacy(), campaign({ id: "campaign_main", slot: "main" })]);
+	assert.equal(find(beside, "ak-name").textContent, "Finish the week");
+
+	const alone = await render([legacy()]);
+	assert.equal(find(alone, "ak-name").textContent, "Legacy");
+});
+
+test("no campaign draws no track, rather than a track at zero, and names the slot it looked in", async () => {
+	// An empty bar reads as a campaign nobody has started. Saying nothing is
+	// the honest answer when there is nothing to say, and naming the slot
+	// tells the page which part of its game is empty. Every slot, because a
+	// wrong name for one of them is the kind of slip nobody sees until a
+	// player does.
+	const names = { main: "main quest", daily: "daily objective", side: "side quest", event: "event" };
+	for (const [slot, word] of Object.entries(names)) {
+		const other = slot === "main" ? "side" : "main";
+		const root = await render([campaign({ slot: other })], { slot });
+
+		assert.equal(find(root, "ak-name").textContent, `No ${word} to show`, slot);
+		assert.equal(find(root, "ak-meta").textContent, "", slot);
+		assert.equal(find(root, "ak-track").hidden, true, slot);
+		assert.equal(find(root, "ak-pill").hidden, true, slot);
+	}
+});
+
+test("a `campaignId` the answer does not carry names no slot", async () => {
+	// `slot` is ignored beside `campaignId`, so naming it here would describe
+	// a search the card never ran.
+	const root = await render([campaign({})], { campaignId: "campaign_gone", slot: "daily" });
+
+	assert.equal(find(root, "ak-name").textContent, "Nothing to show");
 	assert.equal(find(root, "ak-track").hidden, true);
-	assert.equal(find(root, "ak-pill").hidden, true);
+});
+
+test("a slot cast past the type never reaches the player as a word", async () => {
+	// The markup readers drop a value that names no slot. A caller with code
+	// can still force one through, and the card must not paint "undefined".
+	const root = await render([campaign({})], { slot: "weekly" });
+
+	assert.equal(find(root, "ak-name").textContent, "Nothing to show");
+});
+
+test("isCampaignSlot knows the four slots and nothing else", () => {
+	for (const slot of ["main", "daily", "side", "event"]) assert.equal(isCampaignSlot(slot), true, slot);
+	for (const value of ["weekly", "Main", "", "toString", "hasOwnProperty", null, undefined, 1]) {
+		assert.equal(isCampaignSlot(value), false, String(value));
+	}
 });
 
 test("a failed read says so and draws no progress", async () => {

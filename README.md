@@ -195,7 +195,7 @@ is exactly why it will be gated like a production deploy.
 The shell is a second file, `activekit-shell.js`, loaded the same way and
 needing no container. Two builds rather than one with a switch: a script tag
 has no bundler to shake out the half you did not ask for, so the inline widget
-stays 3.1 kB brotli instead of carrying the shell's 6.1 kB.
+stays 3.2 kB brotli instead of carrying the shell's 6.2 kB.
 </details>
 
 ## See it running
@@ -256,7 +256,7 @@ decision about someone else's page load — say why in the PR.
 
 Budgets are per entry point, because that is the unit a customer downloads.
 The package entries are ceilings: `sideEffects: false` means a bundler ships
-only the subset that was imported, so `@activekit/js` at 5.9 kB is what the
+only the subset that was imported, so `@activekit/js` at 6.1 kB is what the
 whole library weighs, not what any one page pays. The script-tag builds get the
 tight budgets because they have no bundler to shake anything out: whatever is
 in the file is on the page.

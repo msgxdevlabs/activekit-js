@@ -23,10 +23,11 @@ import { el, svg } from "./dom.js";
 
 /**
  * The five colors the shell itself paints. Everything the *app* renders is
- * themed server-side from the tenant's saved preset, so it is deliberately not
- * configurable here — a mount call on someone else's page is the wrong place
- * to decide what our product looks like, and an option in this API can never
- * be removed.
+ * drawn in the widget template picked for the app in the dashboard
+ * (`activekit-dark`, `activekit-light` or `lantern`), which the app reads
+ * from the platform, so it is deliberately not configurable here: a mount
+ * call on someone else's page is the wrong place to decide what our product
+ * looks like, and an option in this API can never be removed.
  */
 export interface ShellColors {
 	/** Bubble fill. */
@@ -441,8 +442,10 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 	const build = (): void => {
 		if (frame || destroyed) return;
 		frame = el("iframe");
-		// Theme and locale ride the URL so the app can paint the right ground on
-		// its first frame. Neither is a secret; the token is, and does not.
+		// The host theme rides the URL because the shell contract's entry URL
+		// names it. It never decides what the app draws: the widget template
+		// inside the frame does, and `ready` reports the ground that template
+		// is on. Nothing here is a secret; the token is, and never rides a URL.
 		frame.src = `${appUrl.replace(/\/$/, "")}/embed?v=${PROTOCOL}&theme=${resolved()}`;
 		frame.title = label;
 		frame.setAttribute("sandbox", SANDBOX);

@@ -4,8 +4,25 @@ import type { WidgetColors } from "./colors.js";
 import type { ActiveKitClient } from "./client.js";
 import type { CampaignProgress, CampaignSlot, SubjectSnapshot } from "./types.js";
 
+/** What the empty card calls each slot, in the words a player reads. */
+const SLOT_NAME: Readonly<Record<CampaignSlot, string>> = {
+	main: "main quest",
+	daily: "daily objective",
+	side: "side quest",
+	event: "event",
+};
+
+/**
+ * Whether a value names one of the four slots. For a slot that arrives
+ * untyped, from markup or a query string, before it reaches `mountWidget`:
+ * the script tag's `data-slot` and the element's `campaign-slot` check with
+ * it and drop a value that names none, so a typo falls back to the default.
+ */
+export const isCampaignSlot = (value: unknown): value is CampaignSlot =>
+	typeof value === "string" && Object.hasOwn(SLOT_NAME, value);
+
 export interface MountOptions {
-	/** Which campaign to render, by its id. Omit to render the first live one. */
+	/** Which campaign to render, by its id. Omit to pick by `slot` instead. */
 	campaignId?: string;
 	/**
 	 * Which slot of the customer's game to render from, when no `campaignId`
@@ -13,9 +30,14 @@ export interface MountOptions {
 	 * the week's chain, `daily` today's objective, `side` a one-off and
 	 * `event` a limited-time one. Ignored when `campaignId` is set.
 	 *
-	 * Without either, the card renders the first live campaign in the answer,
-	 * which is a reasonable default for a page running one campaign and a
-	 * coin toss for a page running a whole game.
+	 * Without it, the card draws the live main quest when the answer carries
+	 * one, so a page on an app running a whole game shows the same campaign on
+	 * every load rather than whichever the answer happens to list first. When
+	 * no main quest is live, as for an app with no game, a draft game, or a
+	 * live one before its first main quest materializes, it draws the first
+	 * live campaign in any slot. With nothing live where it looked, the card draws no track and
+	 * says so: it names the slot you passed, and says "Nothing to show"
+	 * otherwise.
 	 */
 	slot?: CampaignSlot;
 	/**
@@ -38,8 +60,10 @@ export interface MountOptions {
 	 * that measurably fail log a console warning.
 	 *
 	 * This is the one embed that keeps colors as a mount option, because a card
-	 * sitting inside someone's layout genuinely has to match it. The shell's
-	 * app themes itself from the tenant's saved preset instead.
+	 * sitting inside someone's layout genuinely has to match it. The app the
+	 * shell opens draws itself in the widget template picked for the app in
+	 * the dashboard (`activekit-dark`, `activekit-light` or `lantern`)
+	 * instead.
 	 */
 	colors?: WidgetColors;
 }
@@ -88,16 +112,17 @@ color:var(--ak-fg);background:var(--ak-bg);border-radius:12px;padding:16px;borde
  * Render the progress widget into `target`.
  *
  * Read-only, like the client behind it. The widget reports what the server
- * says and offers no control that writes — when a subject completes a campaign it
- * says so and stops there, because issuing the grant is the organization's
- * server's job. If you want a claim button, render your own and point it at
- * your own backend.
+ * says and offers no control that writes: when a subject completes a campaign
+ * it says so and stops there. There is nothing to claim: the platform issues
+ * the grant a completion pays and tells your backend with a signed webhook,
+ * and fulfilling it from your own credit ledger is your backend's job.
  *
  * Synchronous by design: it paints a loading state immediately and fills in
  * when the network answers, so the host page never has to await a layout.
  *
  * Which campaign it draws: `campaignId` when one is named, else the first live
- * campaign filling `slot`, else the first live one. What it calls that
+ * campaign filling `slot`, else the live main quest, else the first live
+ * campaign in any slot. What it calls that
  * campaign: `label` when the caller gives one, else the campaign's own frozen
  * title, else "Your progress".
  */
@@ -137,23 +162,36 @@ export function mountWidget(
 
 	let destroyed = false;
 
+	/** Live, and filling `slot` when one is given. */
+	const live = (p: CampaignProgress, slot?: CampaignSlot): boolean =>
+		p.status === "live" && (!slot || p.slot === slot);
+
 	/**
-	 * The first live campaign the options select: one named by id, else the
-	 * first filling the named slot, else simply the first live one.
+	 * The campaign named by id, else the first live one in the named slot,
+	 * else the live main quest, else the first live campaign at all. Keyed on
+	 * what the answer carries rather than on `game`: whether a draft or paused
+	 * game still has instances is not the card's to guess, and the only thing
+	 * it needs to know is whether a main quest is there to draw.
 	 */
-	const select = (snapshot: SubjectSnapshot): CampaignProgress | undefined =>
-		options.campaignId
-			? snapshot.campaigns.find((p) => p.id === options.campaignId)
-			: snapshot.campaigns.find(
-					(p) => p.status === "live" && (!options.slot || p.slot === options.slot),
-				);
+	const select = ({ campaigns }: SubjectSnapshot): CampaignProgress | undefined => {
+		if (options.campaignId) return campaigns.find((p) => p.id === options.campaignId);
+		if (options.slot) return campaigns.find((p) => live(p, options.slot));
+		return campaigns.find((p) => live(p, "main")) ?? campaigns.find((p) => live(p));
+	};
 
 	const paint = (progress: CampaignProgress | undefined): void => {
 		if (!progress) {
 			// Nothing rather than a placeholder: a track drawn at zero reads as a
 			// campaign nobody has started, which is a different and wronger thing
-			// to say than that there is no campaign here.
-			name.textContent = "No campaign to show";
+			// to say than that there is no campaign here. It names the slot it
+			// was told to look in, so a page missing its card says which one is
+			// empty. Without one it searched every slot, and "Nothing to show" is
+			// the true sentence: naming the main quest would assert the app has
+			// one due, which a draft game or a game-less app does not. The markup
+			// readers drop a value that names no slot; a caller with code can
+			// still cast one past the type, and it reads as no name at all.
+			const slotName = !options.campaignId && options.slot && SLOT_NAME[options.slot];
+			name.textContent = slotName ? `No ${slotName} to show` : "Nothing to show";
 			meta.textContent = "";
 			track.hidden = true;
 			pill.hidden = true;

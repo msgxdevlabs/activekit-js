@@ -76,8 +76,8 @@ For driving your own markup instead of the packaged widget:
 {:else if $progress.error}
   <button onclick={() => progress.refresh()}>Retry</button>
 {:else}
-  {#each $progress.data?.campaigns ?? [] as p (p.campaign.id)}
-    <li>{p.current} / {p.target}</li>
+  {#each $progress.data?.campaigns ?? [] as p (p.id)}
+    <li>{p.title ?? "Your progress"}: {p.goal.achieved} of {p.goal.target}</li>
   {/each}
 {/if}
 ```

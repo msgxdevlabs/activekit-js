@@ -143,13 +143,13 @@ export function useProgress(): UseProgressResult {
  *
  * `class` and `style` are not props; Vue's attribute fallthrough lands them on
  * the host element. Read-only, like everything else in this package — there is
- * no `onGrant`, because nothing here can issue a grant. Render your own button
- * and post to your own backend.
+ * no `onGrant`, because nothing here can issue a grant and there is nothing to
+ * claim: the platform issues it and your backend fulfills it on the webhook.
  */
 export const ActiveKitWidget = defineComponent({
 	name: "ActiveKitWidget",
 	props: {
-		/** Which campaign to render, by its id. Omit to render the first live one. */
+		/** Which campaign to render, by its id. Omit to pick by `slot` instead. */
 		campaignId: { type: String, required: false, default: undefined },
 		/** Which slot of the game to render from. See `MountOptions` in `@activekit/js`. */
 		slot: {

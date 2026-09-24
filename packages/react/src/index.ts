@@ -131,8 +131,8 @@ export interface ActiveKitWidgetProps extends MountOptions {
  * identically under every framework.
  *
  * Read-only, like everything else in this package. There is no `onGrant`,
- * because nothing here can issue a grant — render your own button and post to
- * your own backend.
+ * because nothing here can issue a grant and there is nothing to claim: the
+ * platform issues it and your backend fulfills it on the webhook.
  */
 export function ActiveKitWidget({
 	className,

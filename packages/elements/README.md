@@ -42,7 +42,7 @@ render.
 | --- | --- | --- |
 | `token` | yes | Subject JWT, minted server-side. Set it late and the widget mounts then. |
 | `campaign` | no | One campaign, by its id. Omit to pick by slot instead. |
-| `campaign-slot` | no | Which slot of your game to draw from: `main`, `daily`, `side` or `event`. Ignored when `campaign` names one. With neither, the first live campaign in the answer. |
+| `campaign-slot` | no | Which slot of your game to draw from: `main`, `daily`, `side` or `event`. Ignored when `campaign` names one. Without it, the live main quest, else the first live campaign in any slot. A value that names no slot counts as none. |
 | `label` | no | The card's title, overriding the campaign's own `title`. |
 | `theme` | no | `light`, `dark`, or `auto` (default) |
 | `api-url` | no | Override the API host |
@@ -97,11 +97,12 @@ off a subject's state, read it directly and render whatever you like:
 import { createClient } from "@activekit/js";
 
 const { campaigns } = await createClient({ token }).progress();
-if (campaigns.some((p) => p.completed)) showYourOwnFulfillmentButton();
+const finished = campaigns.filter((p) => p.completed);
 ```
 
-That button posts to your backend, which calls the server SDK. It is the only
-path that can write.
+There is nothing to claim. When a completion pays a grant, the platform issues
+it and sends your backend a signed webhook, and your backend fulfills it from
+your own credit ledger.
 
 ## Angular
 

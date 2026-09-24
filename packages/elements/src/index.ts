@@ -13,10 +13,9 @@
  *   <activekit-widget token="SUBJECT_JWT" campaign-slot="main"></activekit-widget>
  *   <activekit-shell token="SUBJECT_JWT"></activekit-shell>
  */
-import { createClient, mountShell, mountWidget } from "@activekit/js";
+import { createClient, isCampaignSlot, mountShell, mountWidget } from "@activekit/js";
 import type {
 	ActiveKitClient,
-	CampaignSlot,
 	ShellHandle,
 	WidgetColors,
 	WidgetHandle,
@@ -106,8 +105,10 @@ export class ActiveKitWidgetElement extends HTMLElement {
 		// `campaign-slot` rather than a bare `slot`, for the same reason `label`
 		// is not `title`: `slot` is a global HTML attribute, and setting it would
 		// reassign the element inside whatever shadow root the host page put it
-		// in, as a side effect of configuring a card.
-		const slot = this.getAttribute("campaign-slot") as CampaignSlot | null;
+		// in, as a side effect of configuring a card. A value that names no
+		// slot is dropped, so the card falls back to its default.
+		const rawSlot = this.getAttribute("campaign-slot");
+		const slot = isCampaignSlot(rawSlot) ? rawSlot : undefined;
 		const label = this.getAttribute("label");
 		const theme = this.getAttribute("theme") as "light" | "dark" | "auto" | null;
 
