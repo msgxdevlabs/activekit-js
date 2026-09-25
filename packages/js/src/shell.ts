@@ -39,8 +39,9 @@ export interface ShellColors {
 	/**
 	 * Frame and skeleton ground. The skeleton keeps it for as long as it is
 	 * drawn; the frame keeps it only until the app says which ground its
-	 * template is rendering on, after which the frame follows the app so the
-	 * two do not meet in a seam at the rounded corners.
+	 * template is rendering on, on `ready` and again on every `ground` message
+	 * after it, after which the frame follows the app so the two do not meet
+	 * in a seam at the rounded corners.
 	 */
 	background?: string;
 	/** Close-button and skeleton foreground. */
@@ -248,9 +249,10 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 	let returnFocus: Element | null = null;
 	let scrollLock = "";
 	let resolveOpen: (() => void) | undefined;
-	// The frame ground the app told us it is rendering on, empty until `ready`.
-	// Held rather than written once because a theme change repaints, and a
-	// repaint that fell back to the theme default would undo it.
+	// The frame ground the app told us it is rendering on, empty until `ready`
+	// names one, and moved by every `ground` message after that. Held rather
+	// than written once because a theme change repaints, and a repaint that
+	// fell back to the theme default would undo it.
 	let ground = "";
 
 	// --- shadow root -------------------------------------------------------
@@ -369,6 +371,23 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 	media.addEventListener("change", onScheme);
 	paint();
 
+	/**
+	 * Take the ground the app named, on `ready` or on a `ground` message after
+	 * it. The value is a string from inside the frame that becomes a CSS value
+	 * on the host page, so it is checked for shape and not trusted: six hex
+	 * digits or it is ignored and whatever is painted stands. Anything looser
+	 * lets a compromised app write arbitrary CSS into the host document. The
+	 * case tolerance is deliberate and is the one place this is looser than
+	 * the contract, which says lowercase: a template authoring `#FFFFFF` is
+	 * not a threat and is not the shell's to reject. Do not tighten it back.
+	 */
+	const takeGround = (value: unknown): void => {
+		if (typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)) {
+			ground = value;
+			paint();
+		}
+	};
+
 	// --- protocol ----------------------------------------------------------
 	const post = (message: Record<string, unknown>): void => {
 		// Targeted at the app's origin, never `*`: a wildcard would deliver the
@@ -399,24 +418,23 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 				ready = true;
 				root.dataset["ready"] = "true";
 				delete root.dataset["state"];
-				// `ground` is a string from inside the frame that becomes a CSS
-				// value on the host page, so it is checked for shape and not
-				// trusted: six hex digits or it is ignored and the theme default
-				// stands. Anything looser lets a compromised app write arbitrary
-				// CSS into the host document. The case tolerance is deliberate
-				// and is the one place this is looser than the contract, which
-				// says lowercase: a template authoring `#FFFFFF` is not a threat
-				// and is not the shell's to reject. Do not tighten it back.
-				if (typeof data["ground"] === "string" && /^#[0-9a-f]{6}$/i.test(data["ground"])) {
-					ground = data["ground"];
-					paint();
-				}
+				takeGround(data["ground"]);
 				post({ type: "init", token, theme: resolved(), locale: navigator.language });
 				if (open) {
 					options.onOpen?.();
 					resolveOpen?.();
 					resolveOpen = undefined;
 				}
+				break;
+			case "ground":
+				// The app posts `ready` before it has read which template it is
+				// dressed in, so the ground on `ready` is the same default for
+				// every template. This one follows the config read, and a template
+				// change after it, with the ground the template is actually on,
+				// and repaints the frame through the same path `ready` does. Only
+				// after `ready`, the message that opens the conversation: one
+				// ahead of it is dropped.
+				if (ready) takeGround(data["ground"]);
 				break;
 			case "badge":
 				// While the app is loaded it knows better than the poller does.
@@ -444,8 +462,9 @@ export const mountShell = (options: ShellOptions): ShellHandle => {
 		frame = el("iframe");
 		// The host theme rides the URL because the shell contract's entry URL
 		// names it. It never decides what the app draws: the widget template
-		// inside the frame does, and `ready` reports the ground that template
-		// is on. Nothing here is a secret; the token is, and never rides a URL.
+		// inside the frame does, and `ready` and then `ground` report the
+		// ground that template is on. Nothing here is a secret; the token is,
+		// and never rides a URL.
 		frame.src = `${appUrl.replace(/\/$/, "")}/embed?v=${PROTOCOL}&theme=${resolved()}`;
 		frame.title = label;
 		frame.setAttribute("sandbox", SANDBOX);
