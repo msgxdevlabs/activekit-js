@@ -8,17 +8,17 @@ reads. The why lives where each card points:
 `activekit-io` for the items that span all three repositories.
 
 > [!NOTE]
-> **How a card reads.** The heading is the walk's ID and title. One note under
-> it carries three fields and nothing else: **Tier**, the deployment or machine
-> the walk opens; **Needs**, what has to be true before step 1; **Holds**, what
-> the walk keeps open. The table is the steps, one imperative sentence each,
-> with every control a person presses or reads in **bold**, spelled as the
-> screen spells it, and every value a person types in `code`. **Where** is how
-> to get there: a URL in angle brackets when one exists, the screen region in
-> plain words otherwise. **Pass** is a checklist of facts read off the screen or
-> a response, one sentence each. A warning or important banner under a card is
-> a failure mode, an ordering rule or a dated fact, one sentence each. "J02
-> failed at step 4" is enough to say back to the loop.
+> **How a card reads.** The `[!NOTE]` under the heading carries three fields:
+> **Tier** is which deployment to open, **Needs** is what has to be true
+> before step 1, **Holds** is what the walk keeps open. Each row of the table
+> is one act: **Step** says what to do, with every control a person presses
+> or reads in bold, spelled as the screen spells it, and every value a person
+> types in `code`; **Where** says how to get there, a full address when one
+> exists and the screen region otherwise. **Pass** is a checklist of facts,
+> each checkable by reading the screen or a response. A `[!WARNING]` names a
+> way the walk fails; a `[!IMPORTANT]` names an ordering rule or what changed
+> since the card was written, and when. "J02 failed at step 3" is enough to
+> say back to the loop, and step 3 is row 3 of the table.
 
 > [!IMPORTANT]
 > **Rules for this file.** One ID per walk, `J01` onward, never reused, and
