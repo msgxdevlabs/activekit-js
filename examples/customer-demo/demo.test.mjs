@@ -61,6 +61,7 @@ const shellBundle = () =>
 	);
 const standInSource = () =>
 	readFileSync(new URL("../dummy-app/public/embed.js", import.meta.url), "utf8");
+const pageSource = (file) => readFileSync(new URL(`public/${file}`, import.meta.url), "utf8");
 
 /** The subject `server.mjs` acts for. Its own constant, mirrored here. */
 const DEMO_SUBJECT = "sub_demo_1";
@@ -242,7 +243,8 @@ test("every route the demo's own page calls answers", async () => {
 // Idempotency, and the 202. Two platform behaviors a client has to handle, so
 // a mock that does not reproduce them teaches a client that breaks in
 // production. Driven straight at `/v1/events` because the demo's buttons mint a
-// fresh key per click on purpose, to simulate a week of logins in ten seconds.
+// fresh key per click on purpose, so a referral or a sprint session can be
+// logged again and again in one sitting.
 // ---------------------------------------------------------------------------
 
 test("a retried event replays its first answer instead of writing twice", async () => {
@@ -698,6 +700,133 @@ test("the seeded streak stands through yesterday, today extends it, a missed day
 	assert.deepEqual(snapshotOf(missed, at(day + 1, 0.001)).streak, { current: 0, longest: 4 });
 });
 
+test("the streak milestone counts days, so a second check-in on one day moves it once", () => {
+	// The campaign's `streak` goal, held to the platform's fold: distinct UTC
+	// days its criteria matched, consecutive, and broken by a gap. The mock
+	// counted events, so the demo's fresh key per click made a second press
+	// read 6 of 7 while the activity streak beside it, folded from days, still
+	// read 5, and the two split on the one page that draws both.
+	const day = 20_720;
+	const subject = "sub_milestone_days";
+	seed(subject, at(day, 9));
+	const read = (now) => {
+		const snapshot = snapshotOf(subject, now);
+		return {
+			milestone: snapshot.campaigns.find((c) => c.id === "cmp_streak_7"),
+			streak: snapshot.streak,
+		};
+	};
+	const checkin = (key, now) =>
+		recordEvent({ name: "practice.checkin", subject, idempotencyKey: `${subject}:${key}` }, now);
+	const goal = (achieved, longest) => ({ kind: "streak", achieved, target: 7, longest });
+
+	assert.deepEqual(read(at(day, 9)).milestone.goal, goal(4, 4));
+
+	checkin("first", at(day, 10));
+	checkin("again", at(day, 11));
+	const sameDay = read(at(day, 11));
+	assert.deepEqual(sameDay.milestone.goal, goal(5, 5));
+	// One event, two folds over the same days: the milestone and the activity
+	// streak read the same run, and a surface drawing both draws one number.
+	assert.deepEqual(sameDay.streak, { current: 5, longest: 5 });
+
+	checkin("tomorrow", at(day + 1, 10));
+	assert.deepEqual(read(at(day + 1, 10)).milestone.goal, goal(6, 6));
+
+	// A missed day breaks the run, keeps the best, and the campaign is still
+	// one the subject started: the days are recorded whatever the run reads.
+	checkin("after-a-gap", at(day + 3, 10));
+	const broken = read(at(day + 3, 10));
+	assert.deepEqual(broken.milestone.goal, goal(1, 6));
+	assert.equal(broken.milestone.enrollment, "enrolled");
+	assert.equal(broken.milestone.completed, false);
+});
+
+test("a daily objective re-opens each UTC day, so the chip and the milestone agree across days", () => {
+	// The daily instance stayed completed under tomorrow's period key, so a
+	// check-in the next day paid no XP and recorded no day: the chip stood at 5
+	// while the milestone read 6, then 0 beside 7 complete. The platform
+	// materializes a fresh instance per period, and so does the mock now.
+	const day = 20_720;
+	const subject = "sub_daily_reopens";
+	seed(subject, at(day, 9));
+	const read = (now) => {
+		const snapshot = snapshotOf(subject, now);
+		const daily = snapshot.campaigns.find((c) => c.id === "cmp_daily_practice");
+		const milestone = snapshot.campaigns.find((c) => c.id === "cmp_streak_7").goal;
+		return { daily, milestone: { current: milestone.achieved, longest: milestone.longest }, streak: snapshot.streak, xp: snapshot.progression.xp };
+	};
+	const checkin = (key, now) =>
+		recordEvent({ name: "practice.checkin", subject, idempotencyKey: `${subject}:${key}` }, now);
+
+	checkin("d0", at(day, 10));
+	const first = read(at(day, 11));
+	assert.equal(first.daily.completed, true);
+	assert.deepEqual(first.streak, { current: 5, longest: 5 });
+	assert.deepEqual(first.milestone, first.streak);
+
+	// Next day: a fresh, open instance under the new key, and the check-in
+	// completes it, pays its XP and extends both runs.
+	const opened = read(at(day + 1, 8));
+	assert.equal(opened.daily.completed, false);
+	assert.equal(opened.daily.goal.achieved, 0);
+	assert.equal(opened.daily.periodKey, at(day + 1, 8).toISOString().slice(0, 10));
+	checkin("d1", at(day + 1, 10));
+	const second = read(at(day + 1, 11));
+	assert.equal(second.daily.completed, true);
+	assert.equal(second.xp, first.xp + 20);
+	assert.deepEqual(second.streak, { current: 6, longest: 6 });
+	assert.deepEqual(second.milestone, second.streak);
+
+	// Third day, pressed twice: one more day for both, and the milestone
+	// completes at seven beside a chip that reads seven.
+	checkin("d2", at(day + 2, 10));
+	checkin("d2-again", at(day + 2, 12));
+	const third = read(at(day + 2, 13));
+	assert.deepEqual(third.streak, { current: 7, longest: 7 });
+	assert.deepEqual(third.milestone, third.streak);
+	assert.equal(snapshotOf(subject, at(day + 2, 13)).campaigns.find((c) => c.id === "cmp_streak_7").completed, true);
+});
+
+test("seven days running complete the milestone and issue its grant once", () => {
+	const day = 20_720;
+	const subject = "sub_milestone_seven";
+	seed(subject, at(day, 9));
+	// Days 5, 6 and 7 of a run the seed started four days before, twice on the
+	// seventh: the second press is the same day, so it completes nothing twice.
+	for (const [key, offset] of [["d5", 0], ["d6", 1], ["d7", 2], ["d7-again", 2]]) {
+		recordEvent(
+			{ name: "practice.checkin", subject, idempotencyKey: `${subject}:${key}` },
+			at(day + offset, 10),
+		);
+	}
+	const snapshot = snapshotOf(subject, at(day + 2, 11));
+	const milestone = snapshot.campaigns.find((c) => c.id === "cmp_streak_7");
+	assert.equal(milestone.completed, true);
+	assert.deepEqual(milestone.goal, { kind: "streak", achieved: 7, target: 7, longest: 7 });
+	// The grant froze the offer, and there is one of it.
+	assert.deepEqual(milestone.reward, {
+		source: "grant",
+		reward: { kind: "credits", amount: 1500 },
+		status: "pending",
+	});
+	assert.deepEqual(snapshot.wallets, [{ currency: "coins", balance: 1500 }]);
+});
+
+test("the demo page draws its streak chip from the wire", () => {
+	// The chip in Acme's nav read "Day 4" as markup, whatever the platform
+	// served, so a press that moved the streak moved nothing a visitor could
+	// see on the page. Read out of the two files rather than a browser: the
+	// page must carry the element and the script must paint it from the
+	// `streak` the progress read serves, and the number must not be typed in.
+	const page = pageSource("index.html");
+	const script = pageSource("app.js");
+	assert.match(page, /id="streak-chip"/, "the page has no streak chip to draw into");
+	assert.doesNotMatch(page, /Day 4/, "the chip's number is still typed into the markup");
+	assert.match(script, /streak\.current/, "app.js never reads the served streak");
+	assert.match(script, /getElementById\("streak-chip"\)/, "app.js never reaches the chip");
+});
+
 // ---------------------------------------------------------------------------
 // The shell's dot, and the boundary underneath it.
 // ---------------------------------------------------------------------------
@@ -743,6 +872,10 @@ test("the stand-in names a ground the shell's own guard accepts", () => {
 
 	const source = standInSource();
 	assert.match(source, /type: "ready", ground:/, "the stand-in stopped naming its ground");
+	// And once more after the handshake, which is the message the hosted app
+	// posts after it reads its config; the shell's own test drives what the
+	// shell does with it, this holds that the stand-in sends it at all.
+	assert.match(source, /type: "ground", ground:/, "the stand-in no longer posts `ground` after init");
 	// Matched inside the `GROUNDS` literal rather than over the file, because a
 	// sweep of every hex string passes only while nothing else in the file
 	// carries one, and then fails some later change with a message about

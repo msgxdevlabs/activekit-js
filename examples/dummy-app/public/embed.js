@@ -33,8 +33,9 @@ const PROTOCOL = 1; // ⭐ must match the shell's
  * The template decides the ground and the host page's theme does not: the host
  * theme owns the bubble and the scrim, and the frame follows whatever is
  * rendering inside it. The shell paints its frame from the value posted on
- * `ready` below, so a light host page framing a dark template no longer fades
- * in against white and then snaps.
+ * `ready` below and from every `ground` message after it, so a light host
+ * page framing a dark template no longer fades in against white and then
+ * snaps.
  *
  * Six lowercase hex digits, because the shell validates the shape before the
  * string becomes a CSS value on the host page and refuses a three-digit form.
@@ -75,6 +76,12 @@ window.addEventListener("message", (event) => {
 	switch (data.type) {
 		case "init":
 			token = data.token;
+			// ⭐ The hosted app posts `ready` before it has read its config, so
+			// the ground on `ready` is one default for every template, and it
+			// posts `ground` after the config read and again on a template
+			// change. This stand-in's template is fixed by its URL, so the
+			// value repeats; what is exercised is that the shell takes it.
+			toHost({ type: "ground", ground: GROUNDS[template] });
 			load();
 			break;
 		case "token":

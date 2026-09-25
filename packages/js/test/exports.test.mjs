@@ -126,18 +126,16 @@ test("the shell paints the frame ground from the app's ready message", () => {
 	// The template inside the frame decides the ground, not the host theme, so
 	// the app names its ground on `ready` and the shell paints `--ak-bg` from
 	// it. Without this a tenant on a light template inside a dark host page
-	// crossfades against the wrong color at every open.
+	// crossfades against the wrong color at every open. That the value goes
+	// through the guard, on `ready` and on the `ground` message after it, is
+	// `shell.test.mjs`'s to prove by driving the bundle; the demo test reads
+	// the guard's literal out of this bundle, which is why it is pinned here.
 	const shell = dist("activekit-shell.global.iife.js");
 	assert.match(shell, /\.ground\b/, "the shell never reads `ground` off the ready message");
 	assert.match(
 		shell,
 		/\/\^#\[0-9a-f\]\{6\}\$\/i/,
 		"the `#rrggbb` shape guard is gone: a string from inside the frame would reach the host page's CSS unchecked",
-	);
-	assert.match(
-		shell,
-		/ground[^;]{0,80}\^#\[0-9a-f\]\{6\}\$/,
-		"`ground` is read but not put through the shape guard",
 	);
 	assert.match(
 		shell,

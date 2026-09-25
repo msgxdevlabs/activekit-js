@@ -67,6 +67,27 @@ const mountAcmeShell = (mode) =>
 	});
 let shell = mountAcmeShell(theme());
 
+// ⭐ 4½. The streak chip in Acme's own nav. `snapshot.streak` is the activity
+//    streak the platform serves on every progress read, the consecutive days
+//    a daily objective paid XP, and it is drawn at zero rather than hidden:
+//    a streak that vanishes on the day it breaks is one the player cannot
+//    see start again. The hosted app draws the same number in its own chip.
+const streakChip = document.getElementById("streak-chip");
+const paintStreak = (snapshot) => {
+	const days = snapshot.streak.current;
+	streakChip.textContent = `🔥 ${days}`;
+	streakChip.setAttribute("aria-label", `${days} day streak`);
+};
+const readAndPaint = async () => {
+	try {
+		paintStreak(await client.progress());
+	} catch {
+		// The chip keeps what it had. A failed read is the platform having a
+		// bad minute, and nothing on Acme's page should break over it.
+	}
+};
+await readAndPaint();
+
 // --- demo scaffolding from here down ---------------------------------------
 
 /**
@@ -102,6 +123,7 @@ document.addEventListener("click", async (event) => {
 	if (action === "reset") {
 		await fetch("/api/demo/reset", { method: "POST" });
 		await shell.refresh();
+		await readAndPaint();
 		toast("Demo state reset.");
 		return;
 	}
@@ -133,6 +155,8 @@ document.addEventListener("click", async (event) => {
 		toast("Recorded, but the read that follows it failed. It will catch up next time.");
 		return;
 	}
+
+	paintStreak(snapshot);
 
 	// ⭐ 7. The app in the frame reads the same wire this page just re-read, so
 	//    tell it to read again. Without this an open app keeps painting the
