@@ -13,7 +13,7 @@ reads the shapes a test script takes, a leading `NAME=value`, flags before or
 after `--test` with their value joined or as the next word, a glob in either
 quote, a `&&` chain, and reds by name on the two it will not read rather than
 dropping the package: a `node --test` with no pattern, and a command that
-mentions `--test` but is not `node`. Planted by renaming `packages/server/test`
+says `--test` but is not node's runner. Planted by renaming `packages/server/test`
 away, which turned `pnpm test` red at `activekit` and its glob with every other
 suite green; by setting that package's script to a bare `node --test` and to
 `node --test-reporter=tap --test "…"` with the directory away, each red naming
