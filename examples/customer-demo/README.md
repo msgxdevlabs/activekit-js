@@ -59,7 +59,8 @@ the page; the demo server itself needs no restart for SDK-only changes).
 
 - The browser client is **read-only**: it fetches `/v1/me/progress` and
   `/v1/me/grants` with a short-lived subject token, the shell adds
-  `/v1/me/badge` for its dot, and that is all either of them can do.
+  `/v1/me/badge` for its dot, and that is all either of them can do. The
+  streak chip in Acme's nav is drawn from the `streak` on that progress read.
 - Progress only ever moves because **Acme's backend** records an event with
   the API key. The demo buttons go through it; nothing writes from the page.
 - The mock enforces that rather than trusting it. Every method but `GET` and
@@ -105,9 +106,11 @@ It draws the two views every widget template draws and no others: **Home**, the
 main quest board with its week strip, today's objective and the side quests, and
 **Map**, the goal strip and the route. There is no claim control on either,
 because the browser cannot write, and one thing moves per screen. Its `ready`
-message names the ground its template renders on, and the shell paints the
-frame from that, so the frame follows the template inside it rather than the
-host page's theme.
+message names the ground its template renders on, and it posts a `ground`
+message with the same value once the shell's `init` arrives, standing in for
+the message the hosted app posts after it reads its config and again on a
+template change; the shell paints the frame from each, so the frame follows
+the template inside it rather than the host page's theme.
 
 ## Which files are "the integration"
 
@@ -122,9 +125,13 @@ host page's theme.
 Three things the demo does that production should not:
 
 - `apiUrl` points at the local mock. A real integration omits it everywhere.
-- The daily check-in uses a random idempotency key per click, so you can
-  simulate a week of logins in ten seconds. Production would use
-  `${subjectId}:practice:${today}` so the same day never counts twice.
+- Every button uses a random idempotency key per click, so a referral or a
+  sprint session can be logged again and again in one sitting. Production
+  would key each event on the thing that happened, `${subjectId}:practice:${today}`
+  for a check-in, so a retry is a replay. A second check-in on one day already
+  counts once whatever its key, because the mock folds a streak to days the
+  way the platform does, so the seven-day milestone and the streak chip move
+  once a day however often the button is pressed.
 - The stand-in app advances its own fiction when the shell tells it to refresh.
   A real app re-reads `/v1/me/progress` there; this one has no wire behind it,
   and moving on a refresh is what lets a walk watch a goal move.

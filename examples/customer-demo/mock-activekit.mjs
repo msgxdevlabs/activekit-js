@@ -261,6 +261,10 @@ const utcDay = (instant) => Math.floor(instant.getTime() / 86_400_000);
  * best run inside that window. This fold reads every day it is given, which
  * is the same answer for any history a demo can hold.
  *
+ * A campaign's `streak` goal is folded by the same rule over the days its own
+ * criteria matched, which is the platform's `foldStreak` on a history with no
+ * late event in it.
+ *
  * Exported so the demo test can hold the fold to fixed days and a fixed `now`.
  */
 export const activityStreakOf = (days, now) => {
@@ -285,7 +289,7 @@ const periodOf = (cadence, now) => {
 
 /**
  * subjectId -> {
- *   progress: Map<campaignId, { achieved, longest, completedAt, steps }>,
+ *   progress: Map<campaignId, { achieved, completedAt, steps, days }>,
  *   grants: [],
  *   walletEntries: [],
  *   xp: number,
@@ -310,11 +314,14 @@ const seenEvents = new Map();
 
 const freshProgress = () => ({
 	achieved: 0,
-	longest: 0,
 	completedAt: null,
 	// Per-step counts for a checklist, keyed by the step's own key. Empty for
 	// every other goal kind, which counts in one number.
 	steps: {},
+	// The distinct UTC days a streak goal's criteria matched, which is what a
+	// streak counts; `achieved` and `longest` are folded from it on every read.
+	// Empty for every other goal kind.
+	days: new Set(),
 });
 
 const freshSubject = () => ({
@@ -332,9 +339,6 @@ const freshSubject = () => ({
  */
 export const seed = (subjectId, now = new Date()) => {
 	const state = freshSubject();
-	const streak = state.progress.get("cmp_streak_7");
-	streak.achieved = 4;
-	streak.longest = 4;
 	// One of the week's three objectives ticked, so the board has something
 	// done and something open on the first paint.
 	state.progress.get("cmp_week_chain").steps["grammar"] = 1;
@@ -359,11 +363,17 @@ export const seed = (subjectId, now = new Date()) => {
 	// until a credit-denominated reward is earned in front of you, which is the
 	// first thing the demo's buttons can do.
 	state.xp = 340;
-	// Four days of finished daily objectives, ending the day before the seed.
-	// Today's is still open, so on the day it is seeded the streak reads 4 and
-	// the practice button makes it 5. Read on any later day it has broken.
+	// Four days of check-ins, ending the day before the seed, on the record the
+	// activity streak reads and on the seven-day milestone's own: both count
+	// the days a check-in fell on, so both read 4 on the day this is seeded,
+	// the practice button makes both 5 and a second press leaves both at 5.
+	// Read on any later day both have broken.
 	const today = utcDay(now);
-	for (let daysAgo = 1; daysAgo <= 4; daysAgo += 1) state.dailyDays.add(today - daysAgo);
+	const milestone = state.progress.get("cmp_streak_7");
+	for (let daysAgo = 1; daysAgo <= 4; daysAgo += 1) {
+		state.dailyDays.add(today - daysAgo);
+		milestone.days.add(today - daysAgo);
+	}
 	subjects.set(subjectId, state);
 };
 
@@ -431,12 +441,17 @@ const unexpectedKey = (body, allowed) =>
  * answers: nested rather than flat, `achieved` rather than `current`, and only
  * the extras the kind actually has.
  *
+ * A streak's `achieved` is the run of consecutive days still standing at
+ * `now` and `longest` the best run, folded from the days its criteria matched
+ * the way the platform's `foldStreak` folds them: 0 once the last such day is
+ * older than yesterday, and a completion already reached stands.
+ *
  * A checklist step carries `key`, `achieved`, `target` and `done` and nothing
  * else. It has no title and no XP of its own on the wire; both are owed and
  * neither is served, so a surface that wants them writes its own words rather
  * than reading fields the platform does not answer.
  */
-const goalOf = (campaign, progress) => {
+const goalOf = (campaign, progress, now) => {
 	if (campaign.goal.kind === "checklist") {
 		const steps = campaign.goal.steps.map((step) => {
 			const achieved = progress.steps[step.key] ?? 0;
@@ -449,13 +464,11 @@ const goalOf = (campaign, progress) => {
 			steps,
 		};
 	}
-	return {
-		kind: campaign.goal.kind,
-		achieved: progress.achieved,
-		target: campaign.goal.target,
-		// Streaks only: the best run this subject has had.
-		...(campaign.goal.kind === "streak" ? { longest: progress.longest } : {}),
-	};
+	if (campaign.goal.kind === "streak") {
+		const { current, longest } = activityStreakOf(progress.days, now);
+		return { kind: "streak", achieved: current, target: campaign.goal.target, longest };
+	}
+	return { kind: campaign.goal.kind, achieved: progress.achieved, target: campaign.goal.target };
 };
 
 /** The balance projected over one subject's entries, one row per currency. */
@@ -477,13 +490,15 @@ export const snapshotOf = (subjectId, now = new Date()) => {
 	const campaigns = CAMPAIGNS.map((campaign) => {
 		const progress = state.progress.get(campaign.id);
 		const grant = state.grants.find((g) => g.campaign.id === campaign.id);
-		const goal = goalOf(campaign, progress);
+		const goal = goalOf(campaign, progress, now);
 		// Anything at all recorded against this campaign, a part-ticked
-		// checklist step included, which `goal.achieved` alone would read as
-		// nothing because it counts finished steps.
+		// checklist step or a broken streak's days included, which
+		// `goal.achieved` alone would read as nothing because it counts
+		// finished steps, or the run still standing.
 		const started =
 			progress.completedAt !== null ||
 			goal.achieved > 0 ||
+			progress.days.size > 0 ||
 			(goal.kind === "checklist" && goal.steps.some((step) => step.achieved > 0));
 		return {
 			id: campaign.id,
@@ -567,9 +582,18 @@ const applyEvent = (state, campaign, event) => {
 			(s) => (progress.steps[s.key] ?? 0) >= s.target,
 		);
 		if (!complete) return;
+	} else if (campaign.goal.kind === "streak") {
+		// A streak counts the days its criteria matched, never the events: the
+		// platform folds qualifying events to distinct UTC days, so a second
+		// check-in on one day extends nothing, and this milestone reads the
+		// same run as the activity streak beside it while both listen to the
+		// same daily event. Folded at the event's own instant, so the run it
+		// completes is the one standing then.
+		const at = new Date(event.at);
+		progress.days.add(utcDay(at));
+		if (activityStreakOf(progress.days, at).current < campaign.goal.target) return;
 	} else {
 		progress.achieved += 1;
-		progress.longest = Math.max(progress.longest, progress.achieved);
 		if (progress.achieved < campaign.goal.target) return;
 	}
 

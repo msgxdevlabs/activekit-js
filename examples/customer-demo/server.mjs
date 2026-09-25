@@ -53,11 +53,13 @@ const activekit = new ActiveKit({
 // the platform's business, and the note beside each one is only here because
 // this file is read as a worked example.
 //
-// `idempotencyKey` is the dedup handle: a retried request must not advance a
-// streak twice. Every one below uses a fresh key per click so *the demo* can
-// simulate a week of logins in one sitting — in production the check-in would
-// be `${subjectId}:practice:${today}`, so a subject checking in twice on one
-// day counts once.
+// `idempotencyKey` is the dedup handle: a retried request must not count
+// twice. Every one below uses a fresh key per click so *the demo* can log a
+// referral or a sprint session again and again in one sitting — in production
+// the key names the thing that happened, `${subjectId}:practice:${today}` for
+// a check-in, so a retry is a replay. A second check-in on one day already
+// counts once here whatever its key: the mock folds a streak to days, as the
+// platform does.
 const ACTIONS = {
 	// Today's daily objective, and the seven-day streak side quest with it:
 	// one event advances every campaign whose criteria name it.
