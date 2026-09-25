@@ -62,7 +62,10 @@ the root is also a one-line edit to the root `test` script. A package may glob
 its own: `packages/js` runs `node --test "test/**/*.test.mjs"`, so a file added
 there is picked up without an edit. Either way the rule is the same one: a test
 no runner names is not a test, so check which of the two applies before
-assuming you are covered.
+assuming you are covered. Since 2026-09-25 a package glob that matches nothing
+is red, and so is a root name with no file behind it: `scripts/tests-exist.test.mjs`
+reads every manifest and resolves each pattern the way `node --test` does,
+because the runner itself exits 0 on both.
 
 A green `check` is also the merge. With review findings fixed and the pull
 request's own CI green, the session labels its pull request `automerge` itself
