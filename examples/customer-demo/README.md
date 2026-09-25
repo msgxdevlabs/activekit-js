@@ -131,7 +131,8 @@ Three things the demo does that production should not:
   for a check-in, so a retry is a replay. A second check-in on one day already
   counts once whatever its key, because the mock folds a streak to days the
   way the platform does, so the seven-day milestone and the streak chip move
-  once a day however often the button is pressed.
+  once a day however often the button is pressed, and a daily objective
+  re-opens each UTC day so the two keep agreeing across days.
 - The stand-in app advances its own fiction when the shell tells it to refresh.
   A real app re-reads `/v1/me/progress` there; this one has no wire behind it,
   and moving on a refresh is what lets a walk watch a goal move.

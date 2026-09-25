@@ -38,8 +38,8 @@ const mount = () => {
 		handle,
 		bg: () => root.style.get("--ak-bg"),
 		/** A message from the app: its origin, its own window as the source. */
-		fromApp: (data, origin = APP_URL) =>
-			dom.deliver({ origin, source: frame.contentWindow, data: { v: 1, ...data } }),
+		fromApp: (data, origin = APP_URL, source = frame.contentWindow) =>
+			dom.deliver({ origin, source, data: { v: 1, ...data } }),
 	};
 };
 
@@ -81,10 +81,21 @@ test("a ground message before ready is ignored", () => {
 	const { handle, bg, fromApp } = mount();
 	fromApp({ type: "ground", ground: "#ffffff" });
 	assert.equal(bg(), THEME_DEFAULT);
-	// And `ready` without a ground of its own leaves the default too: the
-	// early message was dropped, not held.
+	// And a `ready` with no ground of its own still paints the default: the
+	// early value is not applied then either.
 	fromApp({ type: "ready" });
 	assert.equal(bg(), THEME_DEFAULT);
+	handle.destroy();
+});
+
+test("a ground message from another window on the app's origin is ignored", () => {
+	// The origin says who sent it; the source says it came from our frame
+	// rather than another window on the same origin, a popup or a second
+	// embed, and both checks stand in front of `ground` as they do `ready`.
+	const { handle, bg, fromApp } = mount();
+	fromApp({ type: "ready", ground: "#0b1220" });
+	fromApp({ type: "ground", ground: "#ffffff" }, APP_URL, {});
+	assert.equal(bg(), "#0b1220");
 	handle.destroy();
 });
 

@@ -71,10 +71,12 @@ test("each card carries one note with Tier, Needs and Holds, and nothing else in
 		assert.equal(notes.length, 1, `${card.id} has ${notes.length} notes, not one`);
 		const [note] = notes;
 		assert.equal(note.body.length, 1, `${card.id}'s note runs to ${note.body.length} lines`);
+		// `[^*]` in each field, so a fourth bold field cannot hide inside the
+		// third: the note carries these three and nothing else.
 		assert.match(
 			note.body[0],
-			/^\*\*Tier:\*\* .+ · \*\*Needs:\*\* .+ · \*\*Holds:\*\* .+$/,
-			`${card.id}'s note is not \`**Tier:** … · **Needs:** … · **Holds:** …\``,
+			/^\*\*Tier:\*\* [^*]+ · \*\*Needs:\*\* [^*]+ · \*\*Holds:\*\* [^*]+$/,
+			`${card.id}'s note is not \`**Tier:** … · **Needs:** … · **Holds:** …\` and nothing else`,
 		);
 	}
 });
@@ -119,6 +121,12 @@ test("each card has a numbered step table with a Where column", () => {
 			// Prose creeps back in as a trailing explanation. One sentence, no stop
 			// inside it, and none at the end either: a table cell is not a paragraph.
 			assert.doesNotMatch(step, /[.!?](?=\s)/, `${card.id} step ${number} is more than one sentence: ${step}`);
+			// A step that presses, opens or picks something names the control in
+			// bold, spelled as the screen spells it; one that does not is a step
+			// the reader has to guess at. The same rule `activekit-play`'s test holds.
+			if (/^(Press|Open|Turn|Set|Pick|Toggle|Choose|Select|Load)\b/.test(step)) {
+				assert.match(step, /\*\*[^*]+\*\*/, `${card.id} step ${number} names no control in bold: ${step}`);
+			}
 		}
 	}
 });

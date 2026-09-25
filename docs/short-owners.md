@@ -92,7 +92,7 @@ reads. The why lives where each card points:
 | # | Step | Where |
 |---|---|---|
 | 1 | Run `pnpm demo` | This checkout |
-| 2 | Open the page | <http://localhost:4173> |
+| 2 | Open **Acme Learn** | <http://localhost:4173> |
 | 3 | Read the streak chip | Acme's nav, beside **Toggle dark mode** |
 | 4 | Press **Practice for five minutes** twice, reading the chip after each press | The **Demo controls** card |
 | 5 | Press **A referred friend signs up**, then **Log a sprint session** | The **Demo controls** card |
@@ -117,7 +117,7 @@ reads. The why lives where each card points:
 > The mock behind the demo is shaped by the platform, never by the SDKs, so a demo that disagrees with staging is a bug in the mock and the mock loses.
 
 > [!WARNING]
-> The seed is built for the UTC day the server starts, so a demo left running past 00:00 UTC reads a broken streak, 0, until **Reset demo state**.
+> A demo left running past 00:00 UTC opens a fresh daily objective for the new day, so the chip and the milestone keep their run while **Practice for five minutes** is pressed each day and both read 0 once a day is missed.
 
 ### J03. Stand up `cdn.activekit.app`
 

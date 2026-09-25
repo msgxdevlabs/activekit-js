@@ -742,6 +742,52 @@ test("the streak milestone counts days, so a second check-in on one day moves it
 	assert.equal(broken.milestone.completed, false);
 });
 
+test("a daily objective re-opens each UTC day, so the chip and the milestone agree across days", () => {
+	// The daily instance stayed completed under tomorrow's period key, so a
+	// check-in the next day paid no XP and recorded no day: the chip stood at 5
+	// while the milestone read 6, then 0 beside 7 complete. The platform
+	// materializes a fresh instance per period, and so does the mock now.
+	const day = 20_720;
+	const subject = "sub_daily_reopens";
+	seed(subject, at(day, 9));
+	const read = (now) => {
+		const snapshot = snapshotOf(subject, now);
+		const daily = snapshot.campaigns.find((c) => c.id === "cmp_daily_practice");
+		const milestone = snapshot.campaigns.find((c) => c.id === "cmp_streak_7").goal;
+		return { daily, milestone: { current: milestone.achieved, longest: milestone.longest }, streak: snapshot.streak, xp: snapshot.progression.xp };
+	};
+	const checkin = (key, now) =>
+		recordEvent({ name: "practice.checkin", subject, idempotencyKey: `${subject}:${key}` }, now);
+
+	checkin("d0", at(day, 10));
+	const first = read(at(day, 11));
+	assert.equal(first.daily.completed, true);
+	assert.deepEqual(first.streak, { current: 5, longest: 5 });
+	assert.deepEqual(first.milestone, first.streak);
+
+	// Next day: a fresh, open instance under the new key, and the check-in
+	// completes it, pays its XP and extends both runs.
+	const opened = read(at(day + 1, 8));
+	assert.equal(opened.daily.completed, false);
+	assert.equal(opened.daily.goal.achieved, 0);
+	assert.equal(opened.daily.periodKey, at(day + 1, 8).toISOString().slice(0, 10));
+	checkin("d1", at(day + 1, 10));
+	const second = read(at(day + 1, 11));
+	assert.equal(second.daily.completed, true);
+	assert.equal(second.xp, first.xp + 20);
+	assert.deepEqual(second.streak, { current: 6, longest: 6 });
+	assert.deepEqual(second.milestone, second.streak);
+
+	// Third day, pressed twice: one more day for both, and the milestone
+	// completes at seven beside a chip that reads seven.
+	checkin("d2", at(day + 2, 10));
+	checkin("d2-again", at(day + 2, 12));
+	const third = read(at(day + 2, 13));
+	assert.deepEqual(third.streak, { current: 7, longest: 7 });
+	assert.deepEqual(third.milestone, third.streak);
+	assert.equal(snapshotOf(subject, at(day + 2, 13)).campaigns.find((c) => c.id === "cmp_streak_7").completed, true);
+});
+
 test("seven days running complete the milestone and issue its grant once", () => {
 	const day = 20_720;
 	const subject = "sub_milestone_seven";

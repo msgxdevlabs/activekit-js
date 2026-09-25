@@ -214,11 +214,11 @@ const CONFIRMED_EVENTS = new Set(CAMPAIGNS.flatMap(criteriaOf));
 // --- the clocks the slots run on --------------------------------------------
 //
 // Computed on every read rather than frozen at seed, so a demo left open
-// overnight answers today's period instead of yesterday's. The fields roll and
-// the progress behind them does not: a completed daily objective stays
-// completed under tomorrow's period key, where the platform would have
-// materialized a fresh instance. The demo is not a clock, and a walk that
-// crosses UTC midnight should reset it.
+// overnight answers today's period instead of yesterday's, and the progress
+// rolls with the fields: a daily or weekly instance re-opens under a new
+// period key (`instanceOf` below), the way the platform materializes a fresh
+// instance, so a completed daily objective is open again tomorrow and the
+// streak chip and the seven-day milestone keep agreeing across days.
 
 /** `2026-09-19`, the UTC day a `daily` instance covers. */
 const utcDayKey = (now) => now.toISOString().slice(0, 10);
@@ -288,6 +288,29 @@ const periodOf = (cadence, now) => {
 };
 
 /**
+ * The instance of `campaign` that `now` falls in. A campaign on a clock gets a
+ * fresh instance each period, so when the period key has moved since the
+ * progress was last touched the counts and the completion are reset in place
+ * and the new key recorded; a `once` campaign has one instance forever. Called
+ * before every read and every event, which is what keeps yesterday's finished
+ * daily objective from standing in the way of today's. The grant a past
+ * instance issued stays on the subject's list, as issued grants do.
+ */
+const instanceOf = (state, campaign, now) => {
+	const progress = state.progress.get(campaign.id);
+	const { periodKey } = periodOf(campaign.cadence, now);
+	if (periodKey !== null && progress.periodKey !== periodKey) {
+		if (progress.periodKey !== null) {
+			progress.achieved = 0;
+			progress.completedAt = null;
+			progress.steps = {};
+		}
+		progress.periodKey = periodKey;
+	}
+	return progress;
+};
+
+/**
  * subjectId -> {
  *   progress: Map<campaignId, { achieved, completedAt, steps, days }>,
  *   grants: [],
@@ -315,6 +338,9 @@ const seenEvents = new Map();
 const freshProgress = () => ({
 	achieved: 0,
 	completedAt: null,
+	// The period this instance belongs to, for a campaign on a clock; null for
+	// one that runs once. Set on the first roll and compared on every one.
+	periodKey: null,
 	// Per-step counts for a checklist, keyed by the step's own key. Empty for
 	// every other goal kind, which counts in one number.
 	steps: {},
@@ -340,8 +366,9 @@ const freshSubject = () => ({
 export const seed = (subjectId, now = new Date()) => {
 	const state = freshSubject();
 	// One of the week's three objectives ticked, so the board has something
-	// done and something open on the first paint.
-	state.progress.get("cmp_week_chain").steps["grammar"] = 1;
+	// done and something open on the first paint. Rolled to the seed's own
+	// period first, so the tick belongs to this week and not to no week.
+	instanceOf(state, CAMPAIGNS.find((c) => c.id === "cmp_week_chain"), now).steps["grammar"] = 1;
 	state.progress.get("cmp_referral").achieved = 1;
 	state.progress.get("cmp_autumn_sprint").achieved = 2;
 	const onboarding = state.progress.get("cmp_onboarding");
@@ -488,7 +515,7 @@ const walletsOf = (state) => {
 export const snapshotOf = (subjectId, now = new Date()) => {
 	const state = subjectState(subjectId);
 	const campaigns = CAMPAIGNS.map((campaign) => {
-		const progress = state.progress.get(campaign.id);
+		const progress = instanceOf(state, campaign, now);
 		const grant = state.grants.find((g) => g.campaign.id === campaign.id);
 		const goal = goalOf(campaign, progress, now);
 		// Anything at all recorded against this campaign, a part-ticked
@@ -567,8 +594,8 @@ export const snapshotOf = (subjectId, now = new Date()) => {
  * entry that reward cost.
  */
 const applyEvent = (state, campaign, event) => {
-	const progress = state.progress.get(campaign.id);
-	if (progress.completedAt) return; // completed campaigns stay completed
+	const progress = instanceOf(state, campaign, new Date(event.at));
+	if (progress.completedAt) return; // a completed instance stays completed
 
 	if (campaign.goal.kind === "checklist") {
 		const step = campaign.goal.steps.find((s) => s.event === event.name);
