@@ -15,7 +15,7 @@ import { makeElement } from "./card-double.mjs";
 
 /** The app's origin in every test, distinct from the host page's. */
 export const APP_URL = "https://play.example";
-export const HOST_ORIGIN = "https://acme.example";
+const HOST_ORIGIN = "https://acme.example";
 
 const makeShellElement = (tag) => {
 	const node = makeElement(tag);
@@ -28,10 +28,7 @@ const makeShellElement = (tag) => {
 		/** What `setProperty` was last given for `name`, for reading a token back. */
 		get: (name) => props.get(name),
 	};
-	node.listeners = {};
-	node.addEventListener = (type, fn) => {
-		node.listeners[type] = fn;
-	};
+	node.addEventListener = () => {};
 	node.removeEventListener = () => {};
 	node.insertBefore = (child) => {
 		node.children.push(child);
