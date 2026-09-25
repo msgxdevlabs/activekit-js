@@ -1,25 +1,35 @@
 # Short owner lane
 
 Everything in this repository that is a person's rather than a session's, in
-one screen. One card per walk: where to be, what it holds open, the steps, and
-what a pass looks like. The why lives where each card points:
+one screen. One card per walk, steps only, the way a configuration runbook
+reads. The why lives where each card points:
 [`CLAUDE.md`](../CLAUDE.md), [`docs/packaging.md`](packaging.md), the demo's
 [`README.md`](../examples/customer-demo/README.md), and `docs/owner-lane.md` in
 `activekit-io` for the items that span all three repositories.
 
 > [!NOTE]
-> **How a card reads.** **Where** is the surface, with the address to open, **Holds** is what the walk
-> keeps open. **Do** is numbered so a step has a name, and "J02 failed at step
-> 4" is enough to say back to the loop. **Pass** is a checklist, tick as you
-> go. A callout under the card names a prerequisite or the way it fails.
+> **How a card reads.** The heading is the walk's ID and title. One note under
+> it carries three fields and nothing else: **Tier**, the deployment or machine
+> the walk opens; **Needs**, what has to be true before step 1; **Holds**, what
+> the walk keeps open. The table is the steps, one imperative sentence each,
+> with every control a person presses or reads in **bold**, spelled as the
+> screen spells it, and every value a person types in `code`. **Where** is how
+> to get there: a URL in angle brackets when one exists, the screen region in
+> plain words otherwise. **Pass** is a checklist of facts read off the screen or
+> a response, one sentence each. A warning or important banner under a card is
+> a failure mode, an ordering rule or a dated fact, one sentence each. "J02
+> failed at step 4" is enough to say back to the loop.
 
 > [!IMPORTANT]
 > **Rules for this file.** One ID per walk, `J01` onward, never reused, and
 > the letter is the repository so an ID resolves from any of the three: `W` is
 > `activekit-io`, `P` is `activekit-play`, `J` is this repository. A walk added
 > to the lane gets its card here in the same pull request, and a finished walk
-> leaves. Every walk that fails comes back as a bug report, and the loop turns
-> it into a story.
+> leaves on your word. Every URL, route, control label and file path in a card
+> is checked against `origin/main` before it is written, and
+> `scripts/short-owners.test.mjs` holds every card to the shape above. Every
+> walk that fails comes back as a bug report, and the loop turns it into a
+> story.
 
 > [!IMPORTANT]
 > **Which tier, and which environment.** Two axes, easy to conflate. The
@@ -46,95 +56,110 @@ what a pass looks like. The why lives where each card points:
 
 ### J01. Release to npm
 
-- **Where:** Actions, the Release workflow, <https://github.com/msgxdevlabs/activekit-js/actions/workflows/release.yml>, from `main`
-- **Holds:** the only approval in this repository that is yours. Merging is the session's, and publishing what it merged is not
+> [!NOTE]
+> **Tier:** GitHub Actions, from `main` · **Needs:** an unreleased changeset that names a package · **Holds:** the only approval in this repository that is yours; merging is the session's, and publishing what it merged is not
 
-**Do**
-
-1. Read what would publish. Every `.changeset/*.md` not yet listed in `.changeset/pre.json` is unreleased, and only one with a package name in its front matter ships anything. On 2026-09-09 that is one, `webhook-on-and-track`, a minor for `activekit`: `webhooks.on` arrives and `events.record` becomes `events.track`.
-2. Actions tab, **Release** in the left sidebar, **Run workflow**, branch `main`, type `RELEASE` into the confirmation box, run.
-3. Validate, for each package that shipped:
-
-   ```bash
-   npm view <name> version dist-tags
-   npm view <name> dependencies
-   ```
+| # | Step | Where |
+|---|---|---|
+| 1 | Read every `.changeset/*.md` whose name is not listed in `.changeset/pre.json` | [`.changeset/`](../.changeset/) |
+| 2 | Open the **Release** workflow and press **Run workflow** | <https://github.com/msgxdevlabs/activekit-js/actions/workflows/release.yml> |
+| 3 | Pick branch `main`, type `RELEASE` under **Type RELEASE to publish to npm**, and press **Run workflow** | The **Run workflow** menu |
+| 4 | Run `npm view <name> version dist-tags` and `npm view <name> dependencies` for each package that shipped | A terminal |
 
 **Pass**
 
-- [ ] The run went green in about two minutes, and packages with no changeset were skipped rather than republished.
-- [ ] The new version is on the registry, and `workspace:^` was rewritten to real ranges.
+- [ ] The run is green in about two minutes, and packages with no changeset were skipped rather than republished.
+- [ ] The new version is on the registry under the `alpha` dist-tag, and `workspace:^` was rewritten to real ranges.
 - [ ] The repository has a new `<name>@<version>` tag with a matching GitHub release, and the npm page shows the provenance badge.
 
 > [!IMPORTANT]
-> The repository is in changesets pre mode, tag `alpha`, so a release moves
-> the `alpha` dist-tag and leaves `latest` where it is. Leaving pre mode is a
-> decision, not a side effect: `pnpm changeset pre exit` in its own pull
-> request, on your word. Never `pnpm publish` from a laptop, and a session
-> never runs this dispatch.
+> Only a changeset that names a package in its front matter ships anything; an empty one records plumbing and releases nothing.
+
+> [!IMPORTANT]
+> On 2026-09-09 one unreleased changeset named a package, `webhook-on-and-track`, a minor for `activekit`; on 2026-09-25 seven do, that one plus `card-defaults-to-main-quest`, `card-learns-slot-and-title`, `demo-and-stand-in-draw-v2`, `frame-ground-follows-template`, `served-streak-reaches-the-sdk` and `shell-reads-ground-after-config`, and nothing has been released between the two dates.
+
+> [!IMPORTANT]
+> The repository is in changesets pre mode, tag `alpha`, so a release moves the `alpha` dist-tag and leaves `latest` where it is, and leaving pre mode is `pnpm changeset pre exit` in its own pull request, on your word.
+
+> [!WARNING]
+> Never `pnpm publish` from a laptop, and a session never runs this dispatch.
 
 ### J02. The demo, as a developer sees it
 
-- **Where:** this checkout, `pnpm demo`, then <http://localhost:4173>
-- **Holds:** the word "shipped" for any SDK change. `pnpm check` exercises nothing against a deployed API, and this walk is the part no gate covers
+> [!NOTE]
+> **Tier:** your machine, this checkout · **Needs:** `pnpm install` done, ports 4173 and 4174 free · **Holds:** the word "shipped" for any SDK change, since `pnpm check` exercises nothing against a deployed API
 
-**Do**
-
-1. `pnpm install`, then `pnpm demo`. It builds first, so the page serves the exact minified file a customer ships.
-2. Open the page. It is Acme Learn, a pretend language app, with the ActiveKit bubble docked in a corner.
-3. Under Demo controls press **Practice for five minutes** a few times, then **A referred friend signs up** and **Log a sprint session**. The three **Start** buttons beside the lessons are the week's main quest, one step each.
-4. Press the bubble, and look at both **Home** and **Map**.
-5. Leave the app open, press a **Start** button on the page behind it, and watch the app.
-6. Press the moon button in Acme's own nav to switch the page to dark, then open the app again.
-7. Close the app, press **Reset demo state**, and open the network tab before pressing the bubble again.
+| # | Step | Where |
+|---|---|---|
+| 1 | Run `pnpm demo` | This checkout |
+| 2 | Open the page | <http://localhost:4173> |
+| 3 | Read the streak chip | Acme's nav, beside **Toggle dark mode** |
+| 4 | Press **Practice for five minutes** twice, reading the chip after each press | The **Demo controls** card |
+| 5 | Press **A referred friend signs up**, then **Log a sprint session** | The **Demo controls** card |
+| 6 | Press the **Your rewards** bubble | The corner of the page |
+| 7 | Read **Home**, then press **Map** | The nav at the foot of the frame |
+| 8 | Leave the app open and press a lesson's **Start** button on the page behind it | The lesson rows under **Spanish 101 · Unit 3** |
+| 9 | Press **Toggle dark mode**, then open the app again | Acme's nav |
+| 10 | Close the app, press **Reset demo state**, open the browser's network tab, and press the bubble again | The **Demo controls** card, then the corner |
 
 **Pass**
 
-- [ ] The bubble has two states and no middle panel. A dot appears when something is unacknowledged, and opening the app clears it.
+- [ ] The streak chip reads 4 on load, 5 after the first press of **Practice for five minutes**, and 5 after the second.
+- [ ] The bubble has two states and no middle panel, a dot is on it on load, and opening the app clears the dot.
 - [ ] The app opens on `localhost:4174`, a different origin, in a frame over the dimmed page.
-- [ ] It opens on **Home**: the week strip, the main quest's objectives, Today, and the side quests. There is no claim control anywhere on it, and the only thing moving is today's cell in the week strip.
+- [ ] **Home** draws the week strip, the main quest's objectives, today's objective and the side quests, with no claim control anywhere and today's cell in the week strip the only thing moving.
 - [ ] **Map** draws the goal strip across the top and the route below it, with exactly one station pulsing.
-- [ ] A goal moves on each press, and a grant lands when a goal is met. With the app open, a press on the page behind it moves a goal in the app too.
-- [ ] The frame's ground is the app's own, in both page themes: switching Acme's page to dark changes the bubble and the scrim and leaves the ground behind the app alone. It never flashes the page's background at the moment the app appears.
-- [ ] In the network tab the frame's URL carries `theme` and a protocol version and no token. Every request from the page under `/v1/me` is a `GET`.
+- [ ] A goal moves on each press, a grant lands when a goal is met, and with the app open a press on the page behind it moves a goal in the app too.
+- [ ] The frame's ground is the app's own in both page themes: switching the page to dark changes the bubble and the scrim, leaves the ground behind the app alone, and never flashes the page's background at the moment the app appears.
+- [ ] In the network tab the frame's URL carries `theme` and `v` and no token, and every request from the page under `/v1/me` is a `GET`.
 
-> [!NOTE]
-> The mock behind the demo is shaped by the platform, never by the SDKs:
-> events are idempotent per key, an unconfirmed name answers 202, and the
-> acknowledgment happens inside the grants read. A demo that disagrees with
-> staging is a bug in the mock, and the mock loses.
+> [!IMPORTANT]
+> The mock behind the demo is shaped by the platform, never by the SDKs, so a demo that disagrees with staging is a bug in the mock and the mock loses.
+
+> [!WARNING]
+> The seed is built for the UTC day the server starts, so a demo left running past 00:00 UTC reads a broken streak, 0, until **Reset demo state**.
 
 ### J03. Stand up `cdn.activekit.app`
 
-- **Where:** the Cloudflare dashboard, <https://dash.cloudflare.com>
-- **Holds:** CDN delivery of the shell, the one path no environment exercises. Drift row 3 in `docs/integration-map.md` in `activekit-play`
+> [!NOTE]
+> **Tier:** the Cloudflare dashboard · **Needs:** your Cloudflare sign-in · **Holds:** CDN delivery of the shell, the one path no environment exercises, drift row 3 of `docs/integration-map.md` in `activekit-play`
 
-**Do**
-
-1. Create the Worker or bucket the CDN serves from, and the DNS record for `cdn.activekit.app`, both console acts behind your sign-in.
-2. Tell the loop which. Publishing the `<script>` build to it on each release is the session's to write once the host exists; `README.md` under CDN pins the path shape, `/v<version>/activekit.js`.
+| # | Step | Where |
+|---|---|---|
+| 1 | Create the Worker or bucket the CDN serves from | <https://dash.cloudflare.com> |
+| 2 | Add the DNS record for `cdn.activekit.app` | **DNS** for the `activekit.app` zone in the same dashboard |
+| 3 | Tell the loop which of the two you made | A reply |
 
 **Pass**
 
-- [ ] `https://cdn.activekit.app` answers, and the demo in `activekit-play` can mount the shell from it instead of from npm.
+- [ ] `https://cdn.activekit.app` answers.
+- [ ] The demo in `activekit-play` mounts the shell from it instead of from npm.
 
-> [!NOTE]
-> Until this exists the demo mounts the shell from npm, which is why P03 in
-> `activekit-play` cannot prove CDN delivery.
+> [!IMPORTANT]
+> `README.md` under CDN pins the path shape, `/v<version>/activekit.js`, and publishing the `<script>` build to it on each release is the session's to write once the host exists.
+
+> [!WARNING]
+> Until this exists the demo mounts the shell from npm, which is why P03 in `activekit-play` cannot prove CDN delivery.
 
 ### J04. Delete the merged branches
 
-- **Where:** a terminal with this checkout
-- **Holds:** nothing. Cosmetic
+> [!NOTE]
+> **Tier:** a terminal with this checkout · **Needs:** push access to origin, which no session has · **Holds:** nothing, cosmetic
 
-**Do**
-
-1. Run the js command in item 12 of `docs/owner-lane.md` in `activekit-io`. It keeps `feature/subject-session-sdk`, the only copy of `packages/server/src/credentials.ts`, until someone reads whether `main`'s `subjects.createSession` made it redundant, and deletes only what is merged into `main` by ancestry or by squash.
+| # | Step | Where |
+|---|---|---|
+| 1 | Run the js command under item 12 | `docs/owner-lane.md` in `activekit-io` |
+| 2 | Run `git ls-remote --heads origin \| wc -l` | The same terminal |
 
 **Pass**
 
-- [ ] `git ls-remote --heads origin | wc -l` prints `main`, the kept branch, and whatever is in flight, and no more. It printed 17 on 2026-09-09.
+- [ ] The count is `main`, `feature/subject-session-sdk` and whatever is in flight, and no more.
 
-> [!NOTE]
-> No session can remove a ref, the proxy answers 403, which is why this is
-> yours. Two minutes.
+> [!IMPORTANT]
+> The command keeps `feature/subject-session-sdk`, the only copy of `packages/server/src/credentials.ts`, until someone reads whether `main`'s `subjects.createSession` made it redundant, and deletes only what is merged into `main` by ancestry or by squash.
+
+> [!IMPORTANT]
+> The count printed 17 on 2026-09-09 and 17 on 2026-09-25.
+
+> [!WARNING]
+> No session can remove a ref, the proxy answers 403, which is why this is yours.
